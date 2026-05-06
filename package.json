@@ -4,17 +4,22 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "pnpm --filter @waku/web dev",
-    "build": "pnpm -r build",
-    "typecheck": "pnpm -r typecheck",
-    "lint": "pnpm -r lint",
-    "test": "pnpm -r test",
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "start": "turbo run start",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "check": "turbo run check",
+    "test": "turbo run test",
+    "clean": "turbo run clean && rm -rf node_modules .turbo",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mdx,md,json}\" --cache",
     "format:write": "prettier --write \"**/*.{ts,tsx,js,jsx,mdx,md,json}\" --cache"
   },
   "devDependencies": {
     "prettier": "^3.5.3",
     "prettier-plugin-tailwindcss": "^0.6.11",
+    "turbo": "^2.5.0",
     "typescript": "^5.8.2"
   },
   "packageManager": "pnpm@10.14.0",
@@ -22,6 +27,11 @@
     "node": ">=20"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["sharp", "@resvg/resvg-js", "esbuild", "unrs-resolver"]
+    "onlyBuiltDependencies": [
+      "sharp",
+      "@resvg/resvg-js",
+      "esbuild",
+      "unrs-resolver"
+    ]
   }
 }
