@@ -1,8 +1,8 @@
 import type { z } from "zod";
-import { TemplateIRSchema } from "./schema.js";
-import { paramsSchemaToZod, searchParamsToObject, type ParamsSchema } from "./params.js";
-import { collectParams } from "./resolve.js";
-import type { Node } from "./types.js";
+import { TemplateIRSchema } from "./schema";
+import { paramsSchemaToZod, searchParamsToObject, type ParamsSchema } from "./params";
+import { collectParams } from "./resolve";
+import type { Node } from "./types";
 
 export type ValidationResult<T> =
   | { ok: true; value: T }

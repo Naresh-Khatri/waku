@@ -11,8 +11,8 @@ import type {
   Node,
   ParamRef,
   Value,
-} from "./types.js";
-import { isParamRef } from "./types.js";
+} from "./types";
+import { isParamRef } from "./types";
 
 export type ResolvedValues = Record<string, unknown>;
 

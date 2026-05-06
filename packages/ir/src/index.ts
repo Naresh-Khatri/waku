@@ -16,28 +16,28 @@ export type {
   StackNode,
   TextNode,
   Value,
-} from "./types.js";
-export { isParamRef } from "./types.js";
+} from "./types";
+export { isParamRef } from "./types";
 
-export { NodeSchema, ParamRefSchema, TemplateIRSchema } from "./schema.js";
+export { NodeSchema, ParamRefSchema, TemplateIRSchema } from "./schema";
 
-export type { ParamSchemaEntry, ParamsSchema } from "./params.js";
+export type { ParamSchemaEntry, ParamsSchema } from "./params";
 export {
   ParamsSchemaZ,
   paramsSchemaToZod,
   searchParamsToObject,
-} from "./params.js";
+} from "./params";
 
-export type { ResolvedValues } from "./resolve.js";
+export type { ResolvedValues } from "./resolve";
 export {
   ParamResolutionError,
   collectParams,
   resolve,
-} from "./resolve.js";
+} from "./resolve";
 
-export type { ValidationResult } from "./validate.js";
+export type { ValidationResult } from "./validate";
 export {
   findMissingParamDeclarations,
   validateIR,
   validateParams,
-} from "./validate.js";
+} from "./validate";

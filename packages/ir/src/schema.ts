@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Node } from "./types.js";
+import type { Node } from "./types";
 
 export const ParamRefSchema = z.object({
   $param: z.string().min(1),
