@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, gte, sql } from "drizzle-orm";
 import { wakuRenderLog, wakuTemplate, wakuTemplateVersion } from "@waku/db";
 import { ParamsSchemaZ, TemplateIRSchema } from "@waku/ir";
 import { z } from "zod";
@@ -62,7 +62,7 @@ export const templateRouter = createTRPCRouter({
       .where(
         and(
           eq(wakuTemplate.userId, userId),
-          sql`${wakuRenderLog.createdAt} >= ${monthStart}`,
+          gte(wakuRenderLog.createdAt, monthStart),
         ),
       );
 
@@ -85,7 +85,7 @@ export const templateRouter = createTRPCRouter({
       .where(
         and(
           eq(wakuTemplate.userId, userId),
-          sql`${wakuRenderLog.createdAt} >= ${monthStart}`,
+          gte(wakuRenderLog.createdAt, monthStart),
         ),
       )
       .groupBy(wakuTemplate.id, wakuTemplate.slug, wakuTemplate.name)
