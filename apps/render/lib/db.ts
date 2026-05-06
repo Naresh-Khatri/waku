@@ -3,6 +3,7 @@ import "server-only";
 import { and, eq } from "drizzle-orm";
 import {
   createDb,
+  wakuRenderLog,
   wakuTemplate,
   wakuTemplateVersion,
   wakuUserProfile,
@@ -84,6 +85,24 @@ export const loadTemplateVersion = async (
   };
   versionCache.set(key, loaded);
   return loaded;
+};
+
+export type RenderLogEntry = {
+  templateVersionId: string;
+  paramsHash: string;
+  format: string;
+  ms: number;
+  status: number;
+};
+
+// Fire-and-forget — never throws into the response path.
+export const recordRenderLog = (entry: RenderLogEntry): void => {
+  void getDb()
+    .insert(wakuRenderLog)
+    .values(entry)
+    .catch((err: unknown) => {
+      console.error("[render-log] insert failed", err);
+    });
 };
 
 export const resolvePublishedVersion = async (

@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, sql } from "drizzle-orm";
-import { wakuTemplate, wakuTemplateVersion } from "@waku/db";
+import { wakuRenderLog, wakuTemplate, wakuTemplateVersion } from "@waku/db";
 import { ParamsSchemaZ, TemplateIRSchema } from "@waku/ir";
 import { z } from "zod";
 
@@ -36,6 +36,70 @@ export const templateRouter = createTRPCRouter({
       .from(wakuTemplate)
       .where(eq(wakuTemplate.userId, ctx.session.user.id))
       .orderBy(desc(wakuTemplate.updatedAt));
+  }),
+
+  usage: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session.user.id;
+    const monthStart = new Date();
+    monthStart.setUTCDate(1);
+    monthStart.setUTCHours(0, 0, 0, 0);
+
+    const totals = await ctx.db
+      .select({
+        renders: sql<number>`COUNT(*)::int`,
+        p95Ms: sql<number | null>`PERCENTILE_DISC(0.95) WITHIN GROUP (ORDER BY ${wakuRenderLog.ms})::int`,
+        errors: sql<number>`COUNT(*) FILTER (WHERE ${wakuRenderLog.status} >= 400)::int`,
+      })
+      .from(wakuRenderLog)
+      .innerJoin(
+        wakuTemplateVersion,
+        eq(wakuTemplateVersion.id, wakuRenderLog.templateVersionId),
+      )
+      .innerJoin(
+        wakuTemplate,
+        eq(wakuTemplate.id, wakuTemplateVersion.templateId),
+      )
+      .where(
+        and(
+          eq(wakuTemplate.userId, userId),
+          sql`${wakuRenderLog.createdAt} >= ${monthStart}`,
+        ),
+      );
+
+    const top = await ctx.db
+      .select({
+        templateId: wakuTemplate.id,
+        slug: wakuTemplate.slug,
+        name: wakuTemplate.name,
+        renders: sql<number>`COUNT(*)::int`,
+      })
+      .from(wakuRenderLog)
+      .innerJoin(
+        wakuTemplateVersion,
+        eq(wakuTemplateVersion.id, wakuRenderLog.templateVersionId),
+      )
+      .innerJoin(
+        wakuTemplate,
+        eq(wakuTemplate.id, wakuTemplateVersion.templateId),
+      )
+      .where(
+        and(
+          eq(wakuTemplate.userId, userId),
+          sql`${wakuRenderLog.createdAt} >= ${monthStart}`,
+        ),
+      )
+      .groupBy(wakuTemplate.id, wakuTemplate.slug, wakuTemplate.name)
+      .orderBy(sql`COUNT(*) DESC`)
+      .limit(5);
+
+    const row = totals[0];
+    return {
+      monthStart: monthStart.toISOString(),
+      renders: row?.renders ?? 0,
+      errors: row?.errors ?? 0,
+      p95Ms: row?.p95Ms ?? null,
+      top,
+    };
   }),
 
   get: protectedProcedure

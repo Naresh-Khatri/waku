@@ -1,7 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { render, type RenderFormat } from "@waku/renderer";
 import { validateParams } from "@waku/ir";
-import { loadTemplateVersion, resolvePublishedVersion } from "@/lib/db";
+import {
+  loadTemplateVersion,
+  recordRenderLog,
+  resolvePublishedVersion,
+} from "@/lib/db";
 import {
   RENDER_BUDGET_MS,
   RenderTimeoutError,
@@ -143,12 +147,23 @@ export async function GET(req: NextRequest, ctx: Ctx) {
 
   const ph = hashParams(result.value);
 
+  const recordLog = (status: number) => {
+    recordRenderLog({
+      templateVersionId: tpl.versionId,
+      paramsHash: ph,
+      format,
+      ms: Date.now() - started,
+      status,
+    });
+  };
+
   try {
     const out = await withBudget(
       render(tpl.ir, result.value, { format }),
       RENDER_BUDGET_MS,
     );
     finishLog(200, ph, version);
+    recordLog(200);
     return new Response(new Uint8Array(out.buffer), {
       status: 200,
       headers: {
@@ -160,6 +175,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
   } catch (err) {
     if (err instanceof RenderTimeoutError) {
       finishLog(504, ph, version, "timeout");
+      recordLog(504);
       return errorResponse(
         504,
         "Render timeout",
@@ -169,6 +185,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     }
     const message = err instanceof Error ? err.message : "render failed";
     finishLog(500, ph, version, "render_error");
+    recordLog(500);
     return errorResponse(500, "Render failed", message, format);
   }
 }

@@ -8,7 +8,10 @@ export default async function DashboardPage() {
   const session = await getSession();
   if (!session?.user) redirect("/");
 
-  const templates = await api.template.list();
+  const [templates, usage] = await Promise.all([
+    api.template.list(),
+    api.template.usage(),
+  ]);
 
   if (templates.length === 0) {
     return (
@@ -28,9 +31,11 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div>
-      <h1 className="text-2xl font-semibold">Your templates</h1>
-      <ul className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <div className="flex flex-col gap-8">
+      <UsageCard usage={usage} />
+      <div>
+        <h1 className="text-2xl font-semibold">Your templates</h1>
+        <ul className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {templates.map((t) => (
           <li
             key={t.id}
@@ -61,7 +66,58 @@ export default async function DashboardPage() {
             </Link>
           </li>
         ))}
-      </ul>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+type Usage = Awaited<ReturnType<typeof api.template.usage>>;
+
+function UsageCard({ usage }: { usage: Usage }) {
+  const month = new Date(usage.monthStart).toLocaleString(undefined, {
+    month: "long",
+    year: "numeric",
+  });
+  return (
+    <section className="rounded-xl border border-[#1f2937] bg-[#0b0f1a] p-5">
+      <div className="flex items-baseline justify-between">
+        <h2 className="text-sm font-medium uppercase tracking-wide text-[#9ca3af]">
+          Usage · {month}
+        </h2>
+      </div>
+      <div className="mt-3 grid grid-cols-3 gap-4">
+        <Stat label="Renders" value={usage.renders.toLocaleString()} />
+        <Stat
+          label="p95 latency"
+          value={usage.p95Ms === null ? "—" : `${usage.p95Ms}ms`}
+        />
+        <Stat label="Errors" value={usage.errors.toLocaleString()} />
+      </div>
+      {usage.top.length > 0 && (
+        <ul className="mt-4 flex flex-col gap-1.5">
+          {usage.top.map((t) => (
+            <li
+              key={t.templateId}
+              className="flex items-center justify-between text-sm"
+            >
+              <span className="font-mono text-xs text-[#9ca3af]">{t.slug}</span>
+              <span className="text-[#e5e7eb]">
+                {t.renders.toLocaleString()}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-xs text-[#6b7280]">{label}</div>
+      <div className="mt-0.5 text-2xl font-semibold">{value}</div>
     </div>
   );
 }
