@@ -37,12 +37,10 @@ export type EditorActions = {
   setDraftValue: (name: string, value: unknown) => void;
   setDraftValues: (values: Record<string, unknown>) => void;
 
-  // Tree mutations (each pushes history)
-  setProp: <K extends keyof Node>(
-    path: NodePath,
-    key: K,
-    value: Node[K],
-  ) => void;
+  // Tree mutations (each pushes history). setProp is loosely typed because
+  // Node is a discriminated union — keyof Node is just `'type'`. Callers
+  // hold a concrete node and know which fields are valid.
+  setProp: (path: NodePath, key: string, value: unknown) => void;
   setNode: (path: NodePath, next: Node) => void;
   addNode: (parent: NodePath, index: number, node: Node) => void;
   deleteNode: (path: NodePath) => void;
