@@ -15,6 +15,7 @@ import {
 } from "@/lib/observability";
 import { negotiateFormat } from "@/lib/format";
 import { renderErrorImage } from "@/lib/error-image";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -89,6 +90,39 @@ export async function GET(req: NextRequest, ctx: Ctx) {
       `?format=${queryFormat ?? ""} not supported`,
       "png",
     );
+  }
+
+  const ipKey = `ip:${getClientIp(req)}`;
+  const ownerKey = `user:${user}`;
+  const userLimit = checkRateLimit(ownerKey);
+  const ipLimit = userLimit.ok ? checkRateLimit(ipKey) : userLimit;
+  if (!userLimit.ok || !ipLimit.ok) {
+    const limit = userLimit.ok ? ipLimit : userLimit;
+    const retryAfter = Math.max(1, Math.ceil((limit.resetAt - Date.now()) / 1000));
+    finishLog(429, "", -1, "rate_limited");
+    try {
+      const out = await renderErrorImage(
+        "Rate limit reached",
+        `Free tier: ${limit.limit} renders/day. Resets in ${Math.ceil(retryAfter / 60)}m.`,
+        format,
+      );
+      return new Response(new Uint8Array(out.buffer), {
+        status: 429,
+        headers: {
+          "Content-Type": out.contentType,
+          "Cache-Control": "no-store",
+          "Retry-After": String(retryAfter),
+          "X-RateLimit-Limit": String(limit.limit),
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": String(Math.floor(limit.resetAt / 1000)),
+        },
+      });
+    } catch {
+      return NextResponse.json(
+        { error: "Rate limit reached" },
+        { status: 429, headers: { "Retry-After": String(retryAfter) } },
+      );
+    }
   }
 
   // `published` keyword: 302 to the current versioned URL with a short cache.
