@@ -7,17 +7,23 @@
  */
 
 import type {
-  Fill,
   FrameNode,
-  Gradient,
   ImageNode,
-  Inset,
   Node,
   ShapeNode,
   StackNode,
   TextNode,
   GradientNode,
 } from "@waku/ir";
+
+import {
+  alignToCss,
+  fillToCss,
+  gradientToCss,
+  justifyToCss,
+  padToCss,
+  sizeToCss,
+} from "./css";
 
 export type SatoriElement = {
   type: string;
@@ -26,66 +32,6 @@ export type SatoriElement = {
     children?: SatoriElement | SatoriElement[] | string;
     src?: string;
   };
-};
-
-const padToCss = (p: Inset | undefined): Record<string, number> => {
-  if (p === undefined) return {};
-  if (typeof p === "number") return { padding: p };
-  const out: Record<string, number> = {};
-  if (p.t !== undefined) out.paddingTop = p.t;
-  if (p.r !== undefined) out.paddingRight = p.r;
-  if (p.b !== undefined) out.paddingBottom = p.b;
-  if (p.l !== undefined) out.paddingLeft = p.l;
-  return out;
-};
-
-const alignToCss = (a: StackNode["align"]): string | undefined => {
-  switch (a) {
-    case "start": return "flex-start";
-    case "center": return "center";
-    case "end": return "flex-end";
-    case "stretch": return "stretch";
-    default: return undefined;
-  }
-};
-
-const justifyToCss = (j: StackNode["justify"]): string | undefined => {
-  switch (j) {
-    case "start": return "flex-start";
-    case "center": return "center";
-    case "end": return "flex-end";
-    case "between": return "space-between";
-    case "around": return "space-around";
-    case "evenly": return "space-evenly";
-    default: return undefined;
-  }
-};
-
-const gradientToCss = (g: Gradient): string => {
-  const stops = g.stops
-    .map((s) => `${s.color} ${(s.offset * 100).toFixed(2)}%`)
-    .join(", ");
-  if (g.type === "linear") {
-    const angle = g.angle ?? 0;
-    return `linear-gradient(${angle}deg, ${stops})`;
-  }
-  return `radial-gradient(circle, ${stops})`;
-};
-
-const fillToCss = (f: Fill | undefined): { background?: string; backgroundColor?: string } => {
-  if (f === undefined) return {};
-  if (typeof f === "string") return { backgroundColor: f };
-  // Resolved tree: ParamRef should already be gone. Treat as gradient.
-  if ("type" in f && (f.type === "linear" || f.type === "radial")) {
-    return { background: gradientToCss(f) };
-  }
-  return {};
-};
-
-const sizeToCss = (v: number | "fill" | undefined, key: "width" | "height"): Record<string, unknown> => {
-  if (v === undefined) return {};
-  if (v === "fill") return { [key]: "100%", flexGrow: 1 };
-  return { [key]: v };
 };
 
 const div = (style: Record<string, unknown>, children?: SatoriElement[] | string): SatoriElement => ({
