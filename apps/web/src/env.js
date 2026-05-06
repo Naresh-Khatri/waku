@@ -23,6 +23,16 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
+    WAKU_STORAGE: z.enum(["fs", "r2"]).default("fs"),
+    WAKU_STORAGE_DIR: z.string().default(".waku-storage"),
+    WAKU_STORAGE_SECRET:
+      process.env.NODE_ENV === "production"
+        ? z.string().min(32)
+        : z.string().min(16).default("dev-storage-secret-change-me-please"),
+    WAKU_STORAGE_BASE_URL: z
+      .string()
+      .url()
+      .default("http://localhost:3000"),
   },
 
   /**
@@ -45,6 +55,10 @@ export const env = createEnv({
       process.env.BETTER_AUTH_GITHUB_CLIENT_SECRET,
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
+    WAKU_STORAGE: process.env.WAKU_STORAGE,
+    WAKU_STORAGE_DIR: process.env.WAKU_STORAGE_DIR,
+    WAKU_STORAGE_SECRET: process.env.WAKU_STORAGE_SECRET,
+    WAKU_STORAGE_BASE_URL: process.env.WAKU_STORAGE_BASE_URL,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

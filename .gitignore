@@ -18,6 +18,9 @@ node_modules/
 **/*.tsbuildinfo
 **/next-env.d.ts
 
+# local storage
+**/.waku-storage/
+
 # env (do not commit any .env files except .env.example)
 .env
 .env*.local
