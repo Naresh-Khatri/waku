@@ -9,6 +9,7 @@ import { EditorCanvas } from "@/components/editor/EditorCanvas";
 import { Inspector } from "@/components/editor/Inspector";
 import { ParamsPanel } from "@/components/editor/ParamsPanel";
 import { EditorStoreProvider, useEditorStore } from "@/components/editor/StoreProvider";
+import { Toolbar } from "@/components/editor/Toolbar";
 
 const RENDER_BASE =
   process.env.NEXT_PUBLIC_RENDER_BASE_URL ?? "http://localhost:3001";
@@ -19,6 +20,9 @@ type Props = {
   handle: string;
   slug: string;
   version: number;
+  templateId: string;
+  versionId: string;
+  isPublished: boolean;
   draftValues: Record<string, unknown>;
 };
 
@@ -28,6 +32,9 @@ export default function EditorPreview({
   handle,
   slug,
   version,
+  templateId,
+  versionId,
+  isPublished,
   draftValues,
 }: Props) {
   return (
@@ -36,6 +43,9 @@ export default function EditorPreview({
         handle={handle}
         slug={slug}
         version={version}
+        templateId={templateId}
+        versionId={versionId}
+        isPublished={isPublished}
         draftValues={draftValues}
       />
     </EditorStoreProvider>
@@ -46,11 +56,17 @@ function EditorPreviewInner({
   handle,
   slug,
   version,
+  templateId,
+  versionId,
+  isPublished,
   draftValues,
 }: {
   handle: string;
   slug: string;
   version: number;
+  templateId: string;
+  versionId: string;
+  isPublished: boolean;
   draftValues: Record<string, unknown>;
 }) {
   const setDraftValues = useEditorStore((s) => s.setDraftValues);
@@ -77,6 +93,12 @@ function EditorPreviewInner({
 
   return (
     <div className="flex flex-col gap-3">
+      <Toolbar
+        templateId={templateId}
+        versionId={versionId}
+        isPublished={isPublished}
+        initialDirty={dirty}
+      />
       <div className="flex items-center justify-between text-xs text-[#9ca3af]">
         <span>
           {selection.length === 0

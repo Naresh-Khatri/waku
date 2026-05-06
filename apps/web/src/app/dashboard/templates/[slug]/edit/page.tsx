@@ -81,6 +81,9 @@ export default async function EditTemplatePage({
         handle={handle}
         slug={tpl.slug}
         version={version.version}
+        templateId={tpl.id}
+        versionId={version.id}
+        isPublished={version.publishedAt !== null}
         draftValues={mock}
       />
     </div>
