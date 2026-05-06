@@ -1,41 +1,93 @@
 "use client";
 
-import type { Node } from "@waku/ir";
+import { useEffect } from "react";
 
-import { IRRenderer } from "@/components/editor/IRRenderer";
+import type { Node, ParamsSchema } from "@waku/ir";
+
+import { EditorCanvas } from "@/components/editor/EditorCanvas";
+import { EditorStoreProvider, useEditorStore } from "@/components/editor/StoreProvider";
 
 const RENDER_BASE =
   process.env.NEXT_PUBLIC_RENDER_BASE_URL ?? "http://localhost:3001";
 
 type Props = {
   ir: Node;
+  paramsSchema: ParamsSchema;
   handle: string;
   slug: string;
   version: number;
+  draftValues: Record<string, unknown>;
 };
 
-export default function EditorPreview({ ir, handle, slug, version }: Props) {
+export default function EditorPreview({
+  ir,
+  paramsSchema,
+  handle,
+  slug,
+  version,
+  draftValues,
+}: Props) {
+  return (
+    <EditorStoreProvider initial={{ ir, paramsSchema }}>
+      <EditorPreviewInner
+        handle={handle}
+        slug={slug}
+        version={version}
+        draftValues={draftValues}
+      />
+    </EditorStoreProvider>
+  );
+}
+
+function EditorPreviewInner({
+  handle,
+  slug,
+  version,
+  draftValues,
+}: {
+  handle: string;
+  slug: string;
+  version: number;
+  draftValues: Record<string, unknown>;
+}) {
+  const setDraftValues = useEditorStore((s) => s.setDraftValues);
+  const selection = useEditorStore((s) => s.selection);
+  const dirty = useEditorStore((s) => s.dirty);
+
+  useEffect(() => {
+    setDraftValues(draftValues);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const rendered = `${RENDER_BASE}/r/${handle}/${slug}/${version}`;
-  const w = ir.type === "frame" ? ir.w : 1200;
-  const h = ir.type === "frame" ? ir.h : 630;
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      <Pane label="Editor preview (IRRenderer)">
-        <Canvas w={w} h={h}>
-          <IRRenderer ir={ir} />
-        </Canvas>
-      </Pane>
-      <Pane label="Render service output">
-        <Canvas w={w} h={h}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={rendered}
-            alt="rendered template"
-            style={{ width: "100%", height: "100%", display: "block" }}
-          />
-        </Canvas>
-      </Pane>
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between text-xs text-[#9ca3af]">
+        <span>
+          {selection.length === 0
+            ? "no selection"
+            : selection.length === 1
+              ? `selected ${selection[0]}`
+              : `${selection.length} selected`}
+        </span>
+        <span>{dirty ? "● unsaved changes" : "no changes"}</span>
+      </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Pane label="Editor preview (IRRenderer)">
+          <EditorCanvas />
+        </Pane>
+        <Pane label="Render service output">
+          <div className="overflow-hidden rounded-xl border border-[#1f2937] bg-[#0b0f1a]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={rendered}
+              alt="rendered template"
+              style={{ width: "100%", display: "block" }}
+            />
+          </div>
+        </Pane>
+      </div>
     </div>
   );
 }
@@ -57,42 +109,3 @@ function Pane({
   );
 }
 
-function Canvas({
-  w,
-  h,
-  children,
-}: {
-  w: number;
-  h: number;
-  children: React.ReactNode;
-}) {
-  // Scale the intrinsic w×h canvas to fit the column width while preserving aspect.
-  return (
-    <div className="overflow-hidden rounded-xl border border-[#1f2937] bg-[#0b0f1a]">
-      <div
-        className="origin-top-left"
-        style={{
-          width: w,
-          height: h,
-          transform: "scale(var(--canvas-scale, 1))",
-          transformOrigin: "top left",
-        }}
-        ref={(el) => {
-          if (!el) return;
-          const parent = el.parentElement;
-          if (!parent) return;
-          const update = () => {
-            const scale = Math.min(parent.clientWidth / w, 1);
-            el.style.setProperty("--canvas-scale", String(scale));
-            parent.style.height = `${h * scale}px`;
-          };
-          update();
-          const ro = new ResizeObserver(update);
-          ro.observe(parent);
-        }}
-      >
-        {children}
-      </div>
-    </div>
-  );
-}

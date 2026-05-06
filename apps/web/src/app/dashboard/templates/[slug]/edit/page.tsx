@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
-import { resolve, type Node, type ParamsSchema } from "@waku/ir";
+import type { Node, ParamsSchema } from "@waku/ir";
 
 import { getSession } from "@/server/better-auth/server";
 import { ensureProfile } from "@/server/profile";
@@ -55,7 +55,6 @@ export default async function EditTemplatePage({
   const version = await api.template.getVersion({ versionId: latest.id });
 
   const mock = buildMockValues(version.paramsSchemaJson);
-  const resolved = resolve(version.irJson as Node, mock);
 
   return (
     <div className="flex flex-col gap-4">
@@ -76,7 +75,14 @@ export default async function EditTemplatePage({
         </div>
       </header>
 
-      <EditorPreview ir={resolved} handle={handle} slug={tpl.slug} version={version.version} />
+      <EditorPreview
+        ir={version.irJson as Node}
+        paramsSchema={version.paramsSchemaJson as ParamsSchema}
+        handle={handle}
+        slug={tpl.slug}
+        version={version.version}
+        draftValues={mock}
+      />
     </div>
   );
 }

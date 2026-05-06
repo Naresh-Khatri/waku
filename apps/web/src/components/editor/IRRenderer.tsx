@@ -34,42 +34,68 @@ export const ROOT_ID = "0";
 
 const childId = (parent: string, idx: number) => `${parent}.children.${idx}`;
 
+type Ctx = {
+  selectedIds: Set<string>;
+};
+
 type NodeProps = {
   node: Node;
   id: string;
+  ctx: Ctx;
 };
 
-export function IRRenderer({ ir }: { ir: Node }): ReactElement {
-  return <NodeRenderer node={ir} id={ROOT_ID} />;
+export function IRRenderer({
+  ir,
+  selectedIds,
+}: {
+  ir: Node;
+  selectedIds?: string[] | Set<string>;
+}): ReactElement {
+  const ctx: Ctx = {
+    selectedIds:
+      selectedIds instanceof Set
+        ? selectedIds
+        : new Set(selectedIds ?? []),
+  };
+  return <NodeRenderer node={ir} id={ROOT_ID} ctx={ctx} />;
 }
 
-function NodeRenderer({ node, id }: NodeProps): ReactElement {
+function NodeRenderer({ node, id, ctx }: NodeProps): ReactElement {
   switch (node.type) {
     case "frame":
-      return <FrameRenderer node={node} id={id} />;
+      return <FrameRenderer node={node} id={id} ctx={ctx} />;
     case "stack":
-      return <StackRenderer node={node} id={id} />;
+      return <StackRenderer node={node} id={id} ctx={ctx} />;
     case "text":
-      return <TextRenderer node={node} id={id} />;
+      return <TextRenderer node={node} id={id} ctx={ctx} />;
     case "image":
-      return <ImageRenderer node={node} id={id} />;
+      return <ImageRenderer node={node} id={id} ctx={ctx} />;
     case "shape":
-      return <ShapeRenderer node={node} id={id} />;
+      return <ShapeRenderer node={node} id={id} ctx={ctx} />;
     case "gradient":
-      return <GradientRenderer node={node} id={id} />;
+      return <GradientRenderer node={node} id={id} ctx={ctx} />;
   }
 }
 
 function renderChildren(
   children: Node[] | undefined,
   parentId: string,
+  ctx: Ctx,
 ): ReactElement[] {
   return (children ?? []).map((child, i) => (
-    <NodeRenderer key={childId(parentId, i)} node={child} id={childId(parentId, i)} />
+    <NodeRenderer
+      key={childId(parentId, i)}
+      node={child}
+      id={childId(parentId, i)}
+      ctx={ctx}
+    />
   ));
 }
 
-function FrameRenderer({ node, id }: { node: FrameNode; id: string }): ReactElement {
+const sel = (id: string, ctx: Ctx) =>
+  ctx.selectedIds.has(id) ? "true" : undefined;
+
+function FrameRenderer({ node, id, ctx }: { node: FrameNode; id: string; ctx: Ctx }): ReactElement {
   const style: CSSProperties = {
     display: "flex",
     width: node.w,
@@ -78,13 +104,13 @@ function FrameRenderer({ node, id }: { node: FrameNode; id: string }): ReactElem
     ...fillToCss(node.bg),
   };
   return (
-    <div data-node-id={id} data-node-type="frame" style={style}>
-      {renderChildren(node.children, id)}
+    <div data-node-id={id} data-node-type="frame" data-selected={sel(id, ctx)} style={style}>
+      {renderChildren(node.children, id, ctx)}
     </div>
   );
 }
 
-function StackRenderer({ node, id }: { node: StackNode; id: string }): ReactElement {
+function StackRenderer({ node, id, ctx }: { node: StackNode; id: string; ctx: Ctx }): ReactElement {
   const style: CSSProperties = {
     display: "flex",
     flexDirection: node.dir === "row" ? "row" : "column",
@@ -100,13 +126,13 @@ function StackRenderer({ node, id }: { node: StackNode; id: string }): ReactElem
   if (justify) style.justifyContent = justify as CSSProperties["justifyContent"];
   if (node.radius !== undefined) style.borderRadius = node.radius;
   return (
-    <div data-node-id={id} data-node-type="stack" style={style}>
-      {renderChildren(node.children, id)}
+    <div data-node-id={id} data-node-type="stack" data-selected={sel(id, ctx)} style={style}>
+      {renderChildren(node.children, id, ctx)}
     </div>
   );
 }
 
-function TextRenderer({ node, id }: { node: TextNode; id: string }): ReactElement {
+function TextRenderer({ node, id, ctx }: { node: TextNode; id: string; ctx: Ctx }): ReactElement {
   if (typeof node.value !== "string" || typeof node.color !== "string") {
     throw new Error("IRRenderer: text.value/color must be resolved before render");
   }
@@ -127,13 +153,13 @@ function TextRenderer({ node, id }: { node: TextNode; id: string }): ReactElemen
     style.overflow = "hidden";
   }
   return (
-    <div data-node-id={id} data-node-type="text" style={style}>
+    <div data-node-id={id} data-node-type="text" data-selected={sel(id, ctx)} style={style}>
       {node.value}
     </div>
   );
 }
 
-function ImageRenderer({ node, id }: { node: ImageNode; id: string }): ReactElement {
+function ImageRenderer({ node, id, ctx }: { node: ImageNode; id: string; ctx: Ctx }): ReactElement {
   if (typeof node.src !== "string") {
     throw new Error("IRRenderer: image.src must be resolved before render");
   }
@@ -149,6 +175,7 @@ function ImageRenderer({ node, id }: { node: ImageNode; id: string }): ReactElem
     <img
       data-node-id={id}
       data-node-type="image"
+      data-selected={sel(id, ctx)}
       src={node.src}
       alt=""
       style={style}
@@ -156,7 +183,7 @@ function ImageRenderer({ node, id }: { node: ImageNode; id: string }): ReactElem
   );
 }
 
-function ShapeRenderer({ node, id }: { node: ShapeNode; id: string }): ReactElement {
+function ShapeRenderer({ node, id, ctx }: { node: ShapeNode; id: string; ctx: Ctx }): ReactElement {
   const style: CSSProperties = {
     width: node.w,
     height: node.h,
@@ -164,15 +191,15 @@ function ShapeRenderer({ node, id }: { node: ShapeNode; id: string }): ReactElem
   };
   if (node.kind === "circle") style.borderRadius = Math.max(node.w, node.h);
   else if (node.radius !== undefined) style.borderRadius = node.radius;
-  return <div data-node-id={id} data-node-type="shape" style={style} />;
+  return <div data-node-id={id} data-node-type="shape" data-selected={sel(id, ctx)} style={style} />;
 }
 
-function GradientRenderer({ node, id }: { node: GradientNode; id: string }): ReactElement {
+function GradientRenderer({ node, id, ctx }: { node: GradientNode; id: string; ctx: Ctx }): ReactElement {
   const style: CSSProperties = {
     width: node.w,
     height: node.h,
     background: gradientToCss(node.gradient),
   };
   if (node.radius !== undefined) style.borderRadius = node.radius;
-  return <div data-node-id={id} data-node-type="gradient" style={style} />;
+  return <div data-node-id={id} data-node-type="gradient" data-selected={sel(id, ctx)} style={style} />;
 }
