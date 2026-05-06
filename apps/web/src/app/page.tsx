@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -21,18 +22,26 @@ export default async function Home() {
           {session?.user ? (
             <>
               <p className="text-xl">Signed in as {session.user.name}</p>
-              <form>
-                <button
-                  className="rounded-full bg-white/10 px-10 py-3 font-semibold transition hover:bg-white/20"
-                  formAction={async () => {
-                    "use server";
-                    await auth.api.signOut({ headers: await headers() });
-                    redirect("/");
-                  }}
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/dashboard"
+                  className="rounded-full bg-[#7c5cff] px-10 py-3 font-semibold text-white transition hover:bg-[#6b4be0]"
                 >
-                  Sign out
-                </button>
-              </form>
+                  Open dashboard
+                </Link>
+                <form>
+                  <button
+                    className="rounded-full bg-white/10 px-6 py-3 font-semibold transition hover:bg-white/20"
+                    formAction={async () => {
+                      "use server";
+                      await auth.api.signOut({ headers: await headers() });
+                      redirect("/");
+                    }}
+                  >
+                    Sign out
+                  </button>
+                </form>
+              </div>
             </>
           ) : (
             <form>
