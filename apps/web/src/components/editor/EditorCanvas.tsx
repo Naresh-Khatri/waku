@@ -5,6 +5,7 @@ import type { Node } from "@waku/ir";
 import { resolve } from "@waku/ir";
 
 import { IRRenderer } from "./IRRenderer";
+import { SelectionOverlay } from "./SelectionOverlay";
 import { useEditorStore } from "./StoreProvider";
 
 const isInputTarget = (el: EventTarget | null): boolean => {
@@ -80,19 +81,14 @@ export function EditorCanvas() {
 
   return (
     <ScaledCanvas w={w} h={h}>
-      <style>{`
-        [data-selected="true"] {
-          outline: 2px solid #7c5cff;
-          outline-offset: 0;
-        }
-        [data-node-id] { cursor: pointer; }
-      `}</style>
+      <style>{`[data-node-id] { cursor: pointer; }`}</style>
       <div
         ref={containerRef}
         onClick={onClick}
-        style={{ width: w, height: h }}
+        style={{ width: w, height: h, position: "relative" }}
       >
         <IRRenderer ir={resolved} selectedIds={selection} />
+        <SelectionOverlay containerRef={containerRef} irW={w} />
       </div>
     </ScaledCanvas>
   );

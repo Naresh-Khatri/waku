@@ -46,6 +46,13 @@ export type EditorActions = {
   setNode: (path: NodePath, next: Node) => void;
   addNode: (parent: NodePath, index: number, node: Node) => void;
   deleteNode: (path: NodePath) => void;
+  moveNode: (fromPath: NodePath, toParent: NodePath, toIndex: number) => void;
+
+  // Live mutations during a drag/resize (no history per frame).
+  // Caller captures a snapshot before the gesture starts and calls
+  // commitTransform(snapshot) on release to coalesce into one history entry.
+  liveSetNode: (path: NodePath, next: Node) => void;
+  commitTransform: (before: EditorSnapshot) => void;
 
   // Param binding
   bindToParam: (
@@ -74,7 +81,7 @@ const snapshot = (s: Pick<EditorState, "ir" | "paramsSchema">): EditorSnapshot =
 
 const pushHistory = (
   state: EditorState,
-  next: Partial<EditorSnapshot>,
+  next: Partial<EditorState>,
 ): Partial<EditorState> => {
   const past = [...state.history.past, snapshot(state)].slice(-HISTORY_LIMIT);
   return {
@@ -129,6 +136,32 @@ export const createEditorStore = (initial: EditorSnapshot) =>
         const next = removeNodeAt(s.ir, path);
         const parent = parentPath(path);
         return pushHistory(s, { ir: next, ...(parent ? { selection: [parent] } : {}) });
+      }),
+
+    moveNode: (fromPath, toParent, toIndex) =>
+      set((s) => {
+        if (fromPath === "0") return s;
+        const node = getNodeAt(s.ir, fromPath);
+        if (!node) return s;
+        const fromParent = parentPath(fromPath);
+        if (!fromParent) return s;
+        // Adjust index when moving within the same parent past the original slot.
+        const fromIdx = Number(fromPath.split(".").pop());
+        const adjustedIndex =
+          fromParent === toParent && toIndex > fromIdx ? toIndex - 1 : toIndex;
+        const removed = removeNodeAt(s.ir, fromPath);
+        const inserted = insertChildAt(removed, toParent, adjustedIndex, node);
+        const newPath = `${toParent}.children.${adjustedIndex}`;
+        return pushHistory(s, { ir: inserted, selection: [newPath] });
+      }),
+
+    liveSetNode: (path, next) =>
+      set((s) => ({ ir: replaceNodeAt(s.ir, path, next) })),
+
+    commitTransform: (before) =>
+      set((s) => {
+        const past = [...s.history.past, before].slice(-HISTORY_LIMIT);
+        return { history: { past, future: [] }, dirty: true };
       }),
 
     bindToParam: (path, field, paramName, schemaEntry) =>
