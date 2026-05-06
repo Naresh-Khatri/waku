@@ -14,9 +14,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@waku/ir": "workspace:*"
+    "@resvg/resvg-js": "^2.6.2",
+    "@waku/ir": "workspace:*",
+    "satori": "^0.12.0"
   },
   "devDependencies": {
+    "@types/node": "^20.14.10",
     "typescript": "^5.8.2"
   }
 }

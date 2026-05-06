@@ -1,0 +1,29 @@
+import { notFound } from "next/navigation";
+import { getTemplate } from "@/templates";
+import PlaygroundClient from "./PlaygroundClient";
+
+export default async function TemplatePage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const tpl = getTemplate(slug, 1);
+  if (!tpl) notFound();
+
+  // Build a serializable plain object: paramsSchema + defaults derived from each entry.
+  const defaults: Record<string, unknown> = {};
+  for (const [k, entry] of Object.entries(tpl.params)) {
+    if ("default" in entry && entry.default !== undefined) defaults[k] = entry.default;
+    else defaults[k] = "";
+  }
+
+  return (
+    <PlaygroundClient
+      slug={tpl.slug}
+      version={tpl.version}
+      params={tpl.params}
+      defaults={defaults}
+    />
+  );
+}
