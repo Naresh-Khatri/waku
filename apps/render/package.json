@@ -11,12 +11,16 @@
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",
+    "@waku/db": "workspace:*",
     "@waku/ir": "workspace:*",
+    "drizzle-orm": "^0.41.0",
     "@waku/renderer": "workspace:*",
+    "@waku/templates": "workspace:*",
     "next": "^15.2.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "satori": "^0.12.0"
+    "satori": "^0.12.0",
+    "sharp": "^0.33.5"
   },
   "devDependencies": {
     "@types/node": "^20.14.10",

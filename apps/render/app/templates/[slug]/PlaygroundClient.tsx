@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ParamSchemaEntry, ParamsSchema } from "@waku/ir";
 
 type Props = {
+  handle: string;
   slug: string;
   version: number;
   params: ParamsSchema;
@@ -19,12 +20,17 @@ const useDebounced = <T,>(value: T, ms = 200): T => {
   return v;
 };
 
-const buildUrl = (slug: string, version: number, values: Record<string, string>): string => {
+const buildUrl = (
+  handle: string,
+  slug: string,
+  version: number,
+  values: Record<string, string>,
+): string => {
   const sp = new URLSearchParams();
   for (const [k, v] of Object.entries(values)) {
     if (v !== "") sp.set(k, v);
   }
-  return `/r/${slug}/${version}?${sp.toString()}`;
+  return `/r/${handle}/${slug}/${version}?${sp.toString()}`;
 };
 
 const Field = ({
@@ -120,14 +126,17 @@ const Field = ({
   );
 };
 
-export default function PlaygroundClient({ slug, version, params, defaults }: Props) {
+export default function PlaygroundClient({ handle, slug, version, params, defaults }: Props) {
   const [values, setValues] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
     for (const k of Object.keys(params)) init[k] = String(defaults[k] ?? "");
     return init;
   });
   const debounced = useDebounced(values, 250);
-  const previewUrl = useMemo(() => buildUrl(slug, version, debounced), [slug, version, debounced]);
+  const previewUrl = useMemo(
+    () => buildUrl(handle, slug, version, debounced),
+    [handle, slug, version, debounced],
+  );
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {

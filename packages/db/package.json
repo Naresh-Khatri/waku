@@ -1,0 +1,26 @@
+{
+  "name": "@waku/db",
+  "version": "0.0.1",
+  "description": "Shared Drizzle schema + connection helpers for Waku.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts",
+    "./auth-schema": "./src/auth-schema.ts"
+  },
+  "files": ["src", "README.md", "LICENSE"],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@waku/ir": "workspace:*",
+    "drizzle-orm": "^0.41.0",
+    "postgres": "^3.4.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2"
+  }
+}

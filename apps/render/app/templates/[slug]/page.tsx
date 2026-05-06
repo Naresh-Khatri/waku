@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { getTemplate } from "@/templates";
 import PlaygroundClient from "./PlaygroundClient";
 
+const SYSTEM_HANDLE = "waku";
+
 export default async function TemplatePage({
   params,
 }: {
@@ -11,7 +13,6 @@ export default async function TemplatePage({
   const tpl = getTemplate(slug, 1);
   if (!tpl) notFound();
 
-  // Build a serializable plain object: paramsSchema + defaults derived from each entry.
   const defaults: Record<string, unknown> = {};
   for (const [k, entry] of Object.entries(tpl.params)) {
     if ("default" in entry && entry.default !== undefined) defaults[k] = entry.default;
@@ -20,6 +21,7 @@ export default async function TemplatePage({
 
   return (
     <PlaygroundClient
+      handle={SYSTEM_HANDLE}
       slug={tpl.slug}
       version={tpl.version}
       params={tpl.params}
