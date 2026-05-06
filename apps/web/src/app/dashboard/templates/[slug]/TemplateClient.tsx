@@ -66,21 +66,29 @@ export default function TemplateClient({ handle, template }: Props) {
           <h1 className="mt-2 text-2xl font-semibold">{template.name}</h1>
           <p className="font-mono text-xs text-[#9ca3af]">{template.slug}</p>
         </div>
-        <button
-          onClick={() => {
-            if (
-              confirm(
-                `Delete "${template.name}" and all its versions? This cannot be undone.`,
-              )
-            ) {
-              del.mutate({ templateId: template.id });
-            }
-          }}
-          disabled={del.isPending}
-          className="rounded-md border border-[#7f1d1d] px-3 py-1.5 text-sm text-[#fca5a5] transition hover:bg-[#1f0a0a] disabled:opacity-50"
-        >
-          Delete
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/dashboard/templates/${template.slug}/edit`}
+            className="rounded-md border border-[#374151] px-3 py-1.5 text-sm text-[#e5e7eb] transition hover:bg-[#1f2937]"
+          >
+            Edit
+          </Link>
+          <button
+            onClick={() => {
+              if (
+                confirm(
+                  `Delete "${template.name}" and all its versions? This cannot be undone.`,
+                )
+              ) {
+                del.mutate({ templateId: template.id });
+              }
+            }}
+            disabled={del.isPending}
+            className="rounded-md border border-[#7f1d1d] px-3 py-1.5 text-sm text-[#fca5a5] transition hover:bg-[#1f0a0a] disabled:opacity-50"
+          >
+            Delete
+          </button>
+        </div>
       </header>
 
       {publishedUrl && (

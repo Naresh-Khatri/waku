@@ -102,6 +102,9 @@ importers:
       '@waku/ir':
         specifier: workspace:*
         version: link:../../packages/ir
+      '@waku/renderer':
+        specifier: workspace:*
+        version: link:../../packages/renderer
       '@waku/templates':
         specifier: workspace:*
         version: link:../../packages/templates
