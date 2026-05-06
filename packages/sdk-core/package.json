@@ -1,6 +1,6 @@
 {
   "name": "@waku/sdk-core",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Framework-agnostic URL builder for Waku image templates.",
   "license": "MIT",
   "type": "module",

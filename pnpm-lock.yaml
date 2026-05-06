@@ -241,6 +241,9 @@ importers:
 
   packages/sdk-next:
     dependencies:
+      '@waku/sdk-core':
+        specifier: workspace:*
+        version: link:../sdk-core
       next:
         specifier: '>=15'
         version: 15.5.15(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
@@ -248,6 +251,9 @@ importers:
         specifier: '>=19'
         version: 19.2.5
     devDependencies:
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.14
       typescript:
         specifier: ^5.8.2
         version: 5.9.3
