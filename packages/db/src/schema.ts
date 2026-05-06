@@ -101,6 +101,54 @@ export const wakuUserSecret = pgTable("waku_user_secret", {
   rotatedAt: timestamp("rotated_at").defaultNow().notNull(),
 });
 
+export const wakuCreditBalance = pgTable("waku_credit_balance", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  balance: integer("balance").notNull().default(0),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const wakuCreditLedger = pgTable(
+  "waku_credit_ledger",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    delta: integer("delta").notNull(),
+    reason: text("reason").notNull(),
+    refId: text("ref_id"),
+    balanceAfter: integer("balance_after").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("waku_credit_ledger_user_idx").on(t.userId, t.createdAt),
+  ],
+);
+
+export const wakuAiGeneration = pgTable(
+  "waku_ai_generation",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    prompt: text("prompt").notNull(),
+    inputJson: jsonb("input_json"),
+    outputJson: jsonb("output_json"),
+    creditsCharged: integer("credits_charged").notNull(),
+    status: text("status").notNull(),
+    error: text("error"),
+    ms: integer("ms"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("waku_ai_generation_user_idx").on(t.userId, t.createdAt),
+  ],
+);
+
 export const userRelations = relations(user, ({ many, one }) => ({
   account: many(account),
   session: many(session),

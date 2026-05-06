@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { api } from "@/trpc/react";
 
+import { RemixThemeButton } from "./RemixThemeButton";
 import { useEditorStore, useEditorStoreApi } from "./StoreProvider";
 
 const AUTO_SAVE_MS = 30_000;
@@ -171,6 +172,7 @@ export function Toolbar({
         >
           {publishing ? "publishing…" : isPublished ? "publish new version" : "publish"}
         </button>
+        <RemixThemeButton />
       </div>
       <div style={{ fontSize: 11, color: "#9ca3af", display: "flex", gap: 8 }}>
         {error && <span style={{ color: "#ef4444" }}>{error}</span>}

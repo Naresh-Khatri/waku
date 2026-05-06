@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { Node, ParamsSchema } from "@waku/ir";
 import { systemTemplates } from "@waku/templates";
 
+import { AiAssistModal, type AiPickResult } from "@/components/ai/AiAssistModal";
 import { api } from "@/trpc/react";
 
 const BLANK_IR: Node = {
@@ -72,12 +73,30 @@ const STARTERS: Starter[] = [
   })),
 ];
 
+function bakeDefaults(
+  params: ParamsSchema,
+  values: Record<string, unknown>,
+): ParamsSchema {
+  const next: ParamsSchema = {};
+  for (const [k, def] of Object.entries(params)) {
+    const v = values[k];
+    if (v === undefined) {
+      next[k] = def;
+      continue;
+    }
+    next[k] = { ...def, default: v as never };
+  }
+  return next;
+}
+
 export default function NewTemplateForm() {
   const router = useRouter();
   const [picked, setPicked] = useState<Starter | null>(null);
   const [slug, setSlug] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiRationale, setAiRationale] = useState<string | null>(null);
 
   const create = api.template.create.useMutation({
     onSuccess: ({ template }) => {
@@ -88,8 +107,23 @@ export default function NewTemplateForm() {
 
   const onPick = (s: Starter) => {
     setPicked(s);
+    setAiRationale(null);
     if (!name) setName(s.name);
     if (!slug) setSlug(slugify(s.name));
+  };
+
+  const onAiApply = (res: AiPickResult) => {
+    const baked: Starter = {
+      id: `ai-${res.templateSlug}`,
+      name: res.templateName,
+      description: res.rationale,
+      ir: res.ir,
+      params: bakeDefaults(res.params, res.values),
+    };
+    setPicked(baked);
+    setAiRationale(res.rationale);
+    if (!name) setName(res.templateName);
+    if (!slug) setSlug(slugify(res.templateName));
   };
 
   const onSubmit = (e: React.FormEvent) => {
@@ -113,9 +147,27 @@ export default function NewTemplateForm() {
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-6">
+      <section className="flex items-center justify-between gap-3 rounded-xl border border-[#1f2937] bg-[#0b0f1a] p-4">
+        <div>
+          <div className="text-sm font-semibold">Describe what you want</div>
+          <div className="text-xs text-[#9ca3af]">
+            AI picks the best template and fills in the params for you.
+          </div>
+          {aiRationale && (
+            <div className="mt-1 text-xs text-[#7c5cff]">{aiRationale}</div>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => setAiOpen(true)}
+          className="rounded-md border border-[#7c5cff] bg-[#7c5cff22] px-4 py-2 text-sm font-medium text-white hover:bg-[#7c5cff44]"
+        >
+          ✨ AI assist
+        </button>
+      </section>
       <section>
         <h2 className="mb-3 text-sm font-medium text-[#9ca3af]">
-          Pick a starter
+          …or pick a starter
         </h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {STARTERS.map((s) => (
@@ -175,6 +227,12 @@ export default function NewTemplateForm() {
           {create.isPending ? "Creating…" : "Create & open editor"}
         </button>
       </div>
+
+      <AiAssistModal
+        open={aiOpen}
+        onClose={() => setAiOpen(false)}
+        onApply={onAiApply}
+      />
     </form>
   );
 }

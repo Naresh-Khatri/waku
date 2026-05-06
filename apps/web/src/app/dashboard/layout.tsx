@@ -23,6 +23,12 @@ export default async function DashboardLayout({
           <div className="flex items-center gap-4 text-sm text-[#9ca3af]">
             <span className="font-mono">@{handle}</span>
             <Link
+              href="/dashboard/credits"
+              className="rounded-full border border-[#1f2937] px-3 py-1 text-xs hover:border-[#7c5cff]"
+            >
+              credits
+            </Link>
+            <Link
               href="/dashboard/templates/new"
               className="rounded-full bg-[#1f2937] px-4 py-1.5 font-medium text-[#e5e7eb] transition hover:bg-[#374151]"
             >
