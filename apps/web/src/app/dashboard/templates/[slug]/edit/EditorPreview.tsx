@@ -6,6 +6,7 @@ import type { Node, ParamsSchema } from "@waku/ir";
 
 import { BindParamModal, type BindRequest } from "@/components/editor/BindParamModal";
 import { EditorCanvas } from "@/components/editor/EditorCanvas";
+import { InsertBar } from "@/components/editor/InsertBar";
 import { Inspector } from "@/components/editor/Inspector";
 import { ParamsPanel } from "@/components/editor/ParamsPanel";
 import { EditorStoreProvider, useEditorStore } from "@/components/editor/StoreProvider";
@@ -93,12 +94,15 @@ function EditorPreviewInner({
 
   return (
     <div className="flex flex-col gap-3">
-      <Toolbar
-        templateId={templateId}
-        versionId={versionId}
-        isPublished={isPublished}
-        initialDirty={dirty}
-      />
+      <div className="flex items-center gap-3 flex-wrap">
+        <Toolbar
+          templateId={templateId}
+          versionId={versionId}
+          isPublished={isPublished}
+          initialDirty={dirty}
+        />
+        <InsertBar />
+      </div>
       <div className="flex items-center justify-between text-xs text-[#9ca3af]">
         <span>
           {selection.length === 0

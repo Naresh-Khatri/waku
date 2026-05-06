@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 
 import { api } from "@/trpc/react";
@@ -23,6 +23,8 @@ export function Toolbar({
   const router = useRouter();
   const api2 = useEditorStoreApi();
   const dirty = useEditorStore((s) => s.dirty);
+  const previewMode = useEditorStore((s) => s.previewMode);
+  const setPreviewMode = useEditorStore((s) => s.setPreviewMode);
   const markClean = useEditorStore((s) => s.markClean);
 
   const updateDraft = api.template.updateDraft.useMutation();
@@ -154,6 +156,7 @@ export function Toolbar({
       }}
     >
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <ModeToggle value={previewMode} onChange={setPreviewMode} />
         <button
           onClick={() => void saveDraft()}
           disabled={saving || !dirty}
@@ -179,6 +182,40 @@ export function Toolbar({
               : "no changes"}
         </span>
       </div>
+    </div>
+  );
+}
+
+function ModeToggle({
+  value,
+  onChange,
+}: {
+  value: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  const segStyle = (active: boolean): CSSProperties => ({
+    fontSize: 11,
+    padding: "4px 10px",
+    background: active ? "#7c5cff" : "transparent",
+    color: active ? "white" : "#9ca3af",
+    border: "none",
+    cursor: "pointer",
+  });
+  return (
+    <div
+      style={{
+        display: "inline-flex",
+        border: "1px solid #1f2937",
+        borderRadius: 6,
+        overflow: "hidden",
+      }}
+    >
+      <button onClick={() => onChange(false)} style={segStyle(!value)}>
+        edit
+      </button>
+      <button onClick={() => onChange(true)} style={segStyle(value)}>
+        preview
+      </button>
     </div>
   );
 }

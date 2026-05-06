@@ -26,6 +26,7 @@ export type EditorState = {
   draftValues: Record<string, unknown>;
   history: { past: EditorSnapshot[]; future: EditorSnapshot[] };
   dirty: boolean;
+  previewMode: boolean;
 };
 
 export type EditorActions = {
@@ -65,6 +66,10 @@ export type EditorActions = {
   undo: () => void;
   redo: () => void;
 
+  duplicateNode: (path: NodePath) => void;
+
+  setPreviewMode: (v: boolean) => void;
+
   // Misc
   reset: (snapshot: EditorSnapshot) => void;
   markClean: () => void;
@@ -97,6 +102,7 @@ export const createEditorStore = (initial: EditorSnapshot) =>
     draftValues: {},
     history: { past: [], future: [] },
     dirty: false,
+    previewMode: false,
 
     select: (path, additive = false) =>
       set((s) => ({
@@ -152,6 +158,22 @@ export const createEditorStore = (initial: EditorSnapshot) =>
         const newPath = `${toParent}.children.${adjustedIndex}`;
         return pushHistory(s, { ir: inserted, selection: [newPath] });
       }),
+
+    duplicateNode: (path) =>
+      set((s) => {
+        if (path === "0") return s;
+        const node = getNodeAt(s.ir, path);
+        if (!node) return s;
+        const parent = parentPath(path);
+        if (!parent) return s;
+        const idx = Number(path.split(".").pop());
+        const inserted = insertChildAt(s.ir, parent, idx + 1, node);
+        const newPath = `${parent}.children.${idx + 1}`;
+        return pushHistory(s, { ir: inserted, selection: [newPath] });
+      }),
+
+    setPreviewMode: (v) =>
+      set((s) => (v ? { previewMode: true, selection: [] } : { ...s, previewMode: false })),
 
     liveSetNode: (path, next) =>
       set((s) => ({ ir: replaceNodeAt(s.ir, path, next) })),
