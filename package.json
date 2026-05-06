@@ -20,5 +20,8 @@
   "packageManager": "pnpm@10.14.0",
   "engines": {
     "node": ">=20"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["sharp", "@resvg/resvg-js", "esbuild", "unrs-resolver"]
   }
 }

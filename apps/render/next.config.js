@@ -2,7 +2,7 @@
 const config = {
   // Renderer uses native modules (resvg-js), so the route runs in the
   // Node.js runtime, not Edge. Keep it explicit at the route level.
-  serverExternalPackages: ["@resvg/resvg-js"],
+  serverExternalPackages: ["@resvg/resvg-js", "sharp"],
 };
 
 export default config;

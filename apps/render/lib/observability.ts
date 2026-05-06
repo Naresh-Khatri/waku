@@ -17,6 +17,7 @@ export type RenderLog = {
   params_hash: string;
   status: number;
   ms: number;
+  format?: string;
   err?: string;
 };
 
