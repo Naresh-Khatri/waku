@@ -1,7 +1,5 @@
-import { aiRouter } from "@/server/api/routers/ai";
 import { assetRouter } from "@/server/api/routers/asset";
 import { creditsRouter } from "@/server/api/routers/credits";
-import { marketplaceRouter } from "@/server/api/routers/marketplace";
 import { meRouter } from "@/server/api/routers/me";
 import { templateRouter } from "@/server/api/routers/template";
 import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
@@ -12,10 +10,8 @@ import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
  * All routers added in /api/routers should be manually added here.
  */
 export const appRouter = createTRPCRouter({
-  ai: aiRouter,
   asset: assetRouter,
   credits: creditsRouter,
-  marketplace: marketplaceRouter,
   me: meRouter,
   template: templateRouter,
 });
