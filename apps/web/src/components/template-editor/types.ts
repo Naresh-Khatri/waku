@@ -7,6 +7,31 @@ export type NodeType =
   | "star"
   | "line";
 
+export type ParamRef<T = unknown> = {
+  $param: string;
+  default?: T;
+};
+
+export type Value<T> = T | ParamRef<T>;
+
+export const isParamRef = <T>(v: Value<T>): v is ParamRef<T> =>
+  typeof v === "object" &&
+  v !== null &&
+  "$param" in (v as object) &&
+  typeof (v as ParamRef<T>).$param === "string";
+
+export type ParamKind = "string" | "url" | "color" | "number" | "boolean" | "enum";
+
+export type ParamSchemaEntry =
+  | { kind: "string"; default?: string; maxLen?: number }
+  | { kind: "url"; default?: string }
+  | { kind: "color"; default?: string }
+  | { kind: "number"; default?: number; min?: number; max?: number }
+  | { kind: "boolean"; default?: boolean }
+  | { kind: "enum"; values: [string, ...string[]]; default?: string };
+
+export type ParamsSchema = Record<string, ParamSchemaEntry>;
+
 export interface BaseNode {
   id: string;
   type: NodeType;
@@ -23,17 +48,17 @@ export interface BaseNode {
 
 export interface ImageNode extends BaseNode {
   type: "image";
-  src: string;
+  src: Value<string>;
   fit: "cover" | "contain";
 }
 
 export interface TextNode extends BaseNode {
   type: "text";
-  text: string;
+  text: Value<string>;
   fontSize: number;
   fontWeight: 400 | 500 | 600 | 700 | 800;
   italic: boolean;
-  color: string;
+  color: Value<string>;
   align: "left" | "center" | "right";
   fontFamily: string;
   letterSpacing: number;
@@ -41,8 +66,8 @@ export interface TextNode extends BaseNode {
 }
 
 interface ShapeBase extends BaseNode {
-  fill: string;
-  stroke: string;
+  fill: Value<string>;
+  stroke: Value<string>;
   strokeWidth: number;
 }
 
@@ -67,7 +92,7 @@ export interface StarNode extends ShapeBase {
 
 export interface LineNode extends BaseNode {
   type: "line";
-  stroke: string;
+  stroke: Value<string>;
   strokeWidth: number;
   arrow: boolean;
 }
@@ -90,5 +115,31 @@ export type ShapeNode =
 export interface Artboard {
   width: number;
   height: number;
-  background: string;
+  background: Value<string>;
 }
+
+export interface TemplateDocument {
+  artboard: Artboard;
+  nodes: EditorNode[];
+  paramsSchema: ParamsSchema;
+}
+
+export type BindableField =
+  | { type: "text"; field: "text"; kind: "string" }
+  | { type: "text"; field: "color"; kind: "color" }
+  | { type: "image"; field: "src"; kind: "url" }
+  | { type: "rectangle" | "ellipse" | "triangle" | "star"; field: "fill"; kind: "color" }
+  | { type: "rectangle" | "ellipse" | "triangle" | "star"; field: "stroke"; kind: "color" }
+  | { type: "line"; field: "stroke"; kind: "color" };
+
+export const resolveValue = <T>(
+  v: Value<T>,
+  draft: Record<string, unknown>,
+): T | undefined => {
+  if (isParamRef(v)) {
+    const dv = draft[v.$param];
+    if (dv !== undefined && dv !== null && dv !== "") return dv as T;
+    return v.default;
+  }
+  return v;
+};

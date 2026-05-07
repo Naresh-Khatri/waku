@@ -12,6 +12,7 @@ import { useEditor } from "./store";
 import type { Guide, Zoom } from "./store";
 import { snapMove } from "./snap";
 import type { EditorNode } from "./types";
+import { resolveValue } from "./types";
 import { NodeContent } from "./node-view";
 import { FloatingToolbar } from "./floating-toolbar";
 import { ZoomBar } from "./zoom-bar";
@@ -60,6 +61,8 @@ export function Canvas() {
   const select = useEditor((s) => s.select);
   const updateNode = useEditor((s) => s.updateNode);
   const setZoom = useEditor((s) => s.setZoom);
+  const draftValues = useEditor((s) => s.draftValues);
+  const artboardBg = resolveValue(artboard.background, draftValues) ?? "#ffffff";
 
   const wrapperRef = useRef<HTMLDivElement>(null);
   const selectionFrameRef = useRef<HTMLDivElement>(null);
@@ -349,7 +352,7 @@ export function Canvas() {
               top: artTop,
               width: scaledW,
               height: scaledH,
-              background: artboard.background,
+              background: artboardBg,
               boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
             }}
             onPointerDown={onBackgroundPointerDown}
@@ -373,6 +376,7 @@ export function Canvas() {
                   selected={node.id === selectedId}
                   hovered={hoverId === node.id}
                   scale={scale}
+                  draft={draftValues}
                   onPointerEnter={() => {
                     if (dragRef.current) return;
                     setHoverId(node.id);
@@ -434,6 +438,7 @@ function NodeFrame({
   selected,
   hovered,
   scale,
+  draft,
   onPointerDown,
   onPointerEnter,
   onPointerLeave,
@@ -442,6 +447,7 @@ function NodeFrame({
   selected: boolean;
   hovered: boolean;
   scale: number;
+  draft: Record<string, unknown>;
   onPointerDown: (e: ReactPointerEvent<HTMLDivElement>) => void;
   onPointerEnter: () => void;
   onPointerLeave: () => void;
@@ -469,7 +475,7 @@ function NodeFrame({
       onPointerLeave={onPointerLeave}
       data-node-id={node.id}
     >
-      <NodeContent node={node} />
+      <NodeContent node={node} draft={draft} />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import type { EditorNode } from "./types";
+import { resolveValue } from "./types";
 import {
   EllipseSvg,
   LineSvg,
@@ -9,20 +10,30 @@ import {
   TriangleSvg,
 } from "./shape-svg";
 
-export function NodeContent({ node }: { node: EditorNode }) {
+export function NodeContent({
+  node,
+  draft,
+}: {
+  node: EditorNode;
+  draft: Record<string, unknown>;
+}) {
   switch (node.type) {
-    case "image":
+    case "image": {
+      const src = resolveValue(node.src, draft) ?? "";
       return (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={node.src}
+          src={src}
           alt=""
           draggable={false}
           className="h-full w-full"
           style={{ objectFit: node.fit, pointerEvents: "none" }}
         />
       );
-    case "text":
+    }
+    case "text": {
+      const text = resolveValue(node.text, draft) ?? "";
+      const color = resolveValue(node.color, draft) ?? "#000";
       return (
         <div
           className="h-full w-full"
@@ -31,7 +42,7 @@ export function NodeContent({ node }: { node: EditorNode }) {
             fontSize: node.fontSize,
             fontWeight: node.fontWeight,
             fontStyle: node.italic ? "italic" : "normal",
-            color: node.color,
+            color,
             textAlign: node.align,
             letterSpacing: node.letterSpacing,
             lineHeight: node.lineHeight,
@@ -48,18 +59,19 @@ export function NodeContent({ node }: { node: EditorNode }) {
             pointerEvents: "none",
           }}
         >
-          {node.text}
+          {text}
         </div>
       );
+    }
     case "rectangle":
-      return <RectangleSvg node={node} />;
+      return <RectangleSvg node={node} draft={draft} />;
     case "ellipse":
-      return <EllipseSvg node={node} />;
+      return <EllipseSvg node={node} draft={draft} />;
     case "triangle":
-      return <TriangleSvg node={node} />;
+      return <TriangleSvg node={node} draft={draft} />;
     case "star":
-      return <StarSvg node={node} />;
+      return <StarSvg node={node} draft={draft} />;
     case "line":
-      return <LineSvg node={node} />;
+      return <LineSvg node={node} draft={draft} />;
   }
 }

@@ -1,7 +1,16 @@
 "use client";
 
 import { create } from "zustand";
-import type { Artboard, EditorNode, NodeType } from "./types";
+import type {
+  Artboard,
+  EditorNode,
+  NodeType,
+  ParamRef,
+  ParamSchemaEntry,
+  ParamsSchema,
+  TemplateDocument,
+  Value,
+} from "./types";
 
 const newId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -179,6 +188,7 @@ interface Snapshot {
   artboard: Artboard;
   selectedId: string | null;
   nextCount: Record<NodeType, number>;
+  paramsSchema: ParamsSchema;
 }
 
 const HISTORY_LIMIT = 100;
@@ -192,10 +202,15 @@ interface EditorState {
   zoom: Zoom;
   nextCount: Record<NodeType, number>;
 
+  paramsSchema: ParamsSchema;
+  draftValues: Record<string, unknown>;
+
   past: Snapshot[];
   future: Snapshot[];
   lastOpKey: string | null;
   lastOpTime: number;
+
+  dirty: boolean;
 
   setArtboard: (patch: Partial<Artboard>) => void;
   addNode: (type: NodeType) => void;
@@ -211,6 +226,24 @@ interface EditorState {
   setDrag: (drag: DragSession | null) => void;
   setZoom: (zoom: Zoom) => void;
 
+  bindToParam: (
+    nodeId: string | "artboard",
+    field: string,
+    paramName: string,
+    schemaEntry: ParamSchemaEntry,
+  ) => void;
+  unbind: (
+    nodeId: string | "artboard",
+    field: string,
+    fallback: unknown,
+  ) => void;
+  setDraftValue: (name: string, value: unknown) => void;
+  setDraftValues: (values: Record<string, unknown>) => void;
+
+  loadDocument: (doc: TemplateDocument) => void;
+  getDocument: () => TemplateDocument;
+  markClean: () => void;
+
   undo: () => void;
   redo: () => void;
   clearOpKey: () => void;
@@ -222,13 +255,14 @@ function snapshotOf(s: EditorState): Snapshot {
     artboard: s.artboard,
     selectedId: s.selectedId,
     nextCount: s.nextCount,
+    paramsSchema: s.paramsSchema,
   };
 }
 
 function withHistory(s: EditorState, opKey: string): Partial<EditorState> {
   const now = Date.now();
   if (s.lastOpKey === opKey && now - s.lastOpTime < COALESCE_MS) {
-    return { lastOpTime: now };
+    return { lastOpTime: now, dirty: true };
   }
   const past = [...s.past, snapshotOf(s)];
   if (past.length > HISTORY_LIMIT) past.shift();
@@ -237,8 +271,19 @@ function withHistory(s: EditorState, opKey: string): Partial<EditorState> {
     future: [],
     lastOpKey: opKey,
     lastOpTime: now,
+    dirty: true,
   };
 }
+
+const ZERO_COUNT: Record<NodeType, number> = {
+  image: 0,
+  text: 0,
+  rectangle: 0,
+  ellipse: 0,
+  triangle: 0,
+  star: 0,
+  line: 0,
+};
 
 export const useEditor = create<EditorState>((set, get) => ({
   artboard: { width: 1200, height: 630, background: "#ffffff" },
@@ -246,20 +291,17 @@ export const useEditor = create<EditorState>((set, get) => ({
   selectedId: null,
   drag: null,
   zoom: "fit",
-  nextCount: {
-    image: 0,
-    text: 0,
-    rectangle: 0,
-    ellipse: 0,
-    triangle: 0,
-    star: 0,
-    line: 0,
-  },
+  nextCount: { ...ZERO_COUNT },
+
+  paramsSchema: {},
+  draftValues: {},
 
   past: [],
   future: [],
   lastOpKey: null,
   lastOpTime: 0,
+
+  dirty: false,
 
   setArtboard: (patch) =>
     set((s) => ({
@@ -388,6 +430,79 @@ export const useEditor = create<EditorState>((set, get) => ({
 
   setZoom: (zoom) => set({ zoom }),
 
+  bindToParam: (nodeId, field, paramName, schemaEntry) =>
+    set((s) => {
+      const ref: ParamRef = { $param: paramName };
+      const nextSchema: ParamsSchema = {
+        ...s.paramsSchema,
+        [paramName]: schemaEntry,
+      };
+      if (nodeId === "artboard") {
+        return {
+          ...withHistory(s, `bind-artboard-${field}-${paramName}`),
+          artboard: { ...s.artboard, [field]: ref } as Artboard,
+          paramsSchema: nextSchema,
+        };
+      }
+      return {
+        ...withHistory(s, `bind-${nodeId}-${field}-${paramName}`),
+        nodes: s.nodes.map((n) =>
+          n.id === nodeId
+            ? ({ ...n, [field]: ref } as EditorNode)
+            : n,
+        ),
+        paramsSchema: nextSchema,
+      };
+    }),
+
+  unbind: (nodeId, field, fallback) =>
+    set((s) => {
+      if (nodeId === "artboard") {
+        return {
+          ...withHistory(s, `unbind-artboard-${field}`),
+          artboard: { ...s.artboard, [field]: fallback } as Artboard,
+        };
+      }
+      return {
+        ...withHistory(s, `unbind-${nodeId}-${field}`),
+        nodes: s.nodes.map((n) =>
+          n.id === nodeId
+            ? ({ ...n, [field]: fallback } as EditorNode)
+            : n,
+        ),
+      };
+    }),
+
+  setDraftValue: (name, value) =>
+    set((s) => ({ draftValues: { ...s.draftValues, [name]: value } })),
+
+  setDraftValues: (values) => set({ draftValues: values }),
+
+  loadDocument: (doc) =>
+    set({
+      artboard: doc.artboard,
+      nodes: doc.nodes,
+      paramsSchema: doc.paramsSchema,
+      selectedId: null,
+      nextCount: { ...ZERO_COUNT },
+      past: [],
+      future: [],
+      lastOpKey: null,
+      lastOpTime: 0,
+      dirty: false,
+    }),
+
+  getDocument: () => {
+    const s = get();
+    return {
+      artboard: s.artboard,
+      nodes: s.nodes,
+      paramsSchema: s.paramsSchema,
+    };
+  },
+
+  markClean: () => set({ dirty: false }),
+
   undo: () => {
     const s = get();
     if (s.past.length === 0) return;
@@ -400,8 +515,10 @@ export const useEditor = create<EditorState>((set, get) => ({
       artboard: prev.artboard,
       selectedId: prev.selectedId,
       nextCount: prev.nextCount,
+      paramsSchema: prev.paramsSchema,
       lastOpKey: null,
       lastOpTime: 0,
+      dirty: true,
     });
   },
 
@@ -417,10 +534,14 @@ export const useEditor = create<EditorState>((set, get) => ({
       artboard: next.artboard,
       selectedId: next.selectedId,
       nextCount: next.nextCount,
+      paramsSchema: next.paramsSchema,
       lastOpKey: null,
       lastOpTime: 0,
+      dirty: true,
     });
   },
 
   clearOpKey: () => set({ lastOpKey: null, lastOpTime: 0 }),
 }));
+
+export type { Value };

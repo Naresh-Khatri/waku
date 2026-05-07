@@ -12,7 +12,8 @@ import {
 } from "lucide-react";
 import type { CSSProperties } from "react";
 import { useEditor } from "./store";
-import type { EditorNode } from "./types";
+import type { EditorNode, Value } from "./types";
+import { isParamRef } from "./types";
 import { ColorPicker } from "./color-picker";
 
 export function FloatingToolbar({
@@ -113,13 +114,16 @@ function TypeSpecificControls({ node }: { node: EditorNode }) {
     case "image":
       return (
         <button
+          disabled={isParamRef(node.src)}
           onClick={() => {
-            const url = window.prompt("Image URL", node.src);
+            const current = isParamRef(node.src) ? "" : node.src;
+            const url = window.prompt("Image URL", current);
             if (url) updateNode(node.id, { src: url });
           }}
-          className="rounded-md px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100"
+          className="rounded-md px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-40"
+          title={isParamRef(node.src) ? `Bound to {${node.src.$param}}` : "Replace image"}
         >
-          Replace
+          {isParamRef(node.src) ? `{${node.src.$param}}` : "Replace"}
         </button>
       );
   }
@@ -193,10 +197,20 @@ function ColorSwatch({
   onChange,
   label,
 }: {
-  value: string;
+  value: Value<string>;
   onChange: (v: string) => void;
   label: string;
 }) {
+  if (isParamRef(value)) {
+    return (
+      <span
+        title={`Bound to {${value.$param}}`}
+        className="flex h-7 items-center rounded-md border border-indigo-200 bg-indigo-50 px-2 text-[10px] font-mono text-indigo-700"
+      >
+        {`{${value.$param}}`}
+      </span>
+    );
+  }
   return <ColorPicker value={value} onChange={onChange} label={label} compact />;
 }
 

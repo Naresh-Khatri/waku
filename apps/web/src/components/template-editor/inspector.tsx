@@ -3,7 +3,8 @@
 import { AlignCenter, AlignLeft, AlignRight } from "lucide-react";
 import type { ChangeEvent } from "react";
 import { useEditor } from "./store";
-import type { EditorNode } from "./types";
+import type { Artboard, EditorNode, Value } from "./types";
+import { isParamRef } from "./types";
 import { ColorPicker } from "./color-picker";
 
 export function Inspector() {
@@ -39,8 +40,8 @@ function DocumentInspector({
   artboard,
   onChange,
 }: {
-  artboard: { width: number; height: number; background: string };
-  onChange: (p: Partial<{ width: number; height: number; background: string }>) => void;
+  artboard: Artboard;
+  onChange: (p: Partial<Artboard>) => void;
 }) {
   return (
     <Section title="Artboard">
@@ -429,13 +430,25 @@ function NumberInput({
   );
 }
 
+function BoundChip({ name }: { name: string }) {
+  return (
+    <span
+      title={`Bound to {${name}}`}
+      className="flex h-7 w-full items-center rounded-md border border-indigo-200 bg-indigo-50 px-2 font-mono text-[11px] text-indigo-700"
+    >
+      {`{${name}}`}
+    </span>
+  );
+}
+
 function TextInput({
   value,
   onChange,
 }: {
-  value: string;
+  value: Value<string>;
   onChange: (v: string) => void;
 }) {
+  if (isParamRef(value)) return <BoundChip name={value.$param} />;
   return (
     <input
       type="text"
@@ -450,9 +463,10 @@ function TextArea({
   value,
   onChange,
 }: {
-  value: string;
+  value: Value<string>;
   onChange: (v: string) => void;
 }) {
+  if (isParamRef(value)) return <BoundChip name={value.$param} />;
   return (
     <textarea
       value={value}
@@ -468,10 +482,11 @@ function ColorInput({
   onChange,
   label,
 }: {
-  value: string;
+  value: Value<string>;
   onChange: (v: string) => void;
   label?: string;
 }) {
+  if (isParamRef(value)) return <BoundChip name={value.$param} />;
   return <ColorPicker value={value} onChange={onChange} label={label} />;
 }
 
