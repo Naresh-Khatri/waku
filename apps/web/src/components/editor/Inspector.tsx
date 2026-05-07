@@ -13,6 +13,7 @@ import type {
   TextNode,
 } from "@waku/ir";
 import { isParamRef } from "@waku/ir";
+import { ChevronDown, ChevronRight, Link as LinkIcon, X } from "lucide-react";
 
 import { useEditorStore } from "./StoreProvider";
 import { getNodeAt, type NodePath } from "./path";
@@ -214,7 +215,7 @@ function Section({
         }}
       >
         <span>{title}</span>
-        <span>{open ? "▾" : "▸"}</span>
+        {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
       </button>
       {open && (
         <div style={{ padding: "0 12px 10px", display: "grid", gap: 8 }}>
@@ -377,14 +378,13 @@ function BindButton({
         border: `1px solid ${bound ? "#7c5cff66" : "#1f2937"}`,
         borderRadius: 6,
         cursor: "pointer",
-        fontSize: 12,
         lineHeight: 1,
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
       }}
     >
-      ⛓
+      <LinkIcon size={12} />
     </button>
   );
 }
@@ -411,7 +411,10 @@ function ParamChip({
         fontSize: 12,
       }}
     >
-      <span>→ {paramRef.$param}</span>
+      <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <LinkIcon size={11} />
+        {paramRef.$param}
+      </span>
       <button
         onClick={onUnbind}
         title="unbind"
@@ -420,11 +423,14 @@ function ParamChip({
           color: "#c4b5fd",
           border: "none",
           cursor: "pointer",
-          fontSize: 14,
           lineHeight: 1,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 0,
         }}
       >
-        ×
+        <X size={14} />
       </button>
     </div>
   );

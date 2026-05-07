@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { ArrowLeft, Check, Copy, ExternalLink } from "lucide-react";
 
 import type { Node, ParamsSchema } from "@waku/ir";
 
@@ -79,19 +80,24 @@ function EditorShell({
       <header className="flex h-12 shrink-0 items-center gap-3 border-b border-[#1f2937] bg-[#0b0f1a] px-3">
         <Link
           href={`/dashboard/templates/${templateSlug}`}
-          className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-[#9ca3af] hover:bg-[#111827] hover:text-[#e5e7eb]"
+          className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-[#9ca3af] hover:bg-[#111827] hover:text-[#e5e7eb]"
           title="Back to template"
         >
-          <span aria-hidden>←</span>
+          <ArrowLeft size={14} />
           <span className="hidden sm:inline">back</span>
         </Link>
-        <div className="flex min-w-0 items-baseline gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <span className="truncate text-sm font-semibold">{templateName}</span>
           <span className="font-mono text-[10px] text-[#6b7280]">
             v{version}
             {isPublished ? " · published" : " · draft"}
           </span>
-          {dirty && <span className="text-[10px] text-[#fbbf24]">●</span>}
+          {dirty && (
+            <span
+              className="h-1.5 w-1.5 rounded-full bg-[#fbbf24]"
+              aria-label="unsaved changes"
+            />
+          )}
         </div>
         <div className="ml-auto flex items-center gap-3">
           <Toolbar
@@ -244,21 +250,23 @@ function UrlBar({ url }: { url: string }) {
       <button
         onClick={copy}
         className={[
-          "shrink-0 rounded border px-2.5 py-1 text-[11px] transition",
+          "flex shrink-0 items-center gap-1 rounded border px-2.5 py-1 text-[11px] transition",
           copied
             ? "border-[#22c55e66] bg-[#22c55e22] text-[#86efac]"
             : "border-[#1f2937] bg-[#0b0f1a] text-[#9ca3af] hover:text-[#e5e7eb]",
         ].join(" ")}
       >
+        {copied ? <Check size={12} /> : <Copy size={12} />}
         {copied ? "copied" : "copy"}
       </button>
       <a
         href={url}
         target="_blank"
         rel="noreferrer"
-        className="shrink-0 rounded border border-[#1f2937] bg-[#0b0f1a] px-2.5 py-1 text-[11px] text-[#9ca3af] transition hover:text-[#e5e7eb]"
+        className="flex shrink-0 items-center gap-1 rounded border border-[#1f2937] bg-[#0b0f1a] px-2.5 py-1 text-[11px] text-[#9ca3af] transition hover:text-[#e5e7eb]"
       >
-        open ↗
+        <ExternalLink size={12} />
+        open
       </a>
     </div>
   );

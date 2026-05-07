@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Sparkles } from "lucide-react";
 
 import { api } from "@/trpc/react";
 
@@ -46,9 +47,13 @@ export function RemixThemeButton() {
           background: "transparent",
           color: "#e5e7eb",
           border: "1px solid #1f2937",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
         }}
       >
-        ✨ remix
+        <Sparkles size={12} />
+        remix
       </button>
       {open && (
         <div

@@ -15,6 +15,15 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { Node } from "@waku/ir";
+import {
+  Circle,
+  Frame,
+  GripVertical,
+  Image as ImageIcon,
+  Layers,
+  Palette,
+  Type,
+} from "lucide-react";
 
 import { useEditorStore } from "./StoreProvider";
 import { lastIndex, parentPath, type NodePath } from "./path";
@@ -130,10 +139,10 @@ function LayerItem({
         {...attributes}
         {...listeners}
         onClick={(e) => e.stopPropagation()}
-        className="flex h-4 w-3 cursor-grab items-center justify-center text-[10px] text-[#4b5563] hover:text-[#9ca3af] active:cursor-grabbing"
+        className="flex h-4 w-3 cursor-grab items-center justify-center text-[#4b5563] hover:text-[#9ca3af] active:cursor-grabbing"
         aria-label="drag handle"
       >
-        ⋮⋮
+        <GripVertical size={12} />
       </button>
       <NodeIcon type={node.type} />
       <span className="truncate font-mono text-[11px]">{labelFor(node)}</span>
@@ -142,17 +151,17 @@ function LayerItem({
 }
 
 function NodeIcon({ type }: { type: Node["type"] }) {
-  const map: Record<Node["type"], string> = {
-    frame: "▣",
-    stack: "⊟",
-    text: "T",
-    image: "🖼",
-    shape: "●",
-    gradient: "▧",
-  };
+  const Icon = {
+    frame: Frame,
+    stack: Layers,
+    text: Type,
+    image: ImageIcon,
+    shape: Circle,
+    gradient: Palette,
+  }[type];
   return (
-    <span className="inline-flex h-4 w-4 items-center justify-center text-[10px] text-[#9ca3af]">
-      {map[type]}
+    <span className="inline-flex h-4 w-4 items-center justify-center text-[#9ca3af]">
+      <Icon size={12} />
     </span>
   );
 }

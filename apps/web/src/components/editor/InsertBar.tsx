@@ -1,6 +1,14 @@
 "use client";
 
 import type { Node } from "@waku/ir";
+import {
+  Circle,
+  Image as ImageIcon,
+  Layers,
+  Palette,
+  Square,
+  Type,
+} from "lucide-react";
 
 import { useEditorStore, useEditorStoreApi } from "./StoreProvider";
 import { getNodeAt, type NodePath } from "./path";
@@ -108,12 +116,12 @@ export function InsertBar() {
         backdropFilter: "blur(8px)",
       }}
     >
-      <Btn onClick={() => insert(blank.text)} title="Text">T</Btn>
-      <Btn onClick={() => insert(blank.rect)} title="Rectangle">▭</Btn>
-      <Btn onClick={() => insert(blank.circle)} title="Circle">●</Btn>
-      <Btn onClick={() => insert(blank.image)} title="Image">🖼</Btn>
-      <Btn onClick={() => insert(blank.stack)} title="Stack">⊟</Btn>
-      <Btn onClick={() => insert(blank.gradient)} title="Gradient">▧</Btn>
+      <Btn onClick={() => insert(blank.text)} title="Text"><Type size={14} /></Btn>
+      <Btn onClick={() => insert(blank.rect)} title="Rectangle"><Square size={14} /></Btn>
+      <Btn onClick={() => insert(blank.circle)} title="Circle"><Circle size={14} /></Btn>
+      <Btn onClick={() => insert(blank.image)} title="Image"><ImageIcon size={14} /></Btn>
+      <Btn onClick={() => insert(blank.stack)} title="Stack"><Layers size={14} /></Btn>
+      <Btn onClick={() => insert(blank.gradient)} title="Gradient"><Palette size={14} /></Btn>
     </div>
   );
 }
