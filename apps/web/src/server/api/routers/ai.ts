@@ -10,7 +10,7 @@ import { systemTemplates, getSystemTemplate } from "@waku/templates";
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { aiMode, callAnthropic, extractJson } from "@/server/ai/client";
+import { aiMode, callLLM, extractJson } from "@/server/ai/client";
 import {
   buildPickTemplateSystem,
   buildPickTemplateUser,
@@ -80,7 +80,7 @@ export const aiRouter = createTRPCRouter({
         let picked: { templateId: string; params: Record<string, unknown>; rationale: string };
 
         if (aiMode === "live") {
-          const { text } = await callAnthropic({
+          const { text } = await callLLM({
             system: buildPickTemplateSystem(),
             messages: [
               {
@@ -174,7 +174,7 @@ export const aiRouter = createTRPCRouter({
         let remix: { ir: Node; summary: string };
 
         if (aiMode === "live") {
-          const { text } = await callAnthropic({
+          const { text } = await callLLM({
             system: buildRemixThemeSystem(),
             messages: [
               {
@@ -261,7 +261,7 @@ export const aiRouter = createTRPCRouter({
       try {
         let copy: Record<string, string>;
         if (aiMode === "live") {
-          const { text } = await callAnthropic({
+          const { text } = await callLLM({
             system: buildGenerateCopySystem(),
             messages: [
               {
