@@ -2,7 +2,7 @@
 
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { Editor } from "@/components/template-editor/editor";
@@ -17,6 +17,7 @@ const AUTOSAVE_DEBOUNCE_MS = 800;
 
 type Props = {
   document: TemplateDocument;
+  templateId: string;
   templateName: string;
   templateSlug: string;
   handle: string;
@@ -52,12 +53,14 @@ export default function EditorPreview(props: Props) {
 }
 
 function EditorTopBar({
+  templateId,
   templateName,
   templateSlug,
   version,
   versionId,
   isPublished,
 }: Props) {
+  const router = useRouter();
   const dirty = useEditor((s) => s.dirty);
   const getDocument = useEditor((s) => s.getDocument);
   const markClean = useEditor((s) => s.markClean);
@@ -76,6 +79,13 @@ function EditorTopBar({
   });
   const publish = api.template.publish.useMutation({
     onSuccess: () => setPublishedAt(true),
+    onError: (err) => setSaveError(err.message),
+  });
+  const fork = api.template.createVersion.useMutation({
+    onSuccess: () => {
+      setSaveError(null);
+      router.refresh();
+    },
     onError: (err) => setSaveError(err.message),
   });
 
@@ -176,31 +186,38 @@ function EditorTopBar({
       ) : null}
 
       <div className="ml-auto flex items-center gap-2">
-        <button
-          onClick={save}
-          disabled={!dirty || updateDraft.isPending || publishedAt}
-          className="rounded-md border border-zinc-200 px-3 py-1.5 text-xs text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {updateDraft.isPending ? "Saving…" : "Save"}
-        </button>
-        <button
-          onClick={() => publish.mutate({ versionId })}
-          disabled={publish.isPending || dirty || publishedAt}
-          className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-          title={
-            dirty
-              ? "Save changes before publishing"
-              : publishedAt
-                ? "This version is already published"
-                : "Publish this version"
-          }
-        >
-          {publish.isPending
-            ? "Publishing…"
-            : publishedAt
-              ? "Published"
-              : "Publish"}
-        </button>
+        {publishedAt ? (
+          <button
+            onClick={() =>
+              fork.mutate({ templateId, documentJson: getDocument() })
+            }
+            disabled={fork.isPending}
+            className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+            title="Create a new draft version from this published version"
+          >
+            {fork.isPending ? "Forking…" : "Fork to new draft"}
+          </button>
+        ) : (
+          <>
+            <button
+              onClick={save}
+              disabled={!dirty || updateDraft.isPending}
+              className="rounded-md border border-zinc-200 px-3 py-1.5 text-xs text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {updateDraft.isPending ? "Saving…" : "Save"}
+            </button>
+            <button
+              onClick={() => publish.mutate({ versionId })}
+              disabled={publish.isPending || dirty}
+              className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+              title={
+                dirty ? "Save changes before publishing" : "Publish this version"
+              }
+            >
+              {publish.isPending ? "Publishing…" : "Publish"}
+            </button>
+          </>
+        )}
       </div>
     </header>
   );

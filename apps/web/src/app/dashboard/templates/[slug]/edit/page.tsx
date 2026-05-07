@@ -30,6 +30,7 @@ export default async function EditTemplatePage({
   return (
     <EditorPreview
       document={version.documentJson as TemplateDocument}
+      templateId={tpl.id}
       templateName={tpl.name}
       templateSlug={tpl.slug}
       handle={handle}
