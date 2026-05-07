@@ -38,9 +38,12 @@ export function buildOgUrl<P extends Record<string, unknown>>(
   const path = `/r/${encodeURIComponent(opts.user)}/${encodeURIComponent(
     opts.template,
   )}/${encodeURIComponent(String(version))}`;
-  const ext = opts.format ? `.${normalizeFormat(opts.format)}` : "";
-  const qs = encodeParams(opts.params);
-  return `${baseUrl}${path}${ext}${qs ? `?${qs}` : ""}`;
+  const params: Record<string, unknown> = { ...opts.params };
+  if (opts.format) {
+    params.format = normalizeFormat(opts.format);
+  }
+  const qs = encodeParams(params);
+  return `${baseUrl}${path}${qs ? `?${qs}` : ""}`;
 }
 
 const normalizeFormat = (f: Format): string => (f === "jpg" ? "jpeg" : f);
