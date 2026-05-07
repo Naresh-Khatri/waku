@@ -15,6 +15,7 @@ import {
 } from "@/lib/observability";
 import { negotiateFormat } from "@/lib/format";
 import { renderErrorImage } from "@/lib/error-image";
+import { proxyImage } from "@/lib/proxy";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -163,7 +164,13 @@ export async function GET(req: NextRequest, ctx: Ctx) {
 
   try {
     const out = await withBudget(
-      render(tpl.document, draft, { format }),
+      render(tpl.document, draft, {
+        format,
+        loadImage: async (src) => {
+          const r = await proxyImage(src);
+          return { data: r.body, contentType: r.contentType };
+        },
+      }),
       RENDER_BUDGET_MS,
     );
     const ms = Date.now() - started;

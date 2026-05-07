@@ -8,7 +8,7 @@ import { Resvg } from "@resvg/resvg-js";
 import sharp from "sharp";
 
 import type { TemplateDocument } from "./document";
-import { documentToSatori } from "./flat-tree";
+import { documentToSatori, resolveImages, type ImageLoader } from "./flat-tree";
 import { loadFonts } from "./fonts";
 
 export type RenderFormat = "png" | "webp" | "jpeg";
@@ -20,6 +20,13 @@ export type RenderOptions = {
   height?: number;
   /** WebP/JPEG quality, 1..100. Default 85. */
   quality?: number;
+  /**
+   * Optional loader for remote image URLs. When provided, http(s) `img.src`
+   * values are pre-fetched through the loader (e.g. an SSRF-safe proxy) and
+   * inlined as data URIs before being passed to satori. Without it, satori
+   * will fetch remote URLs directly during rendering.
+   */
+  loadImage?: ImageLoader;
 };
 
 export type RenderResult = {
@@ -48,6 +55,9 @@ export const render = async (
   const targetH = opts.height ?? doc.artboard.height;
 
   const tree = documentToSatori(doc, draft);
+  if (opts.loadImage) {
+    await resolveImages(tree, opts.loadImage);
+  }
   const fonts = await loadFonts();
 
   const svg = await satori(tree as never, {

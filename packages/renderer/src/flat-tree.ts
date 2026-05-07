@@ -29,6 +29,45 @@ const el = (type: string, props: SatoriProps): SatoriElement => ({
 
 type Draft = Record<string, unknown>;
 
+export type ImageLoader = (
+  url: string,
+) => Promise<{ data: Uint8Array; contentType: string }>;
+
+const toDataUri = (data: Uint8Array, contentType: string): string => {
+  const b64 = Buffer.from(data).toString("base64");
+  return `data:${contentType};base64,${b64}`;
+};
+
+/**
+ * Walks the satori tree and replaces any <img src="http(s)://..."> with a
+ * data: URI loaded via `loadImage`. Existing data: / file: srcs are left
+ * untouched. Lets the render app gate remote fetches through its SSRF guard.
+ */
+export async function resolveImages(
+  root: SatoriElement,
+  loadImage: ImageLoader,
+): Promise<void> {
+  const visit = async (node: SatoriElement): Promise<void> => {
+    const { props } = node;
+    if (node.type === "img" && typeof props.src === "string") {
+      const src = props.src;
+      if (src.startsWith("http://") || src.startsWith("https://")) {
+        const { data, contentType } = await loadImage(src);
+        props.src = toDataUri(data, contentType);
+      }
+    }
+    const children = props.children;
+    if (Array.isArray(children)) {
+      for (const c of children) {
+        if (c && typeof c === "object" && "type" in c) await visit(c);
+      }
+    } else if (children && typeof children === "object" && "type" in children) {
+      await visit(children);
+    }
+  };
+  await visit(root);
+}
+
 export function documentToSatori(
   doc: TemplateDocument,
   draft: Draft,
