@@ -58,6 +58,11 @@ export interface FrameNode {
   children?: Node[];
 }
 
+/**
+ * When both `x` and `y` are set on a non-root node, the renderer positions
+ * the node absolutely within its parent (parent becomes position:relative).
+ * Otherwise the node stays in flow.
+ */
 export interface StackNode {
   type: "stack";
   dir: "row" | "col";
@@ -70,6 +75,8 @@ export interface StackNode {
   h?: number | "fill";
   bg?: Fill;
   radius?: number;
+  x?: number;
+  y?: number;
   children?: Node[];
 }
 
@@ -86,6 +93,8 @@ export interface TextNode {
   lineHeight?: number;
   maxLines?: number;
   align?: "left" | "center" | "right";
+  x?: number;
+  y?: number;
 }
 
 export interface ImageNode {
@@ -95,6 +104,8 @@ export interface ImageNode {
   w?: number;
   h?: number;
   radius?: number;
+  x?: number;
+  y?: number;
 }
 
 export interface ShapeNode {
@@ -104,6 +115,8 @@ export interface ShapeNode {
   h: number;
   fill?: Fill;
   radius?: number;
+  x?: number;
+  y?: number;
 }
 
 export interface GradientNode {
@@ -112,6 +125,8 @@ export interface GradientNode {
   h: number;
   gradient: Gradient;
   radius?: number;
+  x?: number;
+  y?: number;
 }
 
 export type Node =

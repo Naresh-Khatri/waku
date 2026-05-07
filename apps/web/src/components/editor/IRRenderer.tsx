@@ -95,6 +95,16 @@ function renderChildren(
 const sel = (id: string, ctx: Ctx) =>
   ctx.selectedIds.has(id) ? "true" : undefined;
 
+const positionStyle = (n: { x?: number; y?: number }): CSSProperties =>
+  typeof n.x === "number" && typeof n.y === "number"
+    ? { position: "absolute", left: n.x, top: n.y }
+    : {};
+
+const containerHasPositionedChild = (children: Node[] | undefined): boolean =>
+  !!children?.some(
+    (c) => c.type !== "frame" && typeof c.x === "number" && typeof c.y === "number",
+  );
+
 function FrameRenderer({ node, id, ctx }: { node: FrameNode; id: string; ctx: Ctx }): ReactElement {
   const style: CSSProperties = {
     display: "flex",
@@ -119,7 +129,9 @@ function StackRenderer({ node, id, ctx }: { node: StackNode; id: string; ctx: Ct
     ...sizeToCss(node.w, "width"),
     ...sizeToCss(node.h, "height"),
     ...fillToCss(node.bg),
+    ...positionStyle(node),
   };
+  if (containerHasPositionedChild(node.children)) style.position = "relative";
   const align = alignToCss(node.align);
   if (align) style.alignItems = align as CSSProperties["alignItems"];
   const justify = justifyToCss(node.justify);
@@ -143,6 +155,7 @@ function TextRenderer({ node, id, ctx }: { node: TextNode; id: string; ctx: Ctx 
     fontWeight: node.weight ?? node.font.weight ?? 400,
     fontStyle: node.font.style ?? "normal",
     lineHeight: node.lineHeight ?? 1.2,
+    ...positionStyle(node),
   };
   if (node.tracking !== undefined) style.letterSpacing = node.tracking;
   if (node.align) style.textAlign = node.align;
@@ -166,6 +179,7 @@ function ImageRenderer({ node, id, ctx }: { node: ImageNode; id: string; ctx: Ct
   const style: CSSProperties = {
     objectFit: node.fit,
     display: "block",
+    ...positionStyle(node),
   };
   if (node.w !== undefined) style.width = node.w;
   if (node.h !== undefined) style.height = node.h;
@@ -188,6 +202,7 @@ function ShapeRenderer({ node, id, ctx }: { node: ShapeNode; id: string; ctx: Ct
     width: node.w,
     height: node.h,
     ...fillToCss(node.fill),
+    ...positionStyle(node),
   };
   if (node.kind === "circle") style.borderRadius = Math.max(node.w, node.h);
   else if (node.radius !== undefined) style.borderRadius = node.radius;
@@ -199,6 +214,7 @@ function GradientRenderer({ node, id, ctx }: { node: GradientNode; id: string; c
     width: node.w,
     height: node.h,
     background: gradientToCss(node.gradient),
+    ...positionStyle(node),
   };
   if (node.radius !== undefined) style.borderRadius = node.radius;
   return <div data-node-id={id} data-node-type="gradient" data-selected={sel(id, ctx)} style={style} />;

@@ -8,13 +8,15 @@ import { useEditorStore, useEditorStoreApi } from "./StoreProvider";
 
 type Rect = { x: number; y: number; w: number; h: number };
 type Handle = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
-type DropIndicator = { parent: NodePath; index: number; rect: Rect; dir: "row" | "col" };
+type Guide = { axis: "x" | "y"; pos: number; from: number; to: number };
 
-const DRAG_THRESHOLD = 4;
+const DRAG_THRESHOLD = 3;
+const SNAP_THRESHOLD = 5;
 
 const HANDLES: Handle[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 
 const SELECTION_COLOR = "#7c5cff";
+const GUIDE_COLOR = "#22d3ee";
 const HANDLE_SIZE = 10;
 
 const supportsResize = (node: Node): boolean => {
@@ -75,7 +77,7 @@ export function SelectionOverlay({
   const selection = useEditorStore((s) => s.selection);
   const api = useEditorStoreApi();
   const [rects, setRects] = useState<Map<NodePath, Rect>>(new Map());
-  const [dropIndicator, setDropIndicator] = useState<DropIndicator | null>(null);
+  const [guides, setGuides] = useState<Guide[]>([]);
 
   useLayoutEffect(() => {
     const measure = () => {
@@ -165,196 +167,219 @@ export function SelectionOverlay({
     window.addEventListener("pointerup", onUp);
   };
 
-  const onReorderStart = (
+  const onMoveStart = (
     e: React.PointerEvent<HTMLDivElement>,
     path: NodePath,
   ) => {
     if (e.button !== 0) return;
-    const parent = parentPath(path);
-    if (!parent) return;
-    const state = api.getState();
-    const parentNode = getNodeAt(state.ir, parent);
-    if (!parentNode || parentNode.type !== "stack") return;
+    if (path === "0") return;
     const container = containerRef.current;
     if (!container) return;
 
+    const state = api.getState();
+    const node = getNodeAt(state.ir, path);
+    if (!node || node.type === "frame") return;
+    const parent = parentPath(path);
+    if (!parent) return;
+
     e.preventDefault();
     e.stopPropagation();
+
+    const before = { ir: state.ir, paramsSchema: state.paramsSchema };
     const cRect = container.getBoundingClientRect();
     const scale = cRect.width / irW || 1;
+    const rect = rects.get(path);
+    if (!rect) return;
 
-    const siblingsRects: Rect[] = [];
-    const siblings = parentNode.children ?? [];
-    const fromIdx = Number(path.split(".").pop());
-    for (let i = 0; i < siblings.length; i++) {
-      const childPath = `${parent}.children.${i}`;
-      const el = container.querySelector<HTMLElement>(
-        `[data-node-id="${CSS.escape(childPath)}"]`,
-      );
-      if (!el) {
-        siblingsRects.push({ x: 0, y: 0, w: 0, h: 0 });
-        continue;
+    // measure parent rect (in IR-space) to compute coordinates relative to it
+    const parentEl = container.querySelector<HTMLElement>(
+      `[data-node-id="${CSS.escape(parent)}"]`,
+    );
+    if (!parentEl) return;
+    const pBox = parentEl.getBoundingClientRect();
+    const parentX = (pBox.left - cRect.left) / scale;
+    const parentY = (pBox.top - cRect.top) / scale;
+    const parentW = pBox.width / scale;
+    const parentH = pBox.height / scale;
+
+    // measure all sibling rects (in IR-space, parent-relative) for snapping
+    const parentNode = getNodeAt(state.ir, parent);
+    const siblingRects: Rect[] = [];
+    if (parentNode && (parentNode.type === "frame" || parentNode.type === "stack")) {
+      const siblings = parentNode.children ?? [];
+      for (let i = 0; i < siblings.length; i++) {
+        const sibPath = `${parent}.children.${i}`;
+        if (sibPath === path) continue;
+        const sibEl = container.querySelector<HTMLElement>(
+          `[data-node-id="${CSS.escape(sibPath)}"]`,
+        );
+        if (!sibEl) continue;
+        const sb = sibEl.getBoundingClientRect();
+        siblingRects.push({
+          x: (sb.left - pBox.left) / scale,
+          y: (sb.top - pBox.top) / scale,
+          w: sb.width / scale,
+          h: sb.height / scale,
+        });
       }
-      const r = el.getBoundingClientRect();
-      siblingsRects.push({
-        x: (r.left - cRect.left) / scale,
-        y: (r.top - cRect.top) / scale,
-        w: r.width / scale,
-        h: r.height / scale,
-      });
     }
 
-    const dir: "row" | "col" = parentNode.dir === "row" ? "row" : "col";
-    const startX = e.clientX;
-    const startY = e.clientY;
+    // current x/y relative to parent
+    const startNodeX = rect.x - parentX;
+    const startNodeY = rect.y - parentY;
+    const startClientX = e.clientX;
+    const startClientY = e.clientY;
     let dragging = false;
-    let chosenIndex = fromIdx;
 
     const target = e.currentTarget;
     target.setPointerCapture(e.pointerId);
 
-    const at = (i: number): Rect => {
-      const r = siblingsRects[i];
-      if (!r) throw new Error(`sibling rect ${i} missing`);
-      return r;
+    const computeSnap = (px: number, py: number) => {
+      const w = rect.w;
+      const h = rect.h;
+      const myEdgesX = [
+        { type: "left", value: px },
+        { type: "center", value: px + w / 2 },
+        { type: "right", value: px + w },
+      ];
+      const myEdgesY = [
+        { type: "top", value: py },
+        { type: "middle", value: py + h / 2 },
+        { type: "bottom", value: py + h },
+      ];
+      const targetsX: number[] = [0, parentW / 2, parentW];
+      const targetsY: number[] = [0, parentH / 2, parentH];
+      for (const sib of siblingRects) {
+        targetsX.push(sib.x, sib.x + sib.w / 2, sib.x + sib.w);
+        targetsY.push(sib.y, sib.y + sib.h / 2, sib.y + sib.h);
+      }
+
+      let bestX: { delta: number; pos: number } | null = null;
+      for (const me of myEdgesX) {
+        for (const t of targetsX) {
+          const d = t - me.value;
+          if (Math.abs(d) <= SNAP_THRESHOLD) {
+            if (!bestX || Math.abs(d) < Math.abs(bestX.delta)) {
+              bestX = { delta: d, pos: t };
+            }
+          }
+        }
+      }
+
+      let bestY: { delta: number; pos: number } | null = null;
+      for (const me of myEdgesY) {
+        for (const t of targetsY) {
+          const d = t - me.value;
+          if (Math.abs(d) <= SNAP_THRESHOLD) {
+            if (!bestY || Math.abs(d) < Math.abs(bestY.delta)) {
+              bestY = { delta: d, pos: t };
+            }
+          }
+        }
+      }
+
+      const snappedX = bestX ? px + bestX.delta : px;
+      const snappedY = bestY ? py + bestY.delta : py;
+
+      const drawn: Guide[] = [];
+      if (bestX) {
+        // span from min top among my+matched siblings to max bottom
+        let from = snappedY;
+        let to = snappedY + h;
+        for (const sib of siblingRects) {
+          const eq = (a: number, b: number) => Math.abs(a - b) < 0.5;
+          if (
+            eq(bestX.pos, sib.x) ||
+            eq(bestX.pos, sib.x + sib.w / 2) ||
+            eq(bestX.pos, sib.x + sib.w)
+          ) {
+            from = Math.min(from, sib.y);
+            to = Math.max(to, sib.y + sib.h);
+          }
+        }
+        drawn.push({ axis: "x", pos: bestX.pos, from, to });
+      }
+      if (bestY) {
+        let from = snappedX;
+        let to = snappedX + w;
+        for (const sib of siblingRects) {
+          const eq = (a: number, b: number) => Math.abs(a - b) < 0.5;
+          if (
+            eq(bestY.pos, sib.y) ||
+            eq(bestY.pos, sib.y + sib.h / 2) ||
+            eq(bestY.pos, sib.y + sib.h)
+          ) {
+            from = Math.min(from, sib.x);
+            to = Math.max(to, sib.x + sib.w);
+          }
+        }
+        drawn.push({ axis: "y", pos: bestY.pos, from, to });
+      }
+
+      return { x: snappedX, y: snappedY, guides: drawn };
     };
 
-    const computeIndex = (clientX: number, clientY: number): number => {
-      const ptX = (clientX - cRect.left) / scale;
-      const ptY = (clientY - cRect.top) / scale;
-      const pt = dir === "row" ? ptX : ptY;
-      let best = 0;
-      let bestDist = Infinity;
-      for (let i = 0; i <= siblingsRects.length; i++) {
-        let boundary: number;
-        if (siblingsRects.length === 0) {
-          boundary = 0;
-        } else if (i === 0) {
-          const r = at(0);
-          boundary = dir === "row" ? r.x : r.y;
-        } else if (i === siblingsRects.length) {
-          const r = at(i - 1);
-          boundary = dir === "row" ? r.x + r.w : r.y + r.h;
-        } else {
-          const a = at(i - 1);
-          const b = at(i);
-          boundary =
-            dir === "row" ? (a.x + a.w + b.x) / 2 : (a.y + a.h + b.y) / 2;
-        }
-        const d = Math.abs(pt - boundary);
-        if (d < bestDist) {
-          bestDist = d;
-          best = i;
-        }
+    const onMoveEv = (ev: PointerEvent) => {
+      const dx = (ev.clientX - startClientX) / scale;
+      const dy = (ev.clientY - startClientY) / scale;
+      if (!dragging && Math.hypot(ev.clientX - startClientX, ev.clientY - startClientY) < DRAG_THRESHOLD) {
+        return;
       }
-      return best;
-    };
-
-    const indicatorRect = (index: number): Rect => {
-      const stride = 3;
-      if (siblingsRects.length === 0) {
-        const parentEl = container.querySelector<HTMLElement>(
-          `[data-node-id="${CSS.escape(parent)}"]`,
-        );
-        if (!parentEl) return { x: 0, y: 0, w: 0, h: 0 };
-        const r = parentEl.getBoundingClientRect();
-        return {
-          x: (r.left - cRect.left) / scale,
-          y: (r.top - cRect.top) / scale,
-          w: dir === "row" ? stride : r.width / scale,
-          h: dir === "row" ? r.height / scale : stride,
-        };
-      }
-      let x: number;
-      let y: number;
-      let w: number;
-      let h: number;
-      if (index === 0) {
-        const r = at(0);
-        if (dir === "row") {
-          x = r.x - stride / 2;
-          y = r.y;
-          w = stride;
-          h = r.h;
-        } else {
-          x = r.x;
-          y = r.y - stride / 2;
-          w = r.w;
-          h = stride;
-        }
-      } else if (index === siblingsRects.length) {
-        const r = at(index - 1);
-        if (dir === "row") {
-          x = r.x + r.w - stride / 2;
-          y = r.y;
-          w = stride;
-          h = r.h;
-        } else {
-          x = r.x;
-          y = r.y + r.h - stride / 2;
-          w = r.w;
-          h = stride;
-        }
-      } else {
-        const a = at(index - 1);
-        const b = at(index);
-        if (dir === "row") {
-          x = (a.x + a.w + b.x) / 2 - stride / 2;
-          y = Math.min(a.y, b.y);
-          w = stride;
-          h = Math.max(a.h, b.h);
-        } else {
-          x = Math.min(a.x, b.x);
-          y = (a.y + a.h + b.y) / 2 - stride / 2;
-          w = Math.max(a.w, b.w);
-          h = stride;
-        }
-      }
-      return { x, y, w, h };
-    };
-
-    const onMove = (ev: PointerEvent) => {
-      if (!dragging) {
-        const dx = ev.clientX - startX;
-        const dy = ev.clientY - startY;
-        if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
-        dragging = true;
-      }
-      chosenIndex = computeIndex(ev.clientX, ev.clientY);
-      setDropIndicator({
-        parent,
-        index: chosenIndex,
-        rect: indicatorRect(chosenIndex),
-        dir,
-      });
+      dragging = true;
+      const rawX = startNodeX + dx;
+      const rawY = startNodeY + dy;
+      const snap = computeSnap(rawX, rawY);
+      const fresh = api.getState();
+      const current = getNodeAt(fresh.ir, path);
+      if (!current || current.type === "frame") return;
+      const next = {
+        ...current,
+        x: Math.round(snap.x),
+        y: Math.round(snap.y),
+      } as Node;
+      fresh.liveSetNode(path, next);
+      setGuides(snap.guides);
     };
 
     const onUp = () => {
       try {
         target.releasePointerCapture(e.pointerId);
       } catch {
-        // pointer may have already been released
+        // already released
       }
-      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointermove", onMoveEv);
       window.removeEventListener("pointerup", onUp);
-      setDropIndicator(null);
-      if (dragging && chosenIndex !== fromIdx && chosenIndex !== fromIdx + 1) {
-        api.getState().moveNode(path, parent, chosenIndex);
-      }
+      setGuides([]);
+      if (dragging) api.getState().commitTransform(before);
     };
 
-    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointermove", onMoveEv);
     window.addEventListener("pointerup", onUp);
   };
 
-  const isStackChild = (path: NodePath): boolean => {
+  if (selection.length === 0 && guides.length === 0) return null;
+
+  // Resolve parent rect for each selected path so guides can render in canvas-space
+  const guideAnchor = (path: NodePath): { x: number; y: number } | null => {
+    const container = containerRef.current;
+    if (!container) return null;
     const parent = parentPath(path);
-    if (!parent) return false;
-    const parentNode = getNodeAt(ir, parent);
-    return parentNode?.type === "stack";
+    if (!parent) return null;
+    const cRect = container.getBoundingClientRect();
+    const scale = cRect.width / irW || 1;
+    const parentEl = container.querySelector<HTMLElement>(
+      `[data-node-id="${CSS.escape(parent)}"]`,
+    );
+    if (!parentEl) return null;
+    const pBox = parentEl.getBoundingClientRect();
+    return {
+      x: (pBox.left - cRect.left) / scale,
+      y: (pBox.top - cRect.top) / scale,
+    };
   };
 
-  if (selection.length === 0) return null;
+  const focusPath = selection[0];
+  const anchor = focusPath ? guideAnchor(focusPath) : null;
 
   return (
     <div
@@ -368,7 +393,7 @@ export function SelectionOverlay({
         const node = getNodeAt(ir, path);
         if (!node) return null;
         const canResize = supportsResize(node);
-        const canReorder = isStackChild(path);
+        const canMove = path !== "0" && node.type !== "frame";
         return (
           <div
             key={path}
@@ -384,9 +409,9 @@ export function SelectionOverlay({
               pointerEvents: "none",
             }}
           >
-            {canReorder && (
+            {canMove && (
               <div
-                onPointerDown={(e) => onReorderStart(e, path)}
+                onPointerDown={(e) => onMoveStart(e, path)}
                 style={{
                   position: "absolute",
                   inset: 0,
@@ -406,20 +431,39 @@ export function SelectionOverlay({
           </div>
         );
       })}
-      {dropIndicator && (
-        <div
-          style={{
-            position: "absolute",
-            left: dropIndicator.rect.x,
-            top: dropIndicator.rect.y,
-            width: dropIndicator.rect.w,
-            height: dropIndicator.rect.h,
-            background: "#22c55e",
-            borderRadius: 1,
-            pointerEvents: "none",
-          }}
-        />
-      )}
+      {anchor &&
+        guides.map((g, i) => {
+          if (g.axis === "x") {
+            return (
+              <div
+                key={i}
+                style={{
+                  position: "absolute",
+                  left: anchor.x + g.pos - 0.5,
+                  top: anchor.y + g.from,
+                  width: 1,
+                  height: g.to - g.from,
+                  background: GUIDE_COLOR,
+                  pointerEvents: "none",
+                }}
+              />
+            );
+          }
+          return (
+            <div
+              key={i}
+              style={{
+                position: "absolute",
+                left: anchor.x + g.from,
+                top: anchor.y + g.pos - 0.5,
+                width: g.to - g.from,
+                height: 1,
+                background: GUIDE_COLOR,
+                pointerEvents: "none",
+              }}
+            />
+          );
+        })}
     </div>
   );
 }

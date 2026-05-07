@@ -60,6 +60,8 @@ const StackSchemaBase = z.object({
   h: NumberOrFill.optional(),
   bg: FillSchema.optional(),
   radius: z.number().nonnegative().optional(),
+  x: z.number().optional(),
+  y: z.number().optional(),
 });
 
 const TextSchema = z.object({
@@ -73,6 +75,8 @@ const TextSchema = z.object({
   lineHeight: z.number().positive().optional(),
   maxLines: z.number().int().positive().optional(),
   align: z.enum(["left", "center", "right"]).optional(),
+  x: z.number().optional(),
+  y: z.number().optional(),
 });
 
 const ImageSchema = z.object({
@@ -82,6 +86,8 @@ const ImageSchema = z.object({
   w: z.number().positive().optional(),
   h: z.number().positive().optional(),
   radius: z.number().nonnegative().optional(),
+  x: z.number().optional(),
+  y: z.number().optional(),
 });
 
 const ShapeSchema = z.object({
@@ -91,6 +97,8 @@ const ShapeSchema = z.object({
   h: z.number().positive(),
   fill: FillSchema.optional(),
   radius: z.number().nonnegative().optional(),
+  x: z.number().optional(),
+  y: z.number().optional(),
 });
 
 const GradientNodeSchema = z.object({
@@ -99,6 +107,8 @@ const GradientNodeSchema = z.object({
   h: z.number().positive(),
   gradient: GradientSchema,
   radius: z.number().nonnegative().optional(),
+  x: z.number().optional(),
+  y: z.number().optional(),
 });
 
 // Recursive Node — children reference NodeSchema via z.lazy.

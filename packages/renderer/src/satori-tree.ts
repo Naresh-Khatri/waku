@@ -39,12 +39,27 @@ const div = (style: Record<string, unknown>, children?: SatoriElement[] | string
   props: { style, children },
 });
 
+const isPositioned = (n: Node): boolean =>
+  n.type !== "frame" && typeof n.x === "number" && typeof n.y === "number";
+
+const positionStyle = (n: Node): Record<string, unknown> => {
+  if (n.type === "frame") return {};
+  if (typeof n.x !== "number" || typeof n.y !== "number") return {};
+  return { position: "absolute", left: n.x, top: n.y };
+};
+
+const containerStyle = (children: Node[] | undefined): Record<string, unknown> => {
+  if (!children?.length) return {};
+  return children.some(isPositioned) ? { position: "relative" } : {};
+};
+
 const renderFrame = (n: FrameNode): SatoriElement => {
   const style: Record<string, unknown> = {
     display: "flex",
     width: n.w,
     height: n.h,
     ...fillToCss(n.bg),
+    ...containerStyle(n.children),
   };
   return div(style, n.children?.map(toSatori) ?? []);
 };
@@ -58,6 +73,8 @@ const renderStack = (n: StackNode): SatoriElement => {
     ...sizeToCss(n.w, "width"),
     ...sizeToCss(n.h, "height"),
     ...fillToCss(n.bg),
+    ...positionStyle(n),
+    ...containerStyle(n.children),
   };
   const align = alignToCss(n.align);
   if (align) style.alignItems = align;
@@ -78,6 +95,7 @@ const renderText = (n: TextNode): SatoriElement => {
     fontWeight: n.weight ?? n.font.weight ?? 400,
     fontStyle: n.font.style ?? "normal",
     lineHeight: n.lineHeight ?? 1.2,
+    ...positionStyle(n),
   };
   if (n.tracking !== undefined) style.letterSpacing = n.tracking;
   if (n.align) style.textAlign = n.align;
@@ -96,6 +114,7 @@ const renderImage = (n: ImageNode): SatoriElement => {
   }
   const style: Record<string, unknown> = {
     objectFit: n.fit,
+    ...positionStyle(n),
   };
   if (n.w !== undefined) style.width = n.w;
   if (n.h !== undefined) style.height = n.h;
@@ -108,6 +127,7 @@ const renderShape = (n: ShapeNode): SatoriElement => {
     width: n.w,
     height: n.h,
     ...fillToCss(n.fill),
+    ...positionStyle(n),
   };
   if (n.kind === "circle") style.borderRadius = Math.max(n.w, n.h);
   else if (n.radius !== undefined) style.borderRadius = n.radius;
@@ -119,6 +139,7 @@ const renderGradient = (n: GradientNode): SatoriElement => {
     width: n.w,
     height: n.h,
     background: gradientToCss(n.gradient),
+    ...positionStyle(n),
   };
   if (n.radius !== undefined) style.borderRadius = n.radius;
   return div(style);
