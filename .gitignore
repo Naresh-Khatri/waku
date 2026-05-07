@@ -39,3 +39,7 @@ node_modules/
 *.pem
 .idea/
 .vscode/
+
+# local scratch
+/plan.md
+/suspend.sh
