@@ -11,12 +11,12 @@ import { TopBar } from "./top-bar";
 
 export function Editor({
   enableParams = false,
+  liveUrl,
   topBar,
-  paramsCard,
 }: {
   enableParams?: boolean;
+  liveUrl?: string | null;
   topBar?: ReactNode;
-  paramsCard?: ReactNode;
 }) {
   const selectedId = useEditor((s) => s.selectedId);
   const select = useEditor((s) => s.select);
@@ -91,6 +91,7 @@ export function Editor({
     <EditorConfigProvider
       enableParams={enableParams}
       openBindModal={enableParams ? openBindModal : null}
+      liveUrl={liveUrl ?? null}
     >
       <div
         className="grid h-full w-full bg-zinc-100"
@@ -105,7 +106,6 @@ export function Editor({
           <Canvas />
           <Inspector />
         </div>
-        {paramsCard}
         {enableParams ? (
           <BindParamModal request={bindRequest} onClose={closeBindModal} />
         ) : null}
