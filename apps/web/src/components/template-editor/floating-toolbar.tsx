@@ -11,10 +11,11 @@ import {
   Trash2,
 } from "lucide-react";
 import type { CSSProperties } from "react";
-import { useEditor } from "./store";
-import type { EditorNode, Value } from "./types";
-import { isParamRef } from "./types";
+import { BindButton } from "./bind-button";
 import { ColorPicker } from "./color-picker";
+import { useEditor } from "./store";
+import type { EditorNode, ParamKind, Value } from "./types";
+import { isParamRef } from "./types";
 
 export function FloatingToolbar({
   node,
@@ -69,38 +70,59 @@ function TypeSpecificControls({ node }: { node: EditorNode }) {
           >
             <Italic className="h-4 w-4" />
           </ToolButton>
-          <ColorSwatch
+          <BindableColor
+            nodeId={node.id}
+            field="color"
             value={node.color}
             onChange={(v) => updateNode(node.id, { color: v })}
             label="Text color"
+            fallback="#111111"
           />
         </>
       );
     case "rectangle":
     case "ellipse":
     case "triangle":
-    case "star":
+    case "star": {
+      const fillFallback =
+        node.type === "rectangle"
+          ? "#6366f1"
+          : node.type === "ellipse"
+            ? "#ec4899"
+            : node.type === "triangle"
+              ? "#10b981"
+              : "#f59e0b";
       return (
         <>
-          <ColorSwatch
+          <BindableColor
+            nodeId={node.id}
+            field="fill"
             value={node.fill}
             onChange={(v) => updateNode(node.id, { fill: v })}
             label="Fill"
+            fallback={fillFallback}
           />
-          <ColorSwatch
+          <BindableColor
+            nodeId={node.id}
+            field="stroke"
             value={node.stroke}
             onChange={(v) => updateNode(node.id, { stroke: v })}
             label="Stroke"
+            fallback="#000000"
           />
         </>
       );
+    }
     case "line":
       return (
         <>
-          <ColorSwatch
+          <BindableColor
+            nodeId={node.id}
+            field="stroke"
             value={node.stroke}
             onChange={(v) => updateNode(node.id, { stroke: v })}
             label="Color"
+            fallback="#111111"
           />
           <ToolButton
             active={node.arrow}
@@ -113,20 +135,60 @@ function TypeSpecificControls({ node }: { node: EditorNode }) {
       );
     case "image":
       return (
-        <button
-          disabled={isParamRef(node.src)}
-          onClick={() => {
-            const current = isParamRef(node.src) ? "" : node.src;
-            const url = window.prompt("Image URL", current);
-            if (url) updateNode(node.id, { src: url });
-          }}
-          className="rounded-md px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-40"
-          title={isParamRef(node.src) ? `Bound to {${node.src.$param}}` : "Replace image"}
-        >
-          {isParamRef(node.src) ? `{${node.src.$param}}` : "Replace"}
-        </button>
+        <>
+          <button
+            disabled={isParamRef(node.src)}
+            onClick={() => {
+              const current = isParamRef(node.src) ? "" : node.src;
+              const url = window.prompt("Image URL", current);
+              if (url) updateNode(node.id, { src: url });
+            }}
+            className="rounded-md px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-40"
+            title={isParamRef(node.src) ? `Bound to {${node.src.$param}}` : "Replace image"}
+          >
+            {isParamRef(node.src) ? `{${node.src.$param}}` : "Replace"}
+          </button>
+          <BindButton
+            target={{ kind: "node", id: node.id }}
+            field="src"
+            paramKind="url"
+            value={node.src}
+            fallback=""
+          />
+        </>
       );
   }
+}
+
+function BindableColor({
+  nodeId,
+  field,
+  value,
+  onChange,
+  label,
+  fallback,
+  paramKind = "color",
+}: {
+  nodeId: string;
+  field: string;
+  value: Value<string>;
+  onChange: (v: string) => void;
+  label: string;
+  fallback: string;
+  paramKind?: ParamKind;
+}) {
+  return (
+    <>
+      <ColorSwatch value={value} onChange={onChange} label={label} />
+      <BindButton
+        target={{ kind: "node", id: nodeId }}
+        field={field}
+        paramKind={paramKind}
+        value={value}
+        fallback={fallback}
+      />
+    </>
+  );
 }
 
 function CommonControls({ node }: { node: EditorNode }) {

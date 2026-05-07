@@ -6,6 +6,7 @@ import { useEditor } from "./store";
 import type { Artboard, EditorNode, Value } from "./types";
 import { isParamRef } from "./types";
 import { ColorPicker } from "./color-picker";
+import { BindButton } from "./bind-button";
 
 export function Inspector() {
   const selectedId = useEditor((s) => s.selectedId);
@@ -61,6 +62,13 @@ function DocumentInspector({
         <ColorInput
           value={artboard.background}
           onChange={(v) => onChange({ background: v })}
+        />
+        <BindButton
+          target={{ kind: "artboard" }}
+          field="background"
+          paramKind="color"
+          value={artboard.background}
+          fallback="#ffffff"
         />
       </Row>
     </Section>
@@ -142,6 +150,13 @@ function TypeSection({ node }: { node: EditorNode }) {
         <Section title="Image">
           <Row label="Source">
             <TextInput value={node.src} onChange={(v) => set({ src: v })} />
+            <BindButton
+              target={{ kind: "node", id: node.id }}
+              field="src"
+              paramKind="url"
+              value={node.src}
+              fallback=""
+            />
           </Row>
           <Row label="Upload">
             <input
@@ -149,6 +164,7 @@ function TypeSection({ node }: { node: EditorNode }) {
               accept="image/*"
               onChange={(e) => onUpload(e, (src) => set({ src }))}
               className="text-xs text-zinc-600"
+              disabled={isParamRef(node.src)}
             />
           </Row>
           <Row label="Fit">
@@ -169,6 +185,13 @@ function TypeSection({ node }: { node: EditorNode }) {
         <Section title="Text">
           <Row label="Content">
             <TextArea value={node.text} onChange={(v) => set({ text: v })} />
+            <BindButton
+              target={{ kind: "node", id: node.id }}
+              field="text"
+              paramKind="string"
+              value={node.text}
+              fallback=""
+            />
           </Row>
           <PairRow>
             <NumberInput
@@ -193,6 +216,13 @@ function TypeSection({ node }: { node: EditorNode }) {
           </PairRow>
           <Row label="Color">
             <ColorInput value={node.color} onChange={(v) => set({ color: v })} />
+            <BindButton
+              target={{ kind: "node", id: node.id }}
+              field="color"
+              paramKind="color"
+              value={node.color}
+              fallback="#111111"
+            />
           </Row>
           <Row label="Align">
             <div className="flex gap-1">
@@ -242,9 +272,23 @@ function TypeSection({ node }: { node: EditorNode }) {
         <Section title="Rectangle">
           <Row label="Fill">
             <ColorInput value={node.fill} onChange={(v) => set({ fill: v })} />
+            <BindButton
+              target={{ kind: "node", id: node.id }}
+              field="fill"
+              paramKind="color"
+              value={node.fill}
+              fallback="#6366f1"
+            />
           </Row>
           <Row label="Stroke">
             <ColorInput value={node.stroke} onChange={(v) => set({ stroke: v })} />
+            <BindButton
+              target={{ kind: "node", id: node.id }}
+              field="stroke"
+              paramKind="color"
+              value={node.stroke}
+              fallback="#000000"
+            />
           </Row>
           <Row label="Stroke width">
             <RangeInput
@@ -273,9 +317,23 @@ function TypeSection({ node }: { node: EditorNode }) {
         <Section title={node.type === "ellipse" ? "Ellipse" : "Triangle"}>
           <Row label="Fill">
             <ColorInput value={node.fill} onChange={(v) => set({ fill: v })} />
+            <BindButton
+              target={{ kind: "node", id: node.id }}
+              field="fill"
+              paramKind="color"
+              value={node.fill}
+              fallback={node.type === "ellipse" ? "#ec4899" : "#10b981"}
+            />
           </Row>
           <Row label="Stroke">
             <ColorInput value={node.stroke} onChange={(v) => set({ stroke: v })} />
+            <BindButton
+              target={{ kind: "node", id: node.id }}
+              field="stroke"
+              paramKind="color"
+              value={node.stroke}
+              fallback="#000000"
+            />
           </Row>
           <Row label="Stroke width">
             <RangeInput
@@ -294,9 +352,23 @@ function TypeSection({ node }: { node: EditorNode }) {
         <Section title="Star">
           <Row label="Fill">
             <ColorInput value={node.fill} onChange={(v) => set({ fill: v })} />
+            <BindButton
+              target={{ kind: "node", id: node.id }}
+              field="fill"
+              paramKind="color"
+              value={node.fill}
+              fallback="#f59e0b"
+            />
           </Row>
           <Row label="Stroke">
             <ColorInput value={node.stroke} onChange={(v) => set({ stroke: v })} />
+            <BindButton
+              target={{ kind: "node", id: node.id }}
+              field="stroke"
+              paramKind="color"
+              value={node.stroke}
+              fallback="#000000"
+            />
           </Row>
           <Row label="Stroke width">
             <RangeInput
@@ -333,6 +405,13 @@ function TypeSection({ node }: { node: EditorNode }) {
         <Section title="Line">
           <Row label="Color">
             <ColorInput value={node.stroke} onChange={(v) => set({ stroke: v })} />
+            <BindButton
+              target={{ kind: "node", id: node.id }}
+              field="stroke"
+              paramKind="color"
+              value={node.stroke}
+              fallback="#111111"
+            />
           </Row>
           <Row label="Width">
             <RangeInput

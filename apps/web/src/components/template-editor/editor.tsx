@@ -1,13 +1,23 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { BindParamModal, type BindRequest } from "./bind-param-modal";
+import { Canvas } from "./canvas";
+import { EditorConfigProvider } from "./editor-config";
+import { Inspector } from "./inspector";
+import { LayersPanel } from "./layers-panel";
 import { useEditor } from "./store";
 import { TopBar } from "./top-bar";
-import { LayersPanel } from "./layers-panel";
-import { Canvas } from "./canvas";
-import { Inspector } from "./inspector";
 
-export function Editor() {
+export function Editor({
+  enableParams = false,
+  topBar,
+  paramsCard,
+}: {
+  enableParams?: boolean;
+  topBar?: ReactNode;
+  paramsCard?: ReactNode;
+}) {
   const selectedId = useEditor((s) => s.selectedId);
   const select = useEditor((s) => s.select);
   const removeNode = useEditor((s) => s.removeNode);
@@ -15,6 +25,10 @@ export function Editor() {
   const setZoom = useEditor((s) => s.setZoom);
   const undo = useEditor((s) => s.undo);
   const redo = useEditor((s) => s.redo);
+
+  const [bindRequest, setBindRequest] = useState<BindRequest | null>(null);
+  const openBindModal = useCallback((req: BindRequest) => setBindRequest(req), []);
+  const closeBindModal = useCallback(() => setBindRequest(null), []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -74,19 +88,28 @@ export function Editor() {
   }, [selectedId, removeNode, duplicate, select, setZoom, undo, redo]);
 
   return (
-    <div
-      className="grid h-full w-full bg-zinc-100"
-      style={{ gridTemplateRows: "48px minmax(0, 1fr)" }}
+    <EditorConfigProvider
+      enableParams={enableParams}
+      openBindModal={enableParams ? openBindModal : null}
     >
-      <TopBar />
       <div
-        className="grid min-h-0 p-2"
-        style={{ gridTemplateColumns: "240px minmax(0, 1fr) 280px" }}
+        className="grid h-full w-full bg-zinc-100"
+        style={{ gridTemplateRows: "48px minmax(0, 1fr)" }}
       >
-        <LayersPanel />
-        <Canvas />
-        <Inspector />
+        {topBar ?? <TopBar />}
+        <div
+          className="grid min-h-0 p-2"
+          style={{ gridTemplateColumns: "240px minmax(0, 1fr) 280px" }}
+        >
+          <LayersPanel />
+          <Canvas />
+          <Inspector />
+        </div>
+        {paramsCard}
+        {enableParams ? (
+          <BindParamModal request={bindRequest} onClose={closeBindModal} />
+        ) : null}
       </div>
-    </div>
+    </EditorConfigProvider>
   );
 }
