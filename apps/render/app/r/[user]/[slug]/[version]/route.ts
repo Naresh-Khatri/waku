@@ -89,7 +89,10 @@ export async function GET(req: NextRequest, ctx: Ctx) {
   const ipLimit = userLimit.ok ? checkRateLimit(ipKey) : userLimit;
   if (!userLimit.ok || !ipLimit.ok) {
     const limit = userLimit.ok ? ipLimit : userLimit;
-    const retryAfter = Math.max(1, Math.ceil((limit.resetAt - Date.now()) / 1000));
+    const retryAfter = Math.max(
+      1,
+      Math.ceil((limit.resetAt - Date.now()) / 1000),
+    );
     finishLog(429, "", -1, "rate_limited");
     try {
       const out = await renderErrorImage(
@@ -180,7 +183,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     const out = await withBudget(
       render(tpl.document, draft, {
         format,
-        loadImage: async (src) => {
+        loadImage: async (src: string) => {
           const r = await proxyImage(src);
           return { data: r.body, contentType: r.contentType };
         },
