@@ -1,9 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, gte, sql } from "drizzle-orm";
 import { wakuRenderLog, wakuTemplate, wakuTemplateVersion } from "@waku/db";
-import { ParamsSchemaZ, TemplateIRSchema } from "@waku/ir";
 import { z } from "zod";
 
+import { TemplateDocumentZ } from "@/components/template-editor/schema";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 
 const slugSchema = z
@@ -13,8 +13,7 @@ const slugSchema = z
   .regex(/^[a-z0-9][a-z0-9-]*$/, "lowercase letters, digits, and dashes");
 
 const draftInputSchema = z.object({
-  irJson: TemplateIRSchema,
-  paramsSchemaJson: ParamsSchemaZ,
+  documentJson: TemplateDocumentZ,
 });
 
 export const templateRouter = createTRPCRouter({
@@ -154,8 +153,7 @@ export const templateRouter = createTRPCRouter({
       z.object({
         slug: slugSchema,
         name: z.string().min(1).max(120),
-        irJson: TemplateIRSchema,
-        paramsSchemaJson: ParamsSchemaZ,
+        documentJson: TemplateDocumentZ,
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -189,8 +187,7 @@ export const templateRouter = createTRPCRouter({
           .values({
             templateId: tpl.id,
             version: 1,
-            irJson: input.irJson,
-            paramsSchemaJson: input.paramsSchemaJson,
+            documentJson: input.documentJson,
           })
           .returning();
         if (!version) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
@@ -229,8 +226,7 @@ export const templateRouter = createTRPCRouter({
         const [updated] = await tx
           .update(wakuTemplateVersion)
           .set({
-            irJson: input.irJson,
-            paramsSchemaJson: input.paramsSchemaJson,
+            documentJson: input.documentJson,
           })
           .where(eq(wakuTemplateVersion.id, input.versionId))
           .returning();
@@ -266,8 +262,7 @@ export const templateRouter = createTRPCRouter({
           .values({
             templateId: tpl.id,
             version: nextVersion,
-            irJson: input.irJson,
-            paramsSchemaJson: input.paramsSchemaJson,
+            documentJson: input.documentJson,
           })
           .returning();
         await tx

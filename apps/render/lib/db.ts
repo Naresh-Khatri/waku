@@ -8,8 +8,8 @@ import {
   wakuTemplateVersion,
   wakuUserProfile,
   type Db,
+  type TemplateDocumentRow,
 } from "@waku/db";
-import type { Node, ParamsSchema } from "@waku/ir";
 
 import { env } from "@/env";
 
@@ -17,8 +17,7 @@ export type LoadedTemplateVersion = {
   templateId: string;
   versionId: string;
   version: number;
-  ir: Node;
-  params: ParamsSchema;
+  document: TemplateDocumentRow;
 };
 
 const globalForDb = globalThis as unknown as { wakuDb?: Db };
@@ -54,8 +53,7 @@ export const loadTemplateVersion = async (
       templateId: wakuTemplate.id,
       versionId: wakuTemplateVersion.id,
       version: wakuTemplateVersion.version,
-      ir: wakuTemplateVersion.irJson,
-      params: wakuTemplateVersion.paramsSchemaJson,
+      document: wakuTemplateVersion.documentJson,
     })
     .from(wakuTemplateVersion)
     .innerJoin(wakuTemplate, eq(wakuTemplate.id, wakuTemplateVersion.templateId))
@@ -76,8 +74,7 @@ export const loadTemplateVersion = async (
     templateId: row.templateId,
     versionId: row.versionId,
     version: row.version,
-    ir: row.ir,
-    params: row.params,
+    document: row.document,
   };
   versionCache.set(key, loaded);
   return loaded;

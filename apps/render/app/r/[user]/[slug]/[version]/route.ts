@@ -1,18 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { render, type RenderFormat } from "@waku/renderer";
-import { validateParams } from "@waku/ir";
+import type { RenderFormat } from "@waku/renderer";
 import {
   loadTemplateVersion,
-  recordRenderLog,
   resolvePublishedVersion,
 } from "@/lib/db";
-import {
-  RENDER_BUDGET_MS,
-  RenderTimeoutError,
-  hashParams,
-  logRender,
-  withBudget,
-} from "@/lib/observability";
+import { logRender } from "@/lib/observability";
 import { negotiateFormat } from "@/lib/format";
 import { renderErrorImage } from "@/lib/error-image";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
@@ -168,58 +160,13 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     );
   }
 
-  const userParams = stripReserved(url.searchParams);
-  const result = validateParams(tpl.params, userParams);
-  if (!result.ok) {
-    const first = result.error.issues[0];
-    const msg = first
-      ? `${first.path.join(".")}: ${first.message}`
-      : "validation failed";
-    finishLog(400, "", version, "invalid_params");
-    return errorResponse(400, "Invalid params", msg, format);
-  }
-
-  const ph = hashParams(result.value);
-
-  const recordLog = (status: number) => {
-    recordRenderLog({
-      templateVersionId: tpl.versionId,
-      paramsHash: ph,
-      format,
-      ms: Date.now() - started,
-      status,
-    });
-  };
-
-  try {
-    const out = await withBudget(
-      render(tpl.ir, result.value, { format }),
-      RENDER_BUDGET_MS,
-    );
-    finishLog(200, ph, version);
-    recordLog(200);
-    return new Response(new Uint8Array(out.buffer), {
-      status: 200,
-      headers: {
-        "Content-Type": out.contentType,
-        "Cache-Control": CACHE_HEADER,
-        "X-Waku-Template": `${user}/${slug}@${version}`,
-      },
-    });
-  } catch (err) {
-    if (err instanceof RenderTimeoutError) {
-      finishLog(504, ph, version, "timeout");
-      recordLog(504);
-      return errorResponse(
-        504,
-        "Render timeout",
-        `Exceeded ${RENDER_BUDGET_MS}ms budget`,
-        format,
-      );
-    }
-    const message = err instanceof Error ? err.message : "render failed";
-    finishLog(500, ph, version, "render_error");
-    recordLog(500);
-    return errorResponse(500, "Render failed", message, format);
-  }
+  // Render pipeline is being rewritten for the flat editor document
+  // shape. Return 501 until the new renderer lands.
+  finishLog(501, "", version, "renderer_not_implemented");
+  return errorResponse(
+    501,
+    "Renderer rewrite in progress",
+    `${user}/${slug}@${version}: flat-document renderer is a follow-up to the editor migration`,
+    format,
+  );
 }

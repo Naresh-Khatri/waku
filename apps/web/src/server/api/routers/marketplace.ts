@@ -4,6 +4,7 @@ import { systemTemplates, getSystemTemplate } from "@waku/templates";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
+import { emptyTemplateDocument } from "@/components/template-editor/schema";
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -104,8 +105,7 @@ export const marketplaceRouter = createTRPCRouter({
           .values({
             templateId: newTpl.id,
             version: 1,
-            irJson: tpl.ir,
-            paramsSchemaJson: tpl.params,
+            documentJson: emptyTemplateDocument(),
           })
           .returning();
         return { template: newTpl, version };

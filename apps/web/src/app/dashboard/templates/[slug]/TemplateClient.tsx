@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { env } from "@/env";
+import type { TemplateDocument } from "@/components/template-editor/types";
 import { api, type RouterOutputs } from "@/trpc/react";
 
 type Template = RouterOutputs["template"]["get"];
@@ -156,8 +157,7 @@ export default function TemplateClient({ handle, template }: Props) {
                         .then((source) => {
                           fork.mutate({
                             templateId: template.id,
-                            irJson: source.irJson,
-                            paramsSchemaJson: source.paramsSchemaJson,
+                            documentJson: source.documentJson as TemplateDocument,
                           });
                         });
                     }}
