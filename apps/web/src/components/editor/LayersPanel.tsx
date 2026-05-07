@@ -17,7 +17,18 @@ import { CSS } from "@dnd-kit/utilities";
 import type { Node } from "@waku/ir";
 
 import { useEditorStore } from "./StoreProvider";
-import type { NodePath } from "./path";
+import { lastIndex, parentPath, type NodePath } from "./path";
+
+type FlatItem = { path: NodePath; node: Node };
+
+const flatten = (root: Node, path: NodePath = "0", out: FlatItem[] = []): FlatItem[] => {
+  if (path !== "0") out.push({ path, node: root });
+  if (root.type === "frame" || root.type === "stack") {
+    const children = root.children ?? [];
+    children.forEach((c, i) => flatten(c, `${path}.children.${i}`, out));
+  }
+  return out;
+};
 
 export function LayersPanel() {
   const ir = useEditorStore((s) => s.ir);
@@ -25,8 +36,7 @@ export function LayersPanel() {
   const select = useEditorStore((s) => s.select);
   const moveNode = useEditorStore((s) => s.moveNode);
 
-  const children = ir.type === "frame" ? (ir.children ?? []) : [];
-  const items = children.map((_, i) => `0.children.${i}`);
+  const items = flatten(ir);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -35,20 +45,22 @@ export function LayersPanel() {
   const onDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
-    const fromIdx = items.indexOf(String(active.id));
-    const toIdx = items.indexOf(String(over.id));
-    if (fromIdx === -1 || toIdx === -1) return;
-    moveNode(`0.children.${fromIdx}`, "0", toIdx);
+    const from = String(active.id);
+    const to = String(over.id);
+    const toParent = parentPath(to);
+    if (!toParent) return;
+    const toIdx = lastIndex(to);
+    moveNode(from, toParent, toIdx);
   };
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <div className="flex items-center justify-between border-b border-[#1f2937] px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-[#9ca3af]">
         <span>Layers</span>
-        <span className="text-[#6b7280]">{children.length}</span>
+        <span className="text-[#6b7280]">{items.length}</span>
       </div>
       <div className="flex-1 overflow-y-auto py-1">
-        {children.length === 0 ? (
+        {items.length === 0 ? (
           <div className="px-3 py-6 text-center text-[11px] text-[#6b7280]">
             No layers yet. Use the insert bar to add one.
           </div>
@@ -58,19 +70,19 @@ export function LayersPanel() {
             collisionDetection={closestCenter}
             onDragEnd={onDragEnd}
           >
-            <SortableContext items={items} strategy={verticalListSortingStrategy}>
-              {children.map((child, i) => {
-                const path = `0.children.${i}`;
-                return (
-                  <LayerItem
-                    key={path}
-                    id={path}
-                    node={child}
-                    selected={selection.includes(path)}
-                    onSelect={(additive) => select(path, additive)}
-                  />
-                );
-              })}
+            <SortableContext
+              items={items.map((it) => it.path)}
+              strategy={verticalListSortingStrategy}
+            >
+              {items.map((it) => (
+                <LayerItem
+                  key={it.path}
+                  id={it.path}
+                  node={it.node}
+                  selected={selection.includes(it.path)}
+                  onSelect={(additive) => select(it.path, additive)}
+                />
+              ))}
             </SortableContext>
           </DndContext>
         )}
