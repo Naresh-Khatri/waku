@@ -9,6 +9,7 @@ import { isParamRef } from "./types";
 import { ColorPicker } from "./color-picker";
 import { BindButton } from "./bind-button";
 import { AssetUploadError, useAssetUploader } from "./asset-upload";
+import { AssetPickerButton } from "./asset-picker";
 
 export function Inspector() {
   const selectedId = useEditor((s) => s.selectedId);
@@ -164,6 +165,12 @@ function TypeSection({ node }: { node: EditorNode }) {
             disabled={isParamRef(node.src)}
             onUploaded={(src) => set({ src })}
           />
+          <Row label="Library">
+            <AssetPickerButton
+              disabled={isParamRef(node.src)}
+              onPick={(src) => set({ src })}
+            />
+          </Row>
           <Row label="Fit">
             <SelectInput
               value={node.fit}
