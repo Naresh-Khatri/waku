@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { BindParamModal, type BindRequest } from "./bind-param-modal";
 import { Canvas } from "./canvas";
 import { EditorConfigProvider } from "./editor-config";
+import { InsertBar } from "./insert-bar";
 import { Inspector } from "./inspector";
 import { LayersPanel } from "./layers-panel";
 import { useEditor } from "./store";
@@ -95,9 +96,10 @@ export function Editor({
     >
       <div
         className="grid h-full w-full bg-zinc-100"
-        style={{ gridTemplateRows: "48px minmax(0, 1fr)" }}
+        style={{ gridTemplateRows: "48px 36px minmax(0, 1fr)" }}
       >
         {topBar ?? <TopBar />}
+        <InsertBar />
         <div
           className="grid min-h-0 p-2"
           style={{ gridTemplateColumns: "240px minmax(0, 1fr) 280px" }}
