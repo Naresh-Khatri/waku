@@ -2,11 +2,13 @@
 
 import { AlignCenter, AlignLeft, AlignRight } from "lucide-react";
 import type { ChangeEvent } from "react";
+import { useState } from "react";
 import { useEditor } from "./store";
 import type { Artboard, EditorNode, Value } from "./types";
 import { isParamRef } from "./types";
 import { ColorPicker } from "./color-picker";
 import { BindButton } from "./bind-button";
+import { AssetUploadError, useAssetUploader } from "./asset-upload";
 
 export function Inspector() {
   const selectedId = useEditor((s) => s.selectedId);
@@ -158,15 +160,10 @@ function TypeSection({ node }: { node: EditorNode }) {
               fallback=""
             />
           </Row>
-          <Row label="Upload">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => onUpload(e, (src) => set({ src }))}
-              className="text-xs text-zinc-600"
-              disabled={isParamRef(node.src)}
-            />
-          </Row>
+          <ImageUploadRow
+            disabled={isParamRef(node.src)}
+            onUploaded={(src) => set({ src })}
+          />
           <Row label="Fit">
             <SelectInput
               value={node.fit}
@@ -434,14 +431,56 @@ function TypeSection({ node }: { node: EditorNode }) {
   }
 }
 
-function onUpload(e: ChangeEvent<HTMLInputElement>, cb: (src: string) => void) {
-  const file = e.target.files?.[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    if (typeof reader.result === "string") cb(reader.result);
+function ImageUploadRow({
+  disabled,
+  onUploaded,
+}: {
+  disabled: boolean;
+  onUploaded: (src: string) => void;
+}) {
+  const { upload, isUploading } = useAssetUploader();
+  const [error, setError] = useState<string | null>(null);
+
+  const onChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setError(null);
+    try {
+      const { readUrl } = await upload(file);
+      onUploaded(readUrl);
+    } catch (err) {
+      setError(
+        err instanceof AssetUploadError
+          ? err.message
+          : "Upload failed. Try again.",
+      );
+    }
   };
-  reader.readAsDataURL(file);
+
+  return (
+    <>
+      <Row label="Upload">
+        <input
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+          onChange={onChange}
+          className="text-xs text-zinc-600"
+          disabled={disabled || isUploading}
+        />
+      </Row>
+      {isUploading ? (
+        <Row label="">
+          <span className="text-[11px] text-zinc-500">Uploading…</span>
+        </Row>
+      ) : null}
+      {error ? (
+        <Row label="">
+          <span className="text-[11px] text-red-500">{error}</span>
+        </Row>
+      ) : null}
+    </>
+  );
 }
 
 function clampInt(v: number, min: number, max: number) {
