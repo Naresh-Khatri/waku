@@ -128,6 +128,41 @@ export const wakuCreditLedger = pgTable(
   ],
 );
 
+export const chatConversation = pgTable(
+  "chat_conversation",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("chat_conversation_user_idx").on(t.userId, t.updatedAt),
+  ],
+);
+
+export const chatMessage = pgTable(
+  "chat_message",
+  {
+    id: text("id").primaryKey(),
+    conversationId: uuid("conversation_id")
+      .notNull()
+      .references(() => chatConversation.id, { onDelete: "cascade" }),
+    role: text("role").notNull(),
+    parts: jsonb("parts").$type<unknown[]>().notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("chat_message_conversation_idx").on(
+      t.conversationId,
+      t.createdAt,
+    ),
+  ],
+);
+
 export const wakuAiGeneration = pgTable(
   "waku_ai_generation",
   {

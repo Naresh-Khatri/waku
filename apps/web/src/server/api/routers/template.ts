@@ -65,39 +65,11 @@ export const templateRouter = createTRPCRouter({
         ),
       );
 
-    const top = await ctx.db
-      .select({
-        templateId: wakuTemplate.id,
-        slug: wakuTemplate.slug,
-        name: wakuTemplate.name,
-        renders: sql<number>`COUNT(*)::int`,
-      })
-      .from(wakuRenderLog)
-      .innerJoin(
-        wakuTemplateVersion,
-        eq(wakuTemplateVersion.id, wakuRenderLog.templateVersionId),
-      )
-      .innerJoin(
-        wakuTemplate,
-        eq(wakuTemplate.id, wakuTemplateVersion.templateId),
-      )
-      .where(
-        and(
-          eq(wakuTemplate.userId, userId),
-          gte(wakuRenderLog.createdAt, monthStart),
-        ),
-      )
-      .groupBy(wakuTemplate.id, wakuTemplate.slug, wakuTemplate.name)
-      .orderBy(sql`COUNT(*) DESC`)
-      .limit(5);
-
     const row = totals[0];
     return {
-      monthStart: monthStart.toISOString(),
       renders: row?.renders ?? 0,
       errors: row?.errors ?? 0,
       p95Ms: row?.p95Ms ?? null,
-      top,
     };
   }),
 

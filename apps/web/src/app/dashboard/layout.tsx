@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 
 import { getSession } from "@/server/better-auth/server";
 import { ensureProfile } from "@/server/profile";
+import { api } from "@/trpc/server";
+
+import { DashboardShell } from "./_components/dashboard-shell";
 
 export default async function DashboardLayout({
   children,
@@ -13,10 +16,15 @@ export default async function DashboardLayout({
   if (!session?.user) redirect("/");
   const { handle } = await ensureProfile(session.user);
 
+  const [templates, usage] = await Promise.all([
+    api.template.list(),
+    api.template.usage(),
+  ]);
+
   return (
     <div className="min-h-screen bg-[#030712] text-[#e5e7eb]">
       <header className="border-b border-[#1f2937] px-6 py-4">
-        <div className="mx-auto flex max-w-5xl items-center justify-between">
+        <div className="flex items-center justify-between">
           <Link href="/dashboard" className="text-lg font-semibold">
             Waku
           </Link>
@@ -28,16 +36,19 @@ export default async function DashboardLayout({
             >
               credits
             </Link>
-            <Link
-              href="/dashboard/templates/new"
-              className="rounded-full bg-[#1f2937] px-4 py-1.5 font-medium text-[#e5e7eb] transition hover:bg-[#374151]"
-            >
-              New template
-            </Link>
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-5xl px-6 py-8">{children}</main>
+      <DashboardShell
+        initialTemplates={templates}
+        initialUsage={{
+          renders: usage.renders,
+          errors: usage.errors,
+          p95Ms: usage.p95Ms,
+        }}
+      >
+        {children}
+      </DashboardShell>
     </div>
   );
 }

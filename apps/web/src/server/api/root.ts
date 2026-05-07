@@ -1,4 +1,5 @@
 import { assetRouter } from "@/server/api/routers/asset";
+import { chatRouter } from "@/server/api/routers/chat";
 import { creditsRouter } from "@/server/api/routers/credits";
 import { meRouter } from "@/server/api/routers/me";
 import { templateRouter } from "@/server/api/routers/template";
@@ -11,6 +12,7 @@ import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
  */
 export const appRouter = createTRPCRouter({
   asset: assetRouter,
+  chat: chatRouter,
   credits: creditsRouter,
   me: meRouter,
   template: templateRouter,
