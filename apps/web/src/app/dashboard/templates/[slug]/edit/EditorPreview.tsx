@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 import type { Node, ParamsSchema } from "@waku/ir";
@@ -160,7 +160,7 @@ function EditorShell({
               <EditorCanvas />
             )}
           </div>
-          <SelectionStatusBar />
+          <UrlBar url={renderUrl} />
         </main>
 
         {/* Right sidebar */}
@@ -198,23 +198,68 @@ function SidebarTab({
   );
 }
 
-function SelectionStatusBar() {
+function UrlBar({ url }: { url: string }) {
   const selection = useEditorStore((s) => s.selection);
   const ir = useEditorStore((s) => s.ir);
   const w = ir.type === "frame" ? ir.w : 1200;
   const h = ir.type === "frame" ? ir.h : 630;
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      inputRef.current?.select();
+      document.execCommand("copy");
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1200);
+  };
+
   return (
-    <div className="flex h-7 shrink-0 items-center justify-between border-t border-[#1f2937] bg-[#0b0f1a] px-3 text-[10px] text-[#6b7280]">
-      <span className="font-mono">
+    <div className="flex h-10 shrink-0 items-center gap-2 border-t border-[#1f2937] bg-[#0b0f1a] px-3 text-[10px] text-[#6b7280]">
+      <span className="shrink-0 font-mono">
         {selection.length === 0
           ? "no selection"
           : selection.length === 1
             ? selection[0]
             : `${selection.length} selected`}
       </span>
-      <span className="font-mono">
+      <span className="text-[#1f2937]">|</span>
+      <span className="shrink-0 font-mono">
         {w}×{h}
       </span>
+      <span className="text-[#1f2937]">|</span>
+      <span className="shrink-0 text-[10px] uppercase tracking-wide text-[#6b7280]">
+        URL
+      </span>
+      <input
+        ref={inputRef}
+        readOnly
+        value={url}
+        onFocus={(e) => e.currentTarget.select()}
+        className="flex-1 min-w-0 rounded border border-[#1f2937] bg-[#030712] px-2 py-1 font-mono text-[11px] text-[#d1d5db] outline-none focus:border-[#7c5cff66]"
+      />
+      <button
+        onClick={copy}
+        className={[
+          "shrink-0 rounded border px-2.5 py-1 text-[11px] transition",
+          copied
+            ? "border-[#22c55e66] bg-[#22c55e22] text-[#86efac]"
+            : "border-[#1f2937] bg-[#0b0f1a] text-[#9ca3af] hover:text-[#e5e7eb]",
+        ].join(" ")}
+      >
+        {copied ? "copied" : "copy"}
+      </button>
+      <a
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        className="shrink-0 rounded border border-[#1f2937] bg-[#0b0f1a] px-2.5 py-1 text-[11px] text-[#9ca3af] transition hover:text-[#e5e7eb]"
+      >
+        open ↗
+      </a>
     </div>
   );
 }
