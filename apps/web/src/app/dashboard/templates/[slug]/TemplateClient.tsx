@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { env } from "@/env";
 import { api, type RouterOutputs } from "@/trpc/react";
 
 type Template = RouterOutputs["template"]["get"];
@@ -14,8 +15,7 @@ type Props = {
   template: Template;
 };
 
-const RENDER_BASE =
-  process.env.NEXT_PUBLIC_RENDER_BASE_URL ?? "http://localhost:3001";
+const RENDER_BASE = env.NEXT_PUBLIC_RENDER_BASE_URL;
 
 const renderUrl = (handle: string, slug: string, version: number | "published") =>
   `${RENDER_BASE}/r/${handle}/${slug}/${version}`;

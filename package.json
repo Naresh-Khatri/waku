@@ -7,6 +7,11 @@
     "dev": "turbo run dev",
     "build": "turbo run build",
     "start": "turbo run start",
+    "db:push": "pnpm --filter @waku/web db:push",
+    "db:generate": "pnpm --filter @waku/web db:generate",
+    "db:migrate": "pnpm --filter @waku/web db:migrate",
+    "db:studio": "pnpm --filter @waku/web db:studio",
+    "db:seed": "pnpm --filter @waku/web db:seed",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "lint:fix": "turbo run lint:fix",
@@ -17,6 +22,7 @@
     "format:write": "prettier --write \"**/*.{ts,tsx,js,jsx,mdx,md,json}\" --cache"
   },
   "devDependencies": {
+    "dotenv-cli": "^10.0.0",
     "prettier": "^3.5.3",
     "prettier-plugin-tailwindcss": "^0.6.11",
     "turbo": "^2.5.0",
@@ -34,7 +40,9 @@
       "unrs-resolver"
     ],
     "peerDependencyRules": {
-      "ignoreMissing": ["@opentelemetry/api"]
+      "ignoreMissing": [
+        "@opentelemetry/api"
+      ]
     },
     "overrides": {
       "drizzle-orm": "0.41.0",

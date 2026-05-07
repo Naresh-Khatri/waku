@@ -3,14 +3,16 @@ import "server-only";
 import { createGroq } from "@ai-sdk/groq";
 import { generateText, type ModelMessage } from "ai";
 
+import { env } from "@/env";
+
 /**
  * Groq + Vercel AI SDK client. If GROQ_API_KEY is set, calls the real API.
  * Otherwise runs in stub mode and returns deterministic fixtures so the
  * full UI/round-trip works locally without network or keys.
  */
 
-const API_KEY = process.env.GROQ_API_KEY;
-const MODEL_DEFAULT = process.env.GROQ_MODEL ?? "llama-3.1-8b-instant";
+const API_KEY = env.GROQ_API_KEY;
+const MODEL_DEFAULT = env.GROQ_MODEL;
 
 export const aiMode: "live" | "stub" = API_KEY ? "live" : "stub";
 

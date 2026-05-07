@@ -1,8 +1,8 @@
 import "server-only";
 
-const FREE_DAILY_LIMIT = Number(
-  process.env.WAKU_FREE_DAILY_LIMIT ?? "1000",
-);
+import { env } from "@/env";
+
+const FREE_DAILY_LIMIT = env.WAKU_FREE_DAILY_LIMIT;
 const WINDOW_MS = 24 * 60 * 60 * 1000;
 
 type Bucket = { count: number; resetAt: number };

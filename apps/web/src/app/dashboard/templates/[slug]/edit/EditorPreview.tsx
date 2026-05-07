@@ -11,9 +11,9 @@ import { Inspector } from "@/components/editor/Inspector";
 import { ParamsPanel } from "@/components/editor/ParamsPanel";
 import { EditorStoreProvider, useEditorStore } from "@/components/editor/StoreProvider";
 import { Toolbar } from "@/components/editor/Toolbar";
+import { env } from "@/env";
 
-const RENDER_BASE =
-  process.env.NEXT_PUBLIC_RENDER_BASE_URL ?? "http://localhost:3001";
+const RENDER_BASE = env.NEXT_PUBLIC_RENDER_BASE_URL;
 
 type Props = {
   ir: Node;

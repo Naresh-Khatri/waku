@@ -1,3 +1,5 @@
+import "./env.js";
+
 /** @type {import("next").NextConfig} */
 const config = {
   // Renderer uses native modules (resvg-js), so the route runs in the

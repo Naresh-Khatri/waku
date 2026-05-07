@@ -11,6 +11,8 @@ import {
 } from "@waku/db";
 import type { Node, ParamsSchema } from "@waku/ir";
 
+import { env } from "@/env";
+
 export type LoadedTemplateVersion = {
   templateId: string;
   versionId: string;
@@ -19,16 +21,10 @@ export type LoadedTemplateVersion = {
   params: ParamsSchema;
 };
 
-const dbUrl = (): string => {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL is not set");
-  return url;
-};
-
 const globalForDb = globalThis as unknown as { wakuDb?: Db };
 export const getDb = (): Db => {
   if (!globalForDb.wakuDb) {
-    globalForDb.wakuDb = createDb(dbUrl()).db;
+    globalForDb.wakuDb = createDb(env.DATABASE_URL).db;
   }
   return globalForDb.wakuDb;
 };
