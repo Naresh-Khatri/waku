@@ -1,8 +1,5 @@
 import Link from "next/link";
 
-import { systemTemplates } from "@waku/templates";
-
-import { TemplatePreview } from "@/components/marketplace/TemplatePreview";
 import { api } from "@/trpc/server";
 
 export const metadata = {
@@ -12,7 +9,6 @@ export const metadata = {
 
 export default async function GalleryPage() {
   const listings = await api.marketplace.list();
-  const irBySlug = new Map(systemTemplates.map((t) => [t.slug, t.ir]));
   return (
     <div className="min-h-screen bg-[#030712] text-[#e5e7eb]">
       <header className="border-b border-[#1f2937] px-6 py-4">
@@ -48,9 +44,12 @@ export default async function GalleryPage() {
               className="overflow-hidden rounded-xl border border-[#1f2937] bg-[#0b0f1a] transition hover:border-[#7c5cff]"
             >
               <Link href={`/templates/${t.slug}`} className="block">
-                {irBySlug.get(t.slug) && (
-                  <TemplatePreview ir={irBySlug.get(t.slug)!} />
-                )}
+                <div
+                  className="flex items-center justify-center bg-[#0a0e17] text-xs text-[#4b5563]"
+                  style={{ aspectRatio: "1200 / 630" }}
+                >
+                  preview unavailable
+                </div>
                 <div className="px-4 py-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">{t.name}</span>

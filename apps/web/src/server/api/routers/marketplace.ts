@@ -48,8 +48,6 @@ export const marketplaceRouter = createTRPCRouter({
       return {
         slug: tpl.slug,
         name: tpl.name,
-        ir: tpl.ir,
-        params: tpl.params,
         archetype: archetypes[tpl.slug] ?? "general",
         tags: tags[tpl.slug] ?? [],
         version: tpl.version,

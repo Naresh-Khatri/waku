@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: { params: Params }) {
     const tpl = await api.marketplace.get({ slug });
     return {
       title: `${tpl.name} — Waku`,
-      description: `Open ${tpl.archetype} template. ${Object.keys(tpl.params).length} params.`,
+      description: `Open ${tpl.archetype} template.`,
     };
   } catch {
     return { title: "Template not found — Waku" };
@@ -49,8 +49,6 @@ export default async function TemplateDetailPage({ params }: { params: Params })
         <TemplateDetailClient
           slug={tpl.slug}
           name={tpl.name}
-          ir={tpl.ir}
-          params={tpl.params}
           archetype={tpl.archetype}
           tags={tpl.tags}
           isAuthed={!!session?.user}
