@@ -50,13 +50,13 @@ export function Inspector({
 
   if (selection.length !== 1) {
     return (
-      <Aside>
+      <Shell>
         <Empty>
           {selection.length === 0
             ? "Nothing selected"
             : `${selection.length} nodes — pick one`}
         </Empty>
-      </Aside>
+      </Shell>
     );
   }
 
@@ -64,9 +64,9 @@ export function Inspector({
   const node = getNodeAt(ir, path);
   if (!node) {
     return (
-      <Aside>
+      <Shell>
         <Empty>Node not found</Empty>
-      </Aside>
+      </Shell>
     );
   }
 
@@ -105,7 +105,7 @@ export function Inspector({
   };
 
   return (
-    <Aside>
+    <Shell>
       <header
         style={{
           display: "flex",
@@ -115,7 +115,9 @@ export function Inspector({
           borderBottom: "1px solid #1f2937",
         }}
       >
-        <div style={{ fontSize: 12, fontWeight: 600 }}>{node.type}</div>
+        <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, color: "#9ca3af" }}>
+          {node.type}
+        </div>
         <button
           onClick={() => deleteNode(path)}
           disabled={path === "0"}
@@ -146,29 +148,24 @@ export function Inspector({
         {node.type === "shape" && <ShapeSection node={node} set={set} />}
         {node.type === "gradient" && <GradientSection node={node} set={set} />}
       </div>
-    </Aside>
+    </Shell>
   );
 }
 
 type Set = (key: string, value: unknown) => void;
 
-function Aside({ children }: { children: ReactNode }) {
+function Shell({ children }: { children: ReactNode }) {
   return (
-    <aside
+    <div
       style={{
-        width: 300,
-        background: "#0b0f1a",
-        border: "1px solid #1f2937",
-        borderRadius: 12,
+        height: "100%",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
-        height: "fit-content",
-        maxHeight: "80vh",
       }}
     >
       {children}
-    </aside>
+    </div>
   );
 }
 

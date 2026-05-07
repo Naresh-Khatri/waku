@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 
 import type { Node, ParamsSchema } from "@waku/ir";
 
@@ -57,35 +56,18 @@ export default async function EditTemplatePage({
   const mock = buildMockValues(version.paramsSchemaJson);
 
   return (
-    <div className="flex flex-col gap-4">
-      <header className="flex items-center justify-between">
-        <div>
-          <Link
-            href={`/dashboard/templates/${tpl.slug}`}
-            className="text-sm text-[#9ca3af] hover:text-[#e5e7eb]"
-          >
-            ← back to {tpl.name}
-          </Link>
-          <h1 className="mt-1 text-xl font-semibold">
-            {tpl.name}{" "}
-            <span className="font-mono text-xs text-[#6b7280]">
-              v{version.version} draft preview
-            </span>
-          </h1>
-        </div>
-      </header>
-
-      <EditorPreview
-        ir={version.irJson as Node}
-        paramsSchema={version.paramsSchemaJson as ParamsSchema}
-        handle={handle}
-        slug={tpl.slug}
-        version={version.version}
-        templateId={tpl.id}
-        versionId={version.id}
-        isPublished={version.publishedAt !== null}
-        draftValues={mock}
-      />
-    </div>
+    <EditorPreview
+      ir={version.irJson as Node}
+      paramsSchema={version.paramsSchemaJson as ParamsSchema}
+      templateName={tpl.name}
+      templateSlug={tpl.slug}
+      handle={handle}
+      slug={tpl.slug}
+      version={version.version}
+      templateId={tpl.id}
+      versionId={version.id}
+      isPublished={version.publishedAt !== null}
+      draftValues={mock}
+    />
   );
 }

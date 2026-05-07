@@ -144,41 +144,28 @@ export function Toolbar({
   const publishing = publish.isPending;
 
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 12,
-        padding: "8px 12px",
-        background: "#0b0f1a",
-        border: "1px solid #1f2937",
-        borderRadius: 12,
-      }}
-    >
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <ModeToggle value={previewMode} onChange={setPreviewMode} />
-        <button
-          onClick={() => void saveDraft()}
-          disabled={saving || !dirty}
-          style={btn(dirty && !saving ? "primary" : "ghost")}
-        >
-          {saving ? "saving…" : "save draft"}
-        </button>
-        <button
-          onClick={() => void onPublish()}
-          disabled={publishing}
-          style={btn("ghost")}
-        >
-          {publishing ? "publishing…" : isPublished ? "publish new version" : "publish"}
-        </button>
-        <RemixThemeButton />
-      </div>
-      <div style={{ fontSize: 11, color: "#9ca3af", display: "flex", gap: 8 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <ModeToggle value={previewMode} onChange={setPreviewMode} />
+      <button
+        onClick={() => void saveDraft()}
+        disabled={saving || !dirty}
+        style={btn(dirty && !saving ? "primary" : "ghost")}
+      >
+        {saving ? "saving…" : "save draft"}
+      </button>
+      <button
+        onClick={() => void onPublish()}
+        disabled={publishing}
+        style={btn("ghost")}
+      >
+        {publishing ? "publishing…" : isPublished ? "publish new version" : "publish"}
+      </button>
+      <RemixThemeButton />
+      <div style={{ fontSize: 11, color: "#9ca3af", display: "flex", gap: 8, marginLeft: 4 }}>
         {error && <span style={{ color: "#ef4444" }}>{error}</span>}
         <span>
           {dirty
-            ? "unsaved"
+            ? "● unsaved"
             : lastSavedAt
               ? `saved ${formatTime(lastSavedAt)}`
               : "no changes"}

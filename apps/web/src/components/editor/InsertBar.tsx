@@ -99,21 +99,19 @@ export function InsertBar() {
   return (
     <div
       style={{
-        display: "flex",
-        gap: 6,
-        padding: "6px 10px",
-        background: "#0b0f1a",
+        display: "inline-flex",
+        gap: 4,
+        padding: 4,
+        background: "#0b0f1aE6",
         border: "1px solid #1f2937",
-        borderRadius: 12,
+        borderRadius: 8,
+        backdropFilter: "blur(8px)",
       }}
     >
-      <span style={{ fontSize: 11, color: "#6b7280", alignSelf: "center", marginRight: 6 }}>
-        insert
-      </span>
-      <Btn onClick={() => insert(blank.text)} title="Text (T)">T</Btn>
-      <Btn onClick={() => insert(blank.rect)} title="Rectangle (R)">▭</Btn>
+      <Btn onClick={() => insert(blank.text)} title="Text">T</Btn>
+      <Btn onClick={() => insert(blank.rect)} title="Rectangle">▭</Btn>
       <Btn onClick={() => insert(blank.circle)} title="Circle">●</Btn>
-      <Btn onClick={() => insert(blank.image)} title="Image (I)">🖼</Btn>
+      <Btn onClick={() => insert(blank.image)} title="Image">🖼</Btn>
       <Btn onClick={() => insert(blank.stack)} title="Stack">⊟</Btn>
       <Btn onClick={() => insert(blank.gradient)} title="Gradient">▧</Btn>
     </div>

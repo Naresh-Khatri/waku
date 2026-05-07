@@ -54,28 +54,26 @@ export function ParamsPanel() {
   const entries = Object.entries(schema);
 
   return (
-    <aside
+    <div
       style={{
-        width: 240,
-        background: "#0b0f1a",
-        border: "1px solid #1f2937",
-        borderRadius: 12,
+        height: "100%",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
-        height: "fit-content",
-        maxHeight: "80vh",
       }}
     >
       <div
         style={{
           padding: "8px 12px",
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: 600,
+          textTransform: "uppercase",
+          letterSpacing: 0.5,
+          color: "#9ca3af",
           borderBottom: "1px solid #1f2937",
         }}
       >
-        Params {entries.length > 0 && <span style={{ color: "#6b7280" }}>({entries.length})</span>}
+        Params {entries.length > 0 && <span style={{ color: "#6b7280", textTransform: "none" }}>({entries.length})</span>}
       </div>
       <div style={{ overflowY: "auto", flex: 1 }}>
         {entries.length === 0 && (
@@ -102,7 +100,7 @@ export function ParamsPanel() {
           />
         ))}
       </div>
-    </aside>
+    </div>
   );
 }
 

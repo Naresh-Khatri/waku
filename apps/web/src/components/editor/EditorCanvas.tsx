@@ -113,7 +113,7 @@ function ScaledCanvas({
   children: ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-[#1f2937] bg-[#0b0f1a]">
+    <div className="overflow-hidden rounded-lg shadow-2xl ring-1 ring-[#1f2937] bg-[#0b0f1a]">
       <div
         className="origin-top-left"
         style={{
@@ -127,13 +127,19 @@ function ScaledCanvas({
           const parent = el.parentElement;
           if (!parent) return;
           const update = () => {
-            const scale = Math.min(parent.clientWidth / w, 1);
+            const pw = parent.clientWidth;
+            const ph = parent.clientHeight || pw;
+            const scale = Math.min(pw / w, ph / h, 1);
             el.style.setProperty("--canvas-scale", String(scale));
+            parent.style.width = `${w * scale}px`;
             parent.style.height = `${h * scale}px`;
           };
           update();
           const ro = new ResizeObserver(update);
-          ro.observe(parent);
+          // observe the grandparent so we react to canvas-area resizes
+          const grand = parent.parentElement;
+          if (grand) ro.observe(grand);
+          else ro.observe(parent);
         }}
       >
         {children}
