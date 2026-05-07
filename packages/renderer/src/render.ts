@@ -1,32 +1,21 @@
 /**
- * Main render pipeline: IR + params -> image buffer.
- *
- * Stages:
- *   1. Resolve param refs in the IR tree.
- *   2. Convert IR -> Satori JSX-object tree.
- *   3. Satori -> SVG string.
- *   4. Resvg -> PNG buffer.
- *   5. (optional) sharp transcode -> WebP / JPEG.
+ * Flat-document render pipeline:
+ *   TemplateDocument + draft values -> Satori tree -> SVG -> PNG (-> WebP/JPEG).
  */
 
 import satori from "satori";
 import { Resvg } from "@resvg/resvg-js";
 import sharp from "sharp";
-import {
-  type Node,
-  type ResolvedValues,
-  resolve,
-} from "@waku/ir";
 
+import type { TemplateDocument } from "./document";
+import { documentToSatori } from "./flat-tree";
 import { loadFonts } from "./fonts";
-import { toSatori } from "./satori-tree";
 
 export type RenderFormat = "png" | "webp" | "jpeg";
 
 export type RenderOptions = {
-  /** Output format. Default "png". */
   format?: RenderFormat;
-  /** Override the IR's frame width/height. Useful for thumbnails. */
+  /** Override artboard width/height. */
   width?: number;
   height?: number;
   /** WebP/JPEG quality, 1..100. Default 85. */
@@ -47,27 +36,18 @@ const CONTENT_TYPES: Record<RenderFormat, string> = {
   jpeg: "image/jpeg",
 };
 
-const getFrameSize = (root: Node): { w: number; h: number } => {
-  if (root.type !== "frame") {
-    throw new Error("render: IR root must be a frame node");
-  }
-  return { w: root.w, h: root.h };
-};
-
 export const render = async (
-  ir: Node,
-  values: ResolvedValues,
+  doc: TemplateDocument,
+  draft: Record<string, unknown>,
   opts: RenderOptions = {},
 ): Promise<RenderResult> => {
   const format = opts.format ?? "png";
   const quality = opts.quality ?? 85;
 
-  const resolved = resolve(ir, values);
-  const { w, h } = getFrameSize(resolved);
-  const targetW = opts.width ?? w;
-  const targetH = opts.height ?? h;
+  const targetW = opts.width ?? doc.artboard.width;
+  const targetH = opts.height ?? doc.artboard.height;
 
-  const tree = toSatori(resolved);
+  const tree = documentToSatori(doc, draft);
   const fonts = await loadFonts();
 
   const svg = await satori(tree as never, {

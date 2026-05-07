@@ -1,0 +1,203 @@
+export type NodeType =
+  | "image"
+  | "text"
+  | "rectangle"
+  | "ellipse"
+  | "triangle"
+  | "star"
+  | "line";
+
+export type ParamRef<T = unknown> = {
+  $param: string;
+  default?: T;
+};
+
+export type Value<T> = T | ParamRef<T>;
+
+export const isParamRef = <T>(v: Value<T>): v is ParamRef<T> =>
+  typeof v === "object" &&
+  v !== null &&
+  "$param" in (v as object) &&
+  typeof (v as ParamRef<T>).$param === "string";
+
+export type ParamKind =
+  | "string"
+  | "url"
+  | "color"
+  | "number"
+  | "boolean"
+  | "enum";
+
+export type ParamSchemaEntry =
+  | { kind: "string"; default?: string; maxLen?: number }
+  | { kind: "url"; default?: string }
+  | { kind: "color"; default?: string }
+  | { kind: "number"; default?: number; min?: number; max?: number }
+  | { kind: "boolean"; default?: boolean }
+  | { kind: "enum"; values: [string, ...string[]]; default?: string };
+
+export type ParamsSchema = Record<string, ParamSchemaEntry>;
+
+export interface BaseNode {
+  id: string;
+  type: NodeType;
+  name: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+  opacity: number;
+  visible: boolean;
+  locked: boolean;
+}
+
+export interface ImageNode extends BaseNode {
+  type: "image";
+  src: Value<string>;
+  fit: "cover" | "contain";
+}
+
+export interface TextNode extends BaseNode {
+  type: "text";
+  text: Value<string>;
+  fontSize: number;
+  fontWeight: 400 | 500 | 600 | 700 | 800;
+  italic: boolean;
+  color: Value<string>;
+  align: "left" | "center" | "right";
+  fontFamily: string;
+  letterSpacing: number;
+  lineHeight: number;
+}
+
+interface ShapeFields {
+  fill: Value<string>;
+  stroke: Value<string>;
+  strokeWidth: number;
+}
+
+export interface RectangleNode extends BaseNode, ShapeFields {
+  type: "rectangle";
+  cornerRadius: number;
+}
+
+export interface EllipseNode extends BaseNode, ShapeFields {
+  type: "ellipse";
+}
+
+export interface TriangleNode extends BaseNode, ShapeFields {
+  type: "triangle";
+}
+
+export interface StarNode extends BaseNode, ShapeFields {
+  type: "star";
+  points: number;
+  innerRadiusRatio: number;
+}
+
+export interface LineNode extends BaseNode {
+  type: "line";
+  stroke: Value<string>;
+  strokeWidth: number;
+  arrow: boolean;
+}
+
+export type EditorNode =
+  | ImageNode
+  | TextNode
+  | RectangleNode
+  | EllipseNode
+  | TriangleNode
+  | StarNode
+  | LineNode;
+
+export interface Artboard {
+  width: number;
+  height: number;
+  background: Value<string>;
+}
+
+export interface TemplateDocument {
+  artboard: Artboard;
+  nodes: EditorNode[];
+  paramsSchema: ParamsSchema;
+}
+
+export const resolveValue = <T>(
+  v: Value<T>,
+  draft: Record<string, unknown>,
+): T | undefined => {
+  if (isParamRef(v)) {
+    const dv = draft[v.$param];
+    if (dv !== undefined && dv !== null && dv !== "") return dv as T;
+    return v.default;
+  }
+  return v;
+};
+
+const RESERVED_PARAMS = new Set(["format", "_sig", "_ts"]);
+
+export function paramsFromSearch(
+  search: URLSearchParams | string | null | undefined,
+  schema: ParamsSchema,
+): Record<string, unknown> {
+  if (!search) return {};
+  const sp =
+    typeof search === "string" ? new URLSearchParams(search) : search;
+  const out: Record<string, unknown> = {};
+  for (const [name, entry] of Object.entries(schema)) {
+    if (RESERVED_PARAMS.has(name)) continue;
+    const raw = sp.get(name);
+    if (raw === null) continue;
+    switch (entry.kind) {
+      case "string":
+      case "url":
+      case "color":
+        out[name] = raw;
+        break;
+      case "number": {
+        const n = Number(raw);
+        if (Number.isFinite(n)) out[name] = n;
+        break;
+      }
+      case "boolean":
+        out[name] = raw === "1" || raw.toLowerCase() === "true";
+        break;
+      case "enum":
+        if (entry.values.includes(raw)) out[name] = raw;
+        break;
+    }
+  }
+  return out;
+}
+
+export function searchFromParams(
+  values: Record<string, unknown>,
+  schema: ParamsSchema,
+): URLSearchParams {
+  const sp = new URLSearchParams();
+  for (const [name, entry] of Object.entries(schema)) {
+    const v = values[name];
+    if (v === undefined || v === null || v === "") continue;
+    switch (entry.kind) {
+      case "string":
+      case "url":
+      case "color":
+        if (typeof v === "string" && v.length > 0) sp.set(name, v);
+        break;
+      case "number":
+        if (typeof v === "number" && Number.isFinite(v))
+          sp.set(name, String(v));
+        break;
+      case "boolean":
+        if (typeof v === "boolean") sp.set(name, v ? "1" : "0");
+        break;
+      case "enum":
+        if (typeof v === "string" && entry.values.includes(v))
+          sp.set(name, v);
+        break;
+    }
+  }
+  return sp;
+}

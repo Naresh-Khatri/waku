@@ -9,24 +9,11 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import type { TemplateDocument } from "@waku/renderer/document";
 
 import { account, session, user } from "./auth-schema";
 
-/**
- * Structural shape of the flat editor document persisted in
- * `waku_template_version.document_json`. Defined locally so the db
- * package stays free of editor imports; the canonical TS types live
- * in `apps/web/src/components/template-editor/types.ts`.
- */
-export interface TemplateDocumentRow {
-  artboard: {
-    width: number;
-    height: number;
-    background: unknown;
-  };
-  nodes: unknown[];
-  paramsSchema: Record<string, unknown>;
-}
+export type TemplateDocumentRow = TemplateDocument;
 
 /**
  * Public handle for a user. Immutable in v1 — every render URL embeds it.

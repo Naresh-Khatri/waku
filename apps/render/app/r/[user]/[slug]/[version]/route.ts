@@ -1,10 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server";
-import type { RenderFormat } from "@waku/renderer";
+import { render, type RenderFormat } from "@waku/renderer";
+import { paramsFromSearch } from "@waku/renderer/document";
 import {
   loadTemplateVersion,
+  recordRenderLog,
   resolvePublishedVersion,
 } from "@/lib/db";
-import { logRender } from "@/lib/observability";
+import {
+  hashParams,
+  logRender,
+  RENDER_BUDGET_MS,
+  RenderTimeoutError,
+  withBudget,
+} from "@/lib/observability";
 import { negotiateFormat } from "@/lib/format";
 import { renderErrorImage } from "@/lib/error-image";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
@@ -15,16 +23,6 @@ export const dynamic = "force-dynamic";
 const CACHE_HEADER = "public, immutable, max-age=31536000";
 
 type Ctx = { params: Promise<{ user: string; slug: string; version: string }> };
-
-const RESERVED_PARAMS = new Set(["format", "_sig", "_ts"]);
-
-const stripReserved = (sp: URLSearchParams): URLSearchParams => {
-  const out = new URLSearchParams();
-  for (const [k, v] of sp.entries()) {
-    if (!RESERVED_PARAMS.has(k)) out.append(k, v);
-  }
-  return out;
-};
 
 async function errorResponse(
   status: number,
@@ -160,13 +158,51 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     );
   }
 
-  // Render pipeline is being rewritten for the flat editor document
-  // shape. Return 501 until the new renderer lands.
-  finishLog(501, "", version, "renderer_not_implemented");
-  return errorResponse(
-    501,
-    "Renderer rewrite in progress",
-    `${user}/${slug}@${version}: flat-document renderer is a follow-up to the editor migration`,
-    format,
-  );
+  const draft = paramsFromSearch(url.searchParams, tpl.document.paramsSchema);
+  const paramsHash = hashParams(draft);
+
+  try {
+    const out = await withBudget(
+      render(tpl.document, draft, { format }),
+      RENDER_BUDGET_MS,
+    );
+    const ms = Date.now() - started;
+    recordRenderLog({
+      templateVersionId: tpl.versionId,
+      paramsHash,
+      format,
+      ms,
+      status: 200,
+    });
+    finishLog(200, paramsHash, version);
+    return new Response(new Uint8Array(out.buffer), {
+      status: 200,
+      headers: {
+        "Content-Type": out.contentType,
+        "Cache-Control": CACHE_HEADER,
+        "X-Waku-Version": String(version),
+        "X-Waku-Params-Hash": paramsHash,
+      },
+    });
+  } catch (err) {
+    const isTimeout = err instanceof RenderTimeoutError;
+    const status = isTimeout ? 504 : 500;
+    const code = isTimeout ? "timeout" : "render_failed";
+    const message =
+      err instanceof Error ? err.message : "Unknown render failure";
+    recordRenderLog({
+      templateVersionId: tpl.versionId,
+      paramsHash,
+      format,
+      ms: Date.now() - started,
+      status,
+    });
+    finishLog(status, paramsHash, version, code);
+    return errorResponse(
+      status,
+      isTimeout ? "Render timed out" : "Render failed",
+      message,
+      format,
+    );
+  }
 }

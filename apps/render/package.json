@@ -4,19 +4,17 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "dotenv -e ../../.env -- next dev --turbo --port 3001",
-    "build": "dotenv -e ../../.env -- next build",
-    "start": "dotenv -e ../../.env -- next start --port 3001",
+    "dev": "next dev --turbo --port 5001",
+    "build": "next build",
+    "start": "next start --port 5001",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",
     "@t3-oss/env-nextjs": "^0.12.0",
     "@waku/db": "workspace:*",
-    "@waku/ir": "workspace:*",
-    "drizzle-orm": "^0.41.0",
     "@waku/renderer": "workspace:*",
-    "@waku/templates": "workspace:*",
+    "drizzle-orm": "^0.41.0",
     "next": "^15.2.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

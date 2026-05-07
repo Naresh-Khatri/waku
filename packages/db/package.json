@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@opentelemetry/api": "1.9.0",
-    "@waku/ir": "workspace:*",
+    "@waku/renderer": "workspace:*",
     "drizzle-orm": "^0.41.0",
     "postgres": "^3.4.4"
   },
