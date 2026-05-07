@@ -49,22 +49,22 @@ export function documentToSatori(
 }
 
 function nodeToSatori(node: EditorNode, draft: Draft): SatoriElement {
-  const wrap = (inner: SatoriElement): SatoriElement =>
-    el("div", {
-      style: {
-        position: "absolute",
-        display: "flex",
-        left: node.x,
-        top: node.y,
-        width: node.width,
-        height: node.height,
-        opacity: node.opacity,
-        transform:
-          node.rotation !== 0 ? `rotate(${node.rotation}deg)` : undefined,
-        transformOrigin: "center center",
-      },
-      children: inner,
-    });
+  const wrap = (inner: SatoriElement): SatoriElement => {
+    const style: Record<string, unknown> = {
+      position: "absolute",
+      display: "flex",
+      left: node.x,
+      top: node.y,
+      width: node.width,
+      height: node.height,
+      opacity: node.opacity,
+    };
+    if (node.rotation !== 0) {
+      style.transform = `rotate(${node.rotation}deg)`;
+      style.transformOrigin = "center center";
+    }
+    return el("div", { style, children: inner });
+  };
 
   switch (node.type) {
     case "image":
@@ -130,33 +130,33 @@ function textNode(node: TextNode, draft: Draft): SatoriElement {
 function rectangleNode(node: RectangleNode, draft: Draft): SatoriElement {
   const fill = resolveValue(node.fill, draft) ?? "transparent";
   const stroke = resolveValue(node.stroke, draft) ?? "transparent";
-  return el("div", {
-    style: {
-      width: node.width,
-      height: node.height,
-      backgroundColor: fill,
-      borderRadius: node.cornerRadius,
-      border:
-        node.strokeWidth > 0 ? `${node.strokeWidth}px solid ${stroke}` : undefined,
-      boxSizing: "border-box",
-    },
-  });
+  const style: Record<string, unknown> = {
+    width: node.width,
+    height: node.height,
+    backgroundColor: fill,
+    borderRadius: node.cornerRadius,
+    boxSizing: "border-box",
+  };
+  if (node.strokeWidth > 0) {
+    style.border = `${node.strokeWidth}px solid ${stroke}`;
+  }
+  return el("div", { style });
 }
 
 function ellipseNode(node: EllipseNode, draft: Draft): SatoriElement {
   const fill = resolveValue(node.fill, draft) ?? "transparent";
   const stroke = resolveValue(node.stroke, draft) ?? "transparent";
-  return el("div", {
-    style: {
-      width: node.width,
-      height: node.height,
-      backgroundColor: fill,
-      borderRadius: "50%",
-      border:
-        node.strokeWidth > 0 ? `${node.strokeWidth}px solid ${stroke}` : undefined,
-      boxSizing: "border-box",
-    },
-  });
+  const style: Record<string, unknown> = {
+    width: node.width,
+    height: node.height,
+    backgroundColor: fill,
+    borderRadius: "50%",
+    boxSizing: "border-box",
+  };
+  if (node.strokeWidth > 0) {
+    style.border = `${node.strokeWidth}px solid ${stroke}`;
+  }
+  return el("div", { style });
 }
 
 function svgImage(
