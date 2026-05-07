@@ -74,7 +74,7 @@ const TextNodeZ = z.object({
   italic: z.boolean(),
   color: ValueStringZ,
   align: z.enum(["left", "center", "right"]),
-  fontFamily: z.string(),
+  fontFamily: z.enum(["Inter"]),
   letterSpacing: z.number(),
   lineHeight: z.number().positive(),
 });

@@ -105,7 +105,7 @@ describe("documentToSatori", () => {
 
   it("omits transform when rotation is 0", () => {
     const tree = documentToSatori(doc, {});
-    const wrap = (tree.props.children as SatoriElement[])[0];
+    const wrap = (tree.props.children as SatoriElement[])[0]!;
     expect((wrap.props.style as Record<string, unknown>).transform).toBeUndefined();
   });
 
@@ -117,7 +117,7 @@ describe("documentToSatori", () => {
       },
       {},
     );
-    const wrap = (rotated.props.children as SatoriElement[])[0];
+    const wrap = (rotated.props.children as SatoriElement[])[0]!;
     expect((wrap.props.style as Record<string, unknown>).transform).toBe(
       "rotate(45deg)",
     );
@@ -136,7 +136,7 @@ describe("resolveImages", () => {
       };
     });
     expect(calls).toEqual(["https://cdn.example.com/a.png"]);
-    const imgWrap = (tree.props.children as SatoriElement[])[2];
+    const imgWrap = (tree.props.children as SatoriElement[])[2]!;
     const img = imgWrap.props.children as SatoriElement;
     expect((img.props.src as string).startsWith("data:image/png;base64,")).toBe(
       true,
@@ -144,11 +144,12 @@ describe("resolveImages", () => {
   });
 
   it("leaves data: URIs untouched", async () => {
+    const imgNode = doc.nodes[3]!;
     const inline: TemplateDocument = {
       ...doc,
       nodes: [
         {
-          ...(doc.nodes[3] as never),
+          ...imgNode,
           src: "data:image/png;base64,aaa",
         } as never,
       ],

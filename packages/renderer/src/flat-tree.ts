@@ -137,9 +137,12 @@ function imageNode(node: ImageNode, draft: Draft): SatoriElement {
   });
 }
 
+const ALLOWED_FONTS = new Set(["Inter"]);
+
 function textNode(node: TextNode, draft: Draft): SatoriElement {
   const text = resolveValue(node.text, draft) ?? "";
   const color = resolveValue(node.color, draft) ?? "#000000";
+  const fontFamily = ALLOWED_FONTS.has(node.fontFamily) ? node.fontFamily : "Inter";
   return el("div", {
     style: {
       width: node.width,
@@ -152,7 +155,7 @@ function textNode(node: TextNode, draft: Draft): SatoriElement {
           : node.align === "right"
             ? "flex-end"
             : "flex-start",
-      fontFamily: "Inter",
+      fontFamily,
       fontSize: node.fontSize,
       fontWeight: node.fontWeight,
       fontStyle: node.italic ? "italic" : "normal",

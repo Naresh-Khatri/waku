@@ -76,7 +76,7 @@ export function createNode(
         italic: false,
         color: "#111111",
         align: "center",
-        fontFamily: "var(--font-geist-sans)",
+        fontFamily: "Inter",
         letterSpacing: 0,
         lineHeight: 1.2,
       };

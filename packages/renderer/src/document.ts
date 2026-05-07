@@ -66,7 +66,7 @@ export interface TextNode extends BaseNode {
   italic: boolean;
   color: Value<string>;
   align: "left" | "center" | "right";
-  fontFamily: string;
+  fontFamily: "Inter";
   letterSpacing: number;
   lineHeight: number;
 }
