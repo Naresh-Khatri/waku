@@ -1,0 +1,108 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`documentToSatori > matches snapshot for a mixed document with bound text 1`] = `
+{
+  "props": {
+    "children": [
+      {
+        "props": {
+          "children": {
+            "props": {
+              "style": {
+                "backgroundColor": "#ff0000",
+                "borderRadius": 4,
+                "boxSizing": "border-box",
+                "height": 50,
+                "width": 50,
+              },
+            },
+            "type": "div",
+          },
+          "style": {
+            "display": "flex",
+            "height": 50,
+            "left": 0,
+            "opacity": 1,
+            "position": "absolute",
+            "top": 0,
+            "width": 50,
+          },
+        },
+        "type": "div",
+      },
+      {
+        "props": {
+          "children": {
+            "props": {
+              "children": "Hello",
+              "style": {
+                "alignItems": "center",
+                "color": "#000000",
+                "display": "flex",
+                "fontFamily": "Inter",
+                "fontSize": 16,
+                "fontStyle": "normal",
+                "fontWeight": 400,
+                "height": 20,
+                "justifyContent": "flex-start",
+                "letterSpacing": 0,
+                "lineHeight": 1.2,
+                "textAlign": "left",
+                "whiteSpace": "pre-wrap",
+                "width": 100,
+              },
+            },
+            "type": "div",
+          },
+          "style": {
+            "display": "flex",
+            "height": 20,
+            "left": 10,
+            "opacity": 1,
+            "position": "absolute",
+            "top": 10,
+            "width": 100,
+          },
+        },
+        "type": "div",
+      },
+      {
+        "props": {
+          "children": {
+            "props": {
+              "height": 50,
+              "src": "https://cdn.example.com/a.png",
+              "style": {
+                "height": 50,
+                "objectFit": "cover",
+                "width": 50,
+              },
+              "width": 50,
+            },
+            "type": "img",
+          },
+          "style": {
+            "display": "flex",
+            "height": 50,
+            "left": 0,
+            "opacity": 1,
+            "position": "absolute",
+            "top": 50,
+            "width": 50,
+          },
+        },
+        "type": "div",
+      },
+    ],
+    "style": {
+      "backgroundColor": "#ffffff",
+      "display": "flex",
+      "height": 100,
+      "overflow": "hidden",
+      "position": "relative",
+      "width": 200,
+    },
+  },
+  "type": "div",
+}
+`;
