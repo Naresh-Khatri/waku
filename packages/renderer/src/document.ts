@@ -138,6 +138,30 @@ export const resolveValue = <T>(
 
 const RESERVED_PARAMS = new Set(["format", "_sig", "_ts"]);
 
+/**
+ * Returns search-param keys that are neither declared in the schema nor in
+ * the reserved set. Use this to 400-reject typoed callers in strict-mode
+ * routes.
+ */
+export function findUnknownParams(
+  search: URLSearchParams | string | null | undefined,
+  schema: ParamsSchema,
+): string[] {
+  if (!search) return [];
+  const sp =
+    typeof search === "string" ? new URLSearchParams(search) : search;
+  const declared = new Set(Object.keys(schema));
+  const unknown: string[] = [];
+  const seen = new Set<string>();
+  for (const key of sp.keys()) {
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (RESERVED_PARAMS.has(key)) continue;
+    if (!declared.has(key)) unknown.push(key);
+  }
+  return unknown;
+}
+
 export function paramsFromSearch(
   search: URLSearchParams | string | null | undefined,
   schema: ParamsSchema,

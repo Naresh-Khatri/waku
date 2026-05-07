@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { render, type RenderFormat } from "@waku/renderer";
-import { paramsFromSearch } from "@waku/renderer/document";
+import { findUnknownParams, paramsFromSearch } from "@waku/renderer/document";
 import {
   loadTemplateVersion,
   recordRenderLog,
@@ -155,6 +155,20 @@ export async function GET(req: NextRequest, ctx: Ctx) {
       404,
       "Template not found",
       `${user}/${slug}@${version}`,
+      format,
+    );
+  }
+
+  const unknown = findUnknownParams(
+    url.searchParams,
+    tpl.document.paramsSchema,
+  );
+  if (unknown.length > 0) {
+    finishLog(400, "", version, "unknown_params");
+    return errorResponse(
+      400,
+      "Unknown params",
+      `Not in template schema: ${unknown.join(", ")}`,
       format,
     );
   }
