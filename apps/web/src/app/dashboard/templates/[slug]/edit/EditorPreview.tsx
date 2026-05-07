@@ -2,11 +2,13 @@
 
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { Editor } from "@/components/template-editor/editor";
 import { useEditor } from "@/components/template-editor/store";
 import type { TemplateDocument } from "@/components/template-editor/types";
+import { paramsFromSearch } from "@/components/template-editor/url-params";
 import { env } from "@/env";
 import { api } from "@/trpc/react";
 
@@ -25,9 +27,14 @@ type Props = {
 
 export default function EditorPreview(props: Props) {
   const loadDocument = useEditor((s) => s.loadDocument);
+  const setDraftValues = useEditor((s) => s.setDraftValues);
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     loadDocument(props.document);
+    setDraftValues(
+      paramsFromSearch(searchParams, props.document.paramsSchema),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.versionId]);
 

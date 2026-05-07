@@ -4,7 +4,8 @@ import { Check, ChevronDown, ChevronUp, Copy, Link } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ColorPicker } from "./color-picker";
 import { useEditor } from "./store";
-import type { ParamSchemaEntry } from "./types";
+import type { ParamSchemaEntry, ParamsSchema } from "./types";
+import { searchFromParams } from "./url-params";
 
 export function ParamsCard({
   liveUrl,
@@ -24,7 +25,7 @@ export function ParamsCard({
   );
 
   const copyUrl = async () => {
-    const url = buildUrl(liveUrl, draftValues);
+    const url = buildUrl(liveUrl, draftValues, paramsSchema);
     if (!url) return;
     try {
       await navigator.clipboard.writeText(url);
@@ -80,7 +81,7 @@ export function ParamsCard({
                 className="flex h-7 flex-1 items-center justify-between gap-2 rounded-md bg-zinc-100 px-2 text-[11px] text-zinc-700 hover:bg-zinc-200"
               >
                 <span className="truncate font-mono">
-                  {buildUrl(liveUrl, draftValues) ?? liveUrl}
+                  {buildUrl(liveUrl, draftValues, paramsSchema) ?? liveUrl}
                 </span>
                 {copied ? (
                   <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
@@ -218,18 +219,12 @@ function ParamControl({
 function buildUrl(
   base: string | undefined,
   values: Record<string, unknown>,
+  schema: ParamsSchema,
 ): string | null {
   if (!base) return null;
-  if (Object.keys(values).length === 0) return base;
-  try {
-    const json = JSON.stringify(values);
-    const encoded =
-      typeof window !== "undefined"
-        ? btoa(unescape(encodeURIComponent(json)))
-        : Buffer.from(json, "utf-8").toString("base64");
-    const sep = base.includes("?") ? "&" : "?";
-    return `${base}${sep}params=${encoded}`;
-  } catch {
-    return base;
-  }
+  const sp = searchFromParams(values, schema);
+  const qs = sp.toString();
+  if (!qs) return base;
+  const sep = base.includes("?") ? "&" : "?";
+  return `${base}${sep}${qs}`;
 }
