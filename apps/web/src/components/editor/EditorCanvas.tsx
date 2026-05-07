@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
-import type { Node } from "@waku/ir";
-import { resolve } from "@waku/ir";
 
 import { IRRenderer } from "./IRRenderer";
+import { resolveForEditor } from "./resolveForEditor";
 import { SelectionOverlay } from "./SelectionOverlay";
 import { useEditorStore } from "./StoreProvider";
 
@@ -87,14 +86,7 @@ export function EditorCanvas() {
   const w = ir.type === "frame" ? ir.w : 1200;
   const h = ir.type === "frame" ? ir.h : 630;
 
-  // Resolve params for preview using draft values; fall back to defaults already
-  // baked into the IR via resolve()'s ParamRef-default handling.
-  let resolved: Node;
-  try {
-    resolved = resolve(ir, draftValues);
-  } catch {
-    resolved = ir;
-  }
+  const resolved = resolveForEditor(ir, draftValues);
 
   return (
     <ScaledCanvas w={w} h={h}>

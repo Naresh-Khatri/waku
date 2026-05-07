@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Node } from "@waku/ir";
-import { resolve } from "@waku/ir";
 
 import { IRRenderer } from "@/components/editor/IRRenderer";
+import { resolveForEditor } from "@/components/editor/resolveForEditor";
 
 type Props = {
   ir: Node;
@@ -32,12 +32,7 @@ export function TemplatePreview({ ir, values }: Props) {
     return () => ro.disconnect();
   }, [w]);
 
-  let resolved: Node;
-  try {
-    resolved = resolve(ir, values ?? {});
-  } catch {
-    resolved = ir;
-  }
+  const resolved = resolveForEditor(ir, values ?? {});
 
   return (
     <div
