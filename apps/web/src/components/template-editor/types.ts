@@ -38,19 +38,3 @@ import type {
 } from "@waku/renderer/document";
 
 export type ShapeNode = RectangleNode | EllipseNode | TriangleNode | StarNode;
-
-export type BindableField =
-  | { type: "text"; field: "text"; kind: "string" }
-  | { type: "text"; field: "color"; kind: "color" }
-  | { type: "image"; field: "src"; kind: "url" }
-  | {
-      type: "rectangle" | "ellipse" | "triangle" | "star";
-      field: "fill";
-      kind: "color";
-    }
-  | {
-      type: "rectangle" | "ellipse" | "triangle" | "star";
-      field: "stroke";
-      kind: "color";
-    }
-  | { type: "line"; field: "stroke"; kind: "color" };
