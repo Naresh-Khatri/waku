@@ -1,6 +1,6 @@
 import "server-only";
 
-import { wakuCreditBalance, wakuCreditLedger } from "@waku/db";
+import { creditBalance, creditLedger } from "@waku/db";
 import { sql, eq } from "drizzle-orm";
 
 import { db } from "@/server/db";
@@ -25,18 +25,18 @@ export type CreditReason =
 
 export async function ensureBalanceRow(userId: string): Promise<number> {
   const existing = await db
-    .select({ balance: wakuCreditBalance.balance })
-    .from(wakuCreditBalance)
-    .where(eq(wakuCreditBalance.userId, userId))
+    .select({ balance: creditBalance.balance })
+    .from(creditBalance)
+    .where(eq(creditBalance.userId, userId))
     .limit(1);
   if (existing[0]) return existing[0].balance;
 
   return db.transaction(async (tx) => {
     await tx
-      .insert(wakuCreditBalance)
+      .insert(creditBalance)
       .values({ userId, balance: FREE_STARTER_CREDITS })
       .onConflictDoNothing();
-    await tx.insert(wakuCreditLedger).values({
+    await tx.insert(creditLedger).values({
       userId,
       delta: FREE_STARTER_CREDITS,
       reason: "starter",
@@ -64,21 +64,21 @@ export async function chargeCredits(
   await ensureBalanceRow(userId);
   return db.transaction(async (tx) => {
     const updated = await tx
-      .update(wakuCreditBalance)
+      .update(creditBalance)
       .set({
-        balance: sql`${wakuCreditBalance.balance} - ${amount}`,
+        balance: sql`${creditBalance.balance} - ${amount}`,
         updatedAt: new Date(),
       })
       .where(
-        sql`${wakuCreditBalance.userId} = ${userId} AND ${wakuCreditBalance.balance} >= ${amount}`,
+        sql`${creditBalance.userId} = ${userId} AND ${creditBalance.balance} >= ${amount}`,
       )
-      .returning({ balance: wakuCreditBalance.balance });
+      .returning({ balance: creditBalance.balance });
     const row = updated[0];
     if (!row) {
       const cur = await tx
-        .select({ balance: wakuCreditBalance.balance })
-        .from(wakuCreditBalance)
-        .where(eq(wakuCreditBalance.userId, userId))
+        .select({ balance: creditBalance.balance })
+        .from(creditBalance)
+        .where(eq(creditBalance.userId, userId))
         .limit(1);
       return {
         ok: false as const,
@@ -86,7 +86,7 @@ export async function chargeCredits(
         needed: amount,
       };
     }
-    await tx.insert(wakuCreditLedger).values({
+    await tx.insert(creditLedger).values({
       userId,
       delta: -amount,
       reason,
@@ -105,16 +105,16 @@ export async function refundCredits(
   if (amount <= 0) throw new Error("amount must be positive");
   return db.transaction(async (tx) => {
     const updated = await tx
-      .update(wakuCreditBalance)
+      .update(creditBalance)
       .set({
-        balance: sql`${wakuCreditBalance.balance} + ${amount}`,
+        balance: sql`${creditBalance.balance} + ${amount}`,
         updatedAt: new Date(),
       })
-      .where(eq(wakuCreditBalance.userId, userId))
-      .returning({ balance: wakuCreditBalance.balance });
+      .where(eq(creditBalance.userId, userId))
+      .returning({ balance: creditBalance.balance });
     const row = updated[0];
     if (!row) throw new Error("balance row missing during refund");
-    await tx.insert(wakuCreditLedger).values({
+    await tx.insert(creditLedger).values({
       userId,
       delta: amount,
       reason: "refund",

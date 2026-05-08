@@ -1,7 +1,7 @@
 import "server-only";
 
 import { eq } from "drizzle-orm";
-import { wakuUserProfile } from "@waku/db";
+import { userProfile } from "@waku/db";
 
 import { db } from "@/server/db";
 
@@ -18,8 +18,8 @@ export async function ensureProfile(user: {
   name: string;
   email: string;
 }): Promise<{ handle: string }> {
-  const existing = await db.query.wakuUserProfile.findFirst({
-    where: eq(wakuUserProfile.userId, user.id),
+  const existing = await db.query.userProfile.findFirst({
+    where: eq(userProfile.userId, user.id),
   });
   if (existing) return { handle: existing.handle };
 
@@ -27,8 +27,8 @@ export async function ensureProfile(user: {
   let handle = baseHandle;
   let suffix = 0;
   while (true) {
-    const conflict = await db.query.wakuUserProfile.findFirst({
-      where: eq(wakuUserProfile.handle, handle),
+    const conflict = await db.query.userProfile.findFirst({
+      where: eq(userProfile.handle, handle),
       columns: { userId: true },
     });
     if (!conflict) break;
@@ -38,7 +38,7 @@ export async function ensureProfile(user: {
   if (!HANDLE_RE.test(handle)) handle = `user-${user.id.slice(0, 8)}`;
 
   await db
-    .insert(wakuUserProfile)
+    .insert(userProfile)
     .values({ userId: user.id, handle })
     .onConflictDoNothing();
   return { handle };

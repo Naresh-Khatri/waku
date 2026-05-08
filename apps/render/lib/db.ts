@@ -3,10 +3,10 @@ import "server-only";
 import { and, eq } from "drizzle-orm";
 import {
   createDb,
-  wakuRenderLog,
-  wakuTemplate,
-  wakuTemplateVersion,
-  wakuUserProfile,
+  renderLog,
+  template,
+  templateVersion,
+  userProfile,
   type Db,
   type TemplateDocumentRow,
 } from "@waku/db";
@@ -50,19 +50,19 @@ export const loadTemplateVersion = async (
   const db = getDb();
   const rows = await db
     .select({
-      templateId: wakuTemplate.id,
-      versionId: wakuTemplateVersion.id,
-      version: wakuTemplateVersion.version,
-      document: wakuTemplateVersion.documentJson,
+      templateId: template.id,
+      versionId: templateVersion.id,
+      version: templateVersion.version,
+      document: templateVersion.documentJson,
     })
-    .from(wakuTemplateVersion)
-    .innerJoin(wakuTemplate, eq(wakuTemplate.id, wakuTemplateVersion.templateId))
-    .innerJoin(wakuUserProfile, eq(wakuUserProfile.userId, wakuTemplate.userId))
+    .from(templateVersion)
+    .innerJoin(template, eq(template.id, templateVersion.templateId))
+    .innerJoin(userProfile, eq(userProfile.userId, template.userId))
     .where(
       and(
-        eq(wakuUserProfile.handle, handle),
-        eq(wakuTemplate.slug, slug),
-        eq(wakuTemplateVersion.version, version),
+        eq(userProfile.handle, handle),
+        eq(template.slug, slug),
+        eq(templateVersion.version, version),
       ),
     )
     .limit(1);
@@ -91,7 +91,7 @@ export type RenderLogEntry = {
 // Fire-and-forget — never throws into the response path.
 export const recordRenderLog = (entry: RenderLogEntry): void => {
   void getDb()
-    .insert(wakuRenderLog)
+    .insert(renderLog)
     .values(entry)
     .catch((err: unknown) => {
       console.error("[render-log] insert failed", err);
@@ -112,17 +112,17 @@ export const resolvePublishedVersion = async (
   const db = getDb();
   const rows = await db
     .select({
-      version: wakuTemplateVersion.version,
-      versionId: wakuTemplateVersion.id,
+      version: templateVersion.version,
+      versionId: templateVersion.id,
     })
-    .from(wakuTemplate)
+    .from(template)
     .innerJoin(
-      wakuTemplateVersion,
-      eq(wakuTemplateVersion.id, wakuTemplate.publishedVersionId),
+      templateVersion,
+      eq(templateVersion.id, template.publishedVersionId),
     )
-    .innerJoin(wakuUserProfile, eq(wakuUserProfile.userId, wakuTemplate.userId))
+    .innerJoin(userProfile, eq(userProfile.userId, template.userId))
     .where(
-      and(eq(wakuUserProfile.handle, handle), eq(wakuTemplate.slug, slug)),
+      and(eq(userProfile.handle, handle), eq(template.slug, slug)),
     )
     .limit(1);
 

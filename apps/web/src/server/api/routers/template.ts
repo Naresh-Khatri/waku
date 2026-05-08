@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, gte, sql } from "drizzle-orm";
-import { wakuRenderLog, wakuTemplate, wakuTemplateVersion } from "@waku/db";
+import { renderLog, template, templateVersion } from "@waku/db";
 import { z } from "zod";
 
 import { TemplateDocumentZ } from "@/components/template-editor/schema";
@@ -20,21 +20,21 @@ export const templateRouter = createTRPCRouter({
   list: protectedProcedure.query(async ({ ctx }) => {
     return ctx.db
       .select({
-        id: wakuTemplate.id,
-        slug: wakuTemplate.slug,
-        name: wakuTemplate.name,
-        publishedVersionId: wakuTemplate.publishedVersionId,
-        createdAt: wakuTemplate.createdAt,
-        updatedAt: wakuTemplate.updatedAt,
+        id: template.id,
+        slug: template.slug,
+        name: template.name,
+        publishedVersionId: template.publishedVersionId,
+        createdAt: template.createdAt,
+        updatedAt: template.updatedAt,
         latestVersion: sql<number>`(
-          SELECT COALESCE(MAX(${wakuTemplateVersion.version}), 0)
-          FROM ${wakuTemplateVersion}
-          WHERE ${wakuTemplateVersion.templateId} = ${wakuTemplate.id}
+          SELECT COALESCE(MAX(${templateVersion.version}), 0)
+          FROM ${templateVersion}
+          WHERE ${templateVersion.templateId} = ${template.id}
         )`.as("latest_version"),
       })
-      .from(wakuTemplate)
-      .where(eq(wakuTemplate.userId, ctx.session.user.id))
-      .orderBy(desc(wakuTemplate.updatedAt));
+      .from(template)
+      .where(eq(template.userId, ctx.session.user.id))
+      .orderBy(desc(template.updatedAt));
   }),
 
   usage: protectedProcedure.query(async ({ ctx }) => {
@@ -46,22 +46,22 @@ export const templateRouter = createTRPCRouter({
     const totals = await ctx.db
       .select({
         renders: sql<number>`COUNT(*)::int`,
-        p95Ms: sql<number | null>`PERCENTILE_DISC(0.95) WITHIN GROUP (ORDER BY ${wakuRenderLog.ms})::int`,
-        errors: sql<number>`COUNT(*) FILTER (WHERE ${wakuRenderLog.status} >= 400)::int`,
+        p95Ms: sql<number | null>`PERCENTILE_DISC(0.95) WITHIN GROUP (ORDER BY ${renderLog.ms})::int`,
+        errors: sql<number>`COUNT(*) FILTER (WHERE ${renderLog.status} >= 400)::int`,
       })
-      .from(wakuRenderLog)
+      .from(renderLog)
       .innerJoin(
-        wakuTemplateVersion,
-        eq(wakuTemplateVersion.id, wakuRenderLog.templateVersionId),
+        templateVersion,
+        eq(templateVersion.id, renderLog.templateVersionId),
       )
       .innerJoin(
-        wakuTemplate,
-        eq(wakuTemplate.id, wakuTemplateVersion.templateId),
+        template,
+        eq(template.id, templateVersion.templateId),
       )
       .where(
         and(
-          eq(wakuTemplate.userId, userId),
-          gte(wakuRenderLog.createdAt, monthStart),
+          eq(template.userId, userId),
+          gte(renderLog.createdAt, monthStart),
         ),
       );
 
@@ -76,24 +76,24 @@ export const templateRouter = createTRPCRouter({
   get: protectedProcedure
     .input(z.object({ slug: slugSchema }))
     .query(async ({ ctx, input }) => {
-      const tpl = await ctx.db.query.wakuTemplate.findFirst({
+      const tpl = await ctx.db.query.template.findFirst({
         where: and(
-          eq(wakuTemplate.userId, ctx.session.user.id),
-          eq(wakuTemplate.slug, input.slug),
+          eq(template.userId, ctx.session.user.id),
+          eq(template.slug, input.slug),
         ),
       });
       if (!tpl) throw new TRPCError({ code: "NOT_FOUND" });
 
       const versions = await ctx.db
         .select({
-          id: wakuTemplateVersion.id,
-          version: wakuTemplateVersion.version,
-          publishedAt: wakuTemplateVersion.publishedAt,
-          createdAt: wakuTemplateVersion.createdAt,
+          id: templateVersion.id,
+          version: templateVersion.version,
+          publishedAt: templateVersion.publishedAt,
+          createdAt: templateVersion.createdAt,
         })
-        .from(wakuTemplateVersion)
-        .where(eq(wakuTemplateVersion.templateId, tpl.id))
-        .orderBy(desc(wakuTemplateVersion.version));
+        .from(templateVersion)
+        .where(eq(templateVersion.templateId, tpl.id))
+        .orderBy(desc(templateVersion.version));
 
       return { ...tpl, versions };
     }),
@@ -103,15 +103,15 @@ export const templateRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const rows = await ctx.db
         .select({
-          version: wakuTemplateVersion,
-          template: wakuTemplate,
+          version: templateVersion,
+          template: template,
         })
-        .from(wakuTemplateVersion)
+        .from(templateVersion)
         .innerJoin(
-          wakuTemplate,
-          eq(wakuTemplate.id, wakuTemplateVersion.templateId),
+          template,
+          eq(template.id, templateVersion.templateId),
         )
-        .where(eq(wakuTemplateVersion.id, input.versionId))
+        .where(eq(templateVersion.id, input.versionId))
         .limit(1);
       const row = rows[0];
       if (!row || row.template.userId !== ctx.session.user.id) {
@@ -130,10 +130,10 @@ export const templateRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       return ctx.db.transaction(async (tx) => {
-        const existing = await tx.query.wakuTemplate.findFirst({
+        const existing = await tx.query.template.findFirst({
           where: and(
-            eq(wakuTemplate.userId, ctx.session.user.id),
-            eq(wakuTemplate.slug, input.slug),
+            eq(template.userId, ctx.session.user.id),
+            eq(template.slug, input.slug),
           ),
           columns: { id: true },
         });
@@ -145,7 +145,7 @@ export const templateRouter = createTRPCRouter({
         }
 
         const [tpl] = await tx
-          .insert(wakuTemplate)
+          .insert(template)
           .values({
             userId: ctx.session.user.id,
             slug: input.slug,
@@ -155,7 +155,7 @@ export const templateRouter = createTRPCRouter({
         if (!tpl) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
         const [version] = await tx
-          .insert(wakuTemplateVersion)
+          .insert(templateVersion)
           .values({
             templateId: tpl.id,
             version: 1,
@@ -174,15 +174,15 @@ export const templateRouter = createTRPCRouter({
       return ctx.db.transaction(async (tx) => {
         const rows = await tx
           .select({
-            version: wakuTemplateVersion,
-            template: wakuTemplate,
+            version: templateVersion,
+            template: template,
           })
-          .from(wakuTemplateVersion)
+          .from(templateVersion)
           .innerJoin(
-            wakuTemplate,
-            eq(wakuTemplate.id, wakuTemplateVersion.templateId),
+            template,
+            eq(template.id, templateVersion.templateId),
           )
-          .where(eq(wakuTemplateVersion.id, input.versionId))
+          .where(eq(templateVersion.id, input.versionId))
           .limit(1);
         const row = rows[0];
         if (!row || row.template.userId !== ctx.session.user.id) {
@@ -196,16 +196,16 @@ export const templateRouter = createTRPCRouter({
         }
 
         const [updated] = await tx
-          .update(wakuTemplateVersion)
+          .update(templateVersion)
           .set({
             documentJson: input.documentJson,
           })
-          .where(eq(wakuTemplateVersion.id, input.versionId))
+          .where(eq(templateVersion.id, input.versionId))
           .returning();
         await tx
-          .update(wakuTemplate)
+          .update(template)
           .set({ updatedAt: new Date() })
-          .where(eq(wakuTemplate.id, row.template.id));
+          .where(eq(template.id, row.template.id));
         return updated;
       });
     }),
@@ -216,21 +216,21 @@ export const templateRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       return ctx.db.transaction(async (tx) => {
-        const tpl = await tx.query.wakuTemplate.findFirst({
-          where: eq(wakuTemplate.id, input.templateId),
+        const tpl = await tx.query.template.findFirst({
+          where: eq(template.id, input.templateId),
         });
         if (!tpl || tpl.userId !== ctx.session.user.id) {
           throw new TRPCError({ code: "NOT_FOUND" });
         }
 
         const latest = await tx
-          .select({ v: sql<number>`MAX(${wakuTemplateVersion.version})` })
-          .from(wakuTemplateVersion)
-          .where(eq(wakuTemplateVersion.templateId, tpl.id));
+          .select({ v: sql<number>`MAX(${templateVersion.version})` })
+          .from(templateVersion)
+          .where(eq(templateVersion.templateId, tpl.id));
         const nextVersion = (latest[0]?.v ?? 0) + 1;
 
         const [version] = await tx
-          .insert(wakuTemplateVersion)
+          .insert(templateVersion)
           .values({
             templateId: tpl.id,
             version: nextVersion,
@@ -238,9 +238,9 @@ export const templateRouter = createTRPCRouter({
           })
           .returning();
         await tx
-          .update(wakuTemplate)
+          .update(template)
           .set({ updatedAt: new Date() })
-          .where(eq(wakuTemplate.id, tpl.id));
+          .where(eq(template.id, tpl.id));
         return version;
       });
     }),
@@ -251,15 +251,15 @@ export const templateRouter = createTRPCRouter({
       return ctx.db.transaction(async (tx) => {
         const rows = await tx
           .select({
-            version: wakuTemplateVersion,
-            template: wakuTemplate,
+            version: templateVersion,
+            template: template,
           })
-          .from(wakuTemplateVersion)
+          .from(templateVersion)
           .innerJoin(
-            wakuTemplate,
-            eq(wakuTemplate.id, wakuTemplateVersion.templateId),
+            template,
+            eq(template.id, templateVersion.templateId),
           )
-          .where(eq(wakuTemplateVersion.id, input.versionId))
+          .where(eq(templateVersion.id, input.versionId))
           .limit(1);
         const row = rows[0];
         if (!row || row.template.userId !== ctx.session.user.id) {
@@ -269,13 +269,13 @@ export const templateRouter = createTRPCRouter({
         const now = new Date();
         const publishedAt = row.version.publishedAt ?? now;
         await tx
-          .update(wakuTemplateVersion)
+          .update(templateVersion)
           .set({ publishedAt })
-          .where(eq(wakuTemplateVersion.id, row.version.id));
+          .where(eq(templateVersion.id, row.version.id));
         await tx
-          .update(wakuTemplate)
+          .update(template)
           .set({ publishedVersionId: row.version.id, updatedAt: now })
-          .where(eq(wakuTemplate.id, row.template.id));
+          .where(eq(template.id, row.template.id));
         return { versionId: row.version.id, publishedAt };
       });
     }),
@@ -283,8 +283,8 @@ export const templateRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.object({ templateId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const tpl = await ctx.db.query.wakuTemplate.findFirst({
-        where: eq(wakuTemplate.id, input.templateId),
+      const tpl = await ctx.db.query.template.findFirst({
+        where: eq(template.id, input.templateId),
         columns: { id: true, userId: true },
       });
       if (!tpl || tpl.userId !== ctx.session.user.id) {
@@ -292,10 +292,10 @@ export const templateRouter = createTRPCRouter({
       }
       // null out publishedVersionId first to drop the cycle from version FK constraint.
       await ctx.db
-        .update(wakuTemplate)
+        .update(template)
         .set({ publishedVersionId: null })
-        .where(eq(wakuTemplate.id, tpl.id));
-      await ctx.db.delete(wakuTemplate).where(eq(wakuTemplate.id, tpl.id));
+        .where(eq(template.id, tpl.id));
+      await ctx.db.delete(template).where(eq(template.id, tpl.id));
       return { ok: true as const };
     }),
 });

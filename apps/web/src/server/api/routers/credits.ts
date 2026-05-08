@@ -1,4 +1,4 @@
-import { wakuCreditLedger } from "@waku/db";
+import { creditLedger } from "@waku/db";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -16,15 +16,15 @@ export const creditsRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const rows = await ctx.db
         .select({
-          id: wakuCreditLedger.id,
-          delta: wakuCreditLedger.delta,
-          reason: wakuCreditLedger.reason,
-          balanceAfter: wakuCreditLedger.balanceAfter,
-          createdAt: wakuCreditLedger.createdAt,
+          id: creditLedger.id,
+          delta: creditLedger.delta,
+          reason: creditLedger.reason,
+          balanceAfter: creditLedger.balanceAfter,
+          createdAt: creditLedger.createdAt,
         })
-        .from(wakuCreditLedger)
-        .where(eq(wakuCreditLedger.userId, ctx.session.user.id))
-        .orderBy(desc(wakuCreditLedger.createdAt))
+        .from(creditLedger)
+        .where(eq(creditLedger.userId, ctx.session.user.id))
+        .orderBy(desc(creditLedger.createdAt))
         .limit(input.limit);
       return rows;
     }),

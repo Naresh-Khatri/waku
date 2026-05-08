@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
-import { wakuAsset } from "@waku/db";
+import { asset } from "@waku/db";
 import { z } from "zod";
 
 import { storage } from "@/server/storage";
@@ -88,7 +88,7 @@ export const assetRouter = createTRPCRouter({
       }
 
       const [row] = await ctx.db
-        .insert(wakuAsset)
+        .insert(asset)
         .values({
           id: input.assetId,
           userId,
@@ -108,13 +108,13 @@ export const assetRouter = createTRPCRouter({
       const userId = ctx.session.user.id;
       const where =
         input?.kind === undefined
-          ? eq(wakuAsset.userId, userId)
-          : and(eq(wakuAsset.userId, userId), eq(wakuAsset.kind, input.kind));
+          ? eq(asset.userId, userId)
+          : and(eq(asset.userId, userId), eq(asset.kind, input.kind));
       const rows = await ctx.db
         .select()
-        .from(wakuAsset)
+        .from(asset)
         .where(where)
-        .orderBy(desc(wakuAsset.createdAt));
+        .orderBy(desc(asset.createdAt));
       return rows.map((r) => ({ ...r, readUrl: storage.getReadUrl(r.storageKey) }));
     }),
 });
