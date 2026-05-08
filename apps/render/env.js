@@ -4,7 +4,7 @@ import { z } from "zod";
 export const env = createEnv({
   server: {
     DATABASE_URL: z.string().url(),
-    WAKU_FREE_DAILY_LIMIT: z.coerce.number().int().positive().default(1000),
+    FREE_DAILY_LIMIT: z.coerce.number().int().positive().default(1000),
   },
 
   client: {},
@@ -18,7 +18,7 @@ export const env = createEnv({
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
-    WAKU_FREE_DAILY_LIMIT: process.env.WAKU_FREE_DAILY_LIMIT,
+    FREE_DAILY_LIMIT: process.env.FREE_DAILY_LIMIT,
   },
 
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,

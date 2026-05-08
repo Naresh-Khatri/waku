@@ -2,15 +2,15 @@ import "server-only";
 
 import { env } from "@/env";
 
-const FREE_DAILY_LIMIT = env.WAKU_FREE_DAILY_LIMIT;
+const FREE_DAILY_LIMIT = env.FREE_DAILY_LIMIT;
 const WINDOW_MS = 24 * 60 * 60 * 1000;
 
 type Bucket = { count: number; resetAt: number };
 
 const globalForLimiter = globalThis as unknown as {
-  wakuLimiter?: Map<string, Bucket>;
+  limiter?: Map<string, Bucket>;
 };
-const buckets = (globalForLimiter.wakuLimiter ??= new Map<string, Bucket>());
+const buckets = (globalForLimiter.limiter ??= new Map<string, Bucket>());
 
 export type RateLimitResult = {
   ok: boolean;

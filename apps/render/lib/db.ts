@@ -20,12 +20,12 @@ export type LoadedTemplateVersion = {
   document: TemplateDocumentRow;
 };
 
-const globalForDb = globalThis as unknown as { wakuDb?: Db };
+const globalForDb = globalThis as unknown as { db?: Db };
 export const getDb = (): Db => {
-  if (!globalForDb.wakuDb) {
-    globalForDb.wakuDb = createDb(env.DATABASE_URL).db;
+  if (!globalForDb.db) {
+    globalForDb.db = createDb(env.DATABASE_URL).db;
   }
-  return globalForDb.wakuDb;
+  return globalForDb.db;
 };
 
 // IR is immutable per (templateId, version) — cache forever once loaded.

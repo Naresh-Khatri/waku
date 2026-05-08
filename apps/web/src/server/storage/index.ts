@@ -13,11 +13,11 @@ import type { HeadResult, StorageAdapter, UploadInstruction } from "./types";
 
 const UPLOAD_TTL_SEC = 10 * 60;
 
-const globalForS3 = globalThis as unknown as { wakuS3?: S3Client };
+const globalForS3 = globalThis as unknown as { s3?: S3Client };
 
 const getClient = (): S3Client => {
-  if (!globalForS3.wakuS3) {
-    globalForS3.wakuS3 = new S3Client({
+  if (!globalForS3.s3) {
+    globalForS3.s3 = new S3Client({
       region: "auto",
       endpoint: `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
       credentials: {
@@ -26,7 +26,7 @@ const getClient = (): S3Client => {
       },
     });
   }
-  return globalForS3.wakuS3;
+  return globalForS3.s3;
 };
 
 const publicBase = env.R2_PUBLIC_BASE_URL.replace(/\/$/, "");
