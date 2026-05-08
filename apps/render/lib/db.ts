@@ -28,25 +28,19 @@ export const getDb = (): Db => {
   return globalForDb.db;
 };
 
-// IR is immutable per (templateId, version) — cache forever once loaded.
-const versionCache = new Map<string, LoadedTemplateVersion>();
-const versionKey = (handle: string, slug: string, version: number) =>
-  `${handle}/${slug}/${version}`;
-
 // Slug→published-version-id resolution may change on publish; short TTL.
 type PublishedRef = { versionId: string | null; expiresAt: number };
 const publishedCache = new Map<string, PublishedRef>();
 const PUBLISHED_TTL_MS = 60_000;
 
+// Versions are mutable (autosave overwrites in place), so we read fresh from
+// the DB on every request. The route's Cache-Control header carries the
+// caching contract.
 export const loadTemplateVersion = async (
   handle: string,
   slug: string,
   version: number,
 ): Promise<LoadedTemplateVersion | null> => {
-  const key = versionKey(handle, slug, version);
-  const cached = versionCache.get(key);
-  if (cached) return cached;
-
   const db = getDb();
   const rows = await db
     .select({
@@ -70,14 +64,12 @@ export const loadTemplateVersion = async (
   const row = rows[0];
   if (!row) return null;
 
-  const loaded: LoadedTemplateVersion = {
+  return {
     templateId: row.templateId,
     versionId: row.versionId,
     version: row.version,
     document: row.document,
   };
-  versionCache.set(key, loaded);
-  return loaded;
 };
 
 export type RenderLogEntry = {

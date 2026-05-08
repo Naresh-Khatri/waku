@@ -21,7 +21,11 @@ import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const CACHE_HEADER = "public, immutable, max-age=31536000";
+// Versioned URLs are now mutable — autosave overwrites the document in place.
+// Keep a short browser cache and a slightly longer shared/CDN window so hot
+// renders are reused, but stale-while-revalidate keeps things current.
+const CACHE_HEADER =
+  "public, max-age=60, s-maxage=300, stale-while-revalidate=600";
 
 type Ctx = { params: Promise<{ user: string; slug: string; version: string }> };
 
