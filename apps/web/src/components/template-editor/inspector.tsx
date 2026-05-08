@@ -4,7 +4,7 @@ import { AlignCenter, AlignLeft, AlignRight } from "lucide-react";
 import type { ChangeEvent } from "react";
 import { useState } from "react";
 import { useEditor } from "./store";
-import type { Artboard, EditorNode, ImageShadow, Paint, Value } from "./types";
+import type { Artboard, EditorNode, Paint, Shadow, Value } from "./types";
 import { isFlatPaint, isParamRef } from "./types";
 import { ColorPicker } from "./color-picker";
 import { PaintInput } from "./paint-picker";
@@ -158,15 +158,6 @@ function TypeSection({ node }: { node: EditorNode }) {
 
   switch (node.type) {
     case "image": {
-      const setShadow = (patch: Partial<ImageShadow>) => {
-        const current: ImageShadow = node.shadow ?? {
-          offsetX: 0,
-          offsetY: 4,
-          blur: 12,
-          color: "#00000040",
-        };
-        set({ shadow: { ...current, ...patch } });
-      };
       const maxRadius = Math.min(node.width, node.height) / 2;
       return (
         <>
@@ -250,63 +241,17 @@ function TypeSection({ node }: { node: EditorNode }) {
               />
             </Row>
           </Section>
-          <Section title="Shadow">
-            <Row label="Enabled">
-              <input
-                type="checkbox"
-                checked={node.shadow !== null}
-                onChange={(e) =>
-                  set({
-                    shadow: e.target.checked
-                      ? {
-                          offsetX: 0,
-                          offsetY: 4,
-                          blur: 12,
-                          color: "#00000040",
-                        }
-                      : null,
-                  })
-                }
-              />
-            </Row>
-            {node.shadow ? (
-              <>
-                <PairRow>
-                  <NumberInput
-                    label="X"
-                    value={node.shadow.offsetX}
-                    onChange={(v) => setShadow({ offsetX: v })}
-                  />
-                  <NumberInput
-                    label="Y"
-                    value={node.shadow.offsetY}
-                    onChange={(v) => setShadow({ offsetY: v })}
-                  />
-                </PairRow>
-                <Row label="Blur">
-                  <RangeInput
-                    min={0}
-                    max={100}
-                    step={1}
-                    value={node.shadow.blur}
-                    onChange={(v) => setShadow({ blur: v })}
-                  />
-                </Row>
-                <Row label="Color">
-                  <ColorInput
-                    value={node.shadow.color}
-                    onChange={(v) => setShadow({ color: v })}
-                  />
-                </Row>
-              </>
-            ) : null}
-          </Section>
+          <ShadowSection
+            shadow={node.shadow ?? null}
+            onChange={(s) => set({ shadow: s })}
+          />
         </>
       );
     }
 
     case "text":
       return (
+        <>
         <Section title="Text">
           <Row label="Content">
             <TextArea value={node.text} onChange={(v) => set({ text: v })} />
@@ -432,10 +377,16 @@ function TypeSection({ node }: { node: EditorNode }) {
             />
           </Row>
         </Section>
+        <ShadowSection
+          shadow={node.shadow ?? null}
+          onChange={(s) => set({ shadow: s })}
+        />
+        </>
       );
 
     case "rectangle":
       return (
+        <>
         <Section title="Rectangle">
           <Row label="Fill">
             <PaintField value={node.fill} onChange={(v) => set({ fill: v })} />
@@ -492,11 +443,17 @@ function TypeSection({ node }: { node: EditorNode }) {
             />
           </Row>
         </Section>
+        <ShadowSection
+          shadow={node.shadow ?? null}
+          onChange={(s) => set({ shadow: s })}
+        />
+        </>
       );
 
     case "ellipse":
     case "triangle":
       return (
+        <>
         <Section title={node.type === "ellipse" ? "Ellipse" : "Triangle"}>
           <Row label="Fill">
             <PaintField value={node.fill} onChange={(v) => set({ fill: v })} />
@@ -540,6 +497,13 @@ function TypeSection({ node }: { node: EditorNode }) {
             />
           </Row>
         </Section>
+        {node.type === "ellipse" ? (
+          <ShadowSection
+            shadow={node.shadow ?? null}
+            onChange={(s) => set({ shadow: s })}
+          />
+        ) : null}
+        </>
       );
 
     case "star":
@@ -664,6 +628,77 @@ function TypeSection({ node }: { node: EditorNode }) {
         </Section>
       );
   }
+}
+
+function ShadowSection({
+  shadow,
+  onChange,
+}: {
+  shadow: Shadow | null;
+  onChange: (s: Shadow | null) => void;
+}) {
+  const setField = (patch: Partial<Shadow>) => {
+    const current: Shadow = shadow ?? {
+      offsetX: 0,
+      offsetY: 4,
+      blur: 12,
+      color: "#00000040",
+    };
+    onChange({ ...current, ...patch });
+  };
+  return (
+    <Section title="Shadow">
+      <Row label="Enabled">
+        <input
+          type="checkbox"
+          checked={shadow !== null}
+          onChange={(e) =>
+            onChange(
+              e.target.checked
+                ? {
+                    offsetX: 0,
+                    offsetY: 4,
+                    blur: 12,
+                    color: "#00000040",
+                  }
+                : null,
+            )
+          }
+        />
+      </Row>
+      {shadow ? (
+        <>
+          <PairRow>
+            <NumberInput
+              label="X"
+              value={shadow.offsetX}
+              onChange={(v) => setField({ offsetX: v })}
+            />
+            <NumberInput
+              label="Y"
+              value={shadow.offsetY}
+              onChange={(v) => setField({ offsetY: v })}
+            />
+          </PairRow>
+          <Row label="Blur">
+            <RangeInput
+              min={0}
+              max={100}
+              step={1}
+              value={shadow.blur}
+              onChange={(v) => setField({ blur: v })}
+            />
+          </Row>
+          <Row label="Color">
+            <ColorInput
+              value={shadow.color}
+              onChange={(v) => setField({ color: v })}
+            />
+          </Row>
+        </>
+      ) : null}
+    </Section>
+  );
 }
 
 function ImageUploadRow({

@@ -95,7 +95,7 @@ const BaseFields = {
   locked: z.boolean(),
 } as const;
 
-const ImageShadowZ = z.object({
+const ShadowZ = z.object({
   offsetX: z.number(),
   offsetY: z.number(),
   blur: z.number().min(0),
@@ -110,7 +110,7 @@ const ImageNodeZ = z.object({
   cornerRadius: valueNumberZ(z.number().min(0)),
   stroke: PaintZ,
   strokeWidth: valueNumberZ(z.number().min(0)),
-  shadow: ImageShadowZ.nullable(),
+  shadow: ShadowZ.nullable(),
 });
 
 const TextNodeZ = z.object({
@@ -131,6 +131,7 @@ const TextNodeZ = z.object({
   fontFamily: z.enum(["Inter"]),
   letterSpacing: valueNumberZ(),
   lineHeight: valueNumberZ(z.number().positive()),
+  shadow: ShadowZ.nullable().optional(),
 });
 
 const ShapeFields = {
@@ -144,12 +145,14 @@ const RectangleNodeZ = z.object({
   ...ShapeFields,
   type: z.literal("rectangle"),
   cornerRadius: valueNumberZ(z.number().min(0)),
+  shadow: ShadowZ.nullable().optional(),
 });
 
 const EllipseNodeZ = z.object({
   ...BaseFields,
   ...ShapeFields,
   type: z.literal("ellipse"),
+  shadow: ShadowZ.nullable().optional(),
 });
 
 const TriangleNodeZ = z.object({

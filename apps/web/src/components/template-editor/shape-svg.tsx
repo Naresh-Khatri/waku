@@ -2,6 +2,7 @@ import type {
   EllipseNode,
   LineNode,
   RectangleNode,
+  Shadow,
   StarNode,
   TriangleNode,
 } from "./types";
@@ -17,6 +18,12 @@ function svgPaint(
   return paintToSvgPaint(paint, id, draft);
 }
 
+function dropShadow(shadow: Shadow | null | undefined, draft: Draft) {
+  if (!shadow) return undefined;
+  const color = resolveValue(shadow.color, draft) ?? "#00000040";
+  return `drop-shadow(${shadow.offsetX}px ${shadow.offsetY}px ${shadow.blur}px ${color})`;
+}
+
 export function RectangleSvg({ node, draft }: { node: RectangleNode; draft: Draft }) {
   const sw = Math.max(0, resolveValue(node.strokeWidth, draft) ?? 0);
   const cr = Math.max(0, resolveValue(node.cornerRadius, draft) ?? 0);
@@ -29,6 +36,7 @@ export function RectangleSvg({ node, draft }: { node: RectangleNode; draft: Draf
       height={node.height}
       viewBox={`0 0 ${node.width} ${node.height}`}
       className="block"
+      style={{ filter: dropShadow(node.shadow, draft) }}
     >
       <Defs defs={[fill.def, stroke.def]} />
       <rect
@@ -56,6 +64,7 @@ export function EllipseSvg({ node, draft }: { node: EllipseNode; draft: Draft })
       height={node.height}
       viewBox={`0 0 ${node.width} ${node.height}`}
       className="block"
+      style={{ filter: dropShadow(node.shadow, draft) }}
     >
       <Defs defs={[fill.def, stroke.def]} />
       <ellipse

@@ -142,12 +142,15 @@ export interface BaseNode {
   locked: boolean;
 }
 
-export interface ImageShadow {
+export interface Shadow {
   offsetX: number;
   offsetY: number;
   blur: number;
   color: Value<string>;
 }
+
+/** @deprecated Use {@link Shadow}. Kept as a type alias for back-compat. */
+export type ImageShadow = Shadow;
 
 export interface ImageNode extends BaseNode {
   type: "image";
@@ -156,7 +159,7 @@ export interface ImageNode extends BaseNode {
   cornerRadius: Value<number>;
   stroke: Paint;
   strokeWidth: Value<number>;
-  shadow: ImageShadow | null;
+  shadow: Shadow | null;
 }
 
 export interface TextNode extends BaseNode {
@@ -170,6 +173,7 @@ export interface TextNode extends BaseNode {
   fontFamily: "Inter";
   letterSpacing: Value<number>;
   lineHeight: Value<number>;
+  shadow?: Shadow | null;
 }
 
 interface ShapeFields {
@@ -181,10 +185,12 @@ interface ShapeFields {
 export interface RectangleNode extends BaseNode, ShapeFields {
   type: "rectangle";
   cornerRadius: Value<number>;
+  shadow?: Shadow | null;
 }
 
 export interface EllipseNode extends BaseNode, ShapeFields {
   type: "ellipse";
+  shadow?: Shadow | null;
 }
 
 export interface TriangleNode extends BaseNode, ShapeFields {

@@ -6,6 +6,7 @@ export type {
   EllipseNode,
   ImageNode,
   ImageShadow,
+  Shadow,
   LineNode,
   NodeType,
   Paint,

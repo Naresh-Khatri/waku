@@ -8,6 +8,7 @@ import {
   type LineNode,
   type Paint,
   type RectangleNode,
+  type Shadow,
   type StarNode,
   type TemplateDocument,
   type TextNode,
@@ -31,6 +32,11 @@ const el = (type: string, props: SatoriProps): SatoriElement => ({
 });
 
 type Draft = Record<string, unknown>;
+
+const shadowCss = (shadow: Shadow, draft: Draft): string => {
+  const color = resolveValue(shadow.color, draft) ?? "#00000040";
+  return `${shadow.offsetX}px ${shadow.offsetY}px ${shadow.blur}px ${color}`;
+};
 
 export type ImageLoader = (
   url: string,
@@ -147,8 +153,7 @@ function imageNode(node: ImageNode, draft: Draft): SatoriElement {
     imgStyle.boxSizing = "border-box";
   }
   if (node.shadow) {
-    const shadowColor = resolveValue(node.shadow.color, draft) ?? "#00000040";
-    imgStyle.boxShadow = `${node.shadow.offsetX}px ${node.shadow.offsetY}px ${node.shadow.blur}px ${shadowColor}`;
+    imgStyle.boxShadow = shadowCss(node.shadow, draft);
   }
   const img = el("img", {
     src,
@@ -180,13 +185,7 @@ function imageNode(node: ImageNode, draft: Draft): SatoriElement {
         padding: strokeWidth,
         boxSizing: "border-box",
         backgroundImage: paintToCss(node.stroke, draft),
-        ...(node.shadow
-          ? {
-              boxShadow: `${node.shadow.offsetX}px ${node.shadow.offsetY}px ${node.shadow.blur}px ${
-                resolveValue(node.shadow.color, draft) ?? "#00000040"
-              }`,
-            }
-          : {}),
+        ...(node.shadow ? { boxShadow: shadowCss(node.shadow, draft) } : {}),
       },
       children: innerImg,
     });
@@ -233,6 +232,7 @@ function textNode(node: TextNode, draft: Draft): SatoriElement {
       letterSpacing,
       lineHeight,
       whiteSpace: "pre-wrap",
+      ...(node.shadow ? { textShadow: shadowCss(node.shadow, draft) } : {}),
     },
     children: text,
   });
@@ -261,8 +261,10 @@ function divShape(
   strokeWidth: number,
   borderRadius: number | string,
   draft: Draft,
+  shadow: Shadow | null | undefined,
 ): SatoriElement {
   const fillStyle = fillBgStyle(fill, draft);
+  const shadowStyle = shadow ? { boxShadow: shadowCss(shadow, draft) } : {};
   if (strokeWidth <= 0) {
     return el("div", {
       style: {
@@ -271,6 +273,7 @@ function divShape(
         borderRadius,
         boxSizing: "border-box",
         ...fillStyle,
+        ...shadowStyle,
       },
     });
   }
@@ -283,6 +286,7 @@ function divShape(
         boxSizing: "border-box",
         border: `${strokeWidth}px solid ${paintToCss(stroke, draft)}`,
         ...fillStyle,
+        ...shadowStyle,
       },
     });
   }
@@ -309,6 +313,7 @@ function divShape(
       padding: strokeWidth,
       boxSizing: "border-box",
       backgroundImage: paintToCss(stroke, draft),
+      ...shadowStyle,
     },
     children: inner,
   });
@@ -323,6 +328,7 @@ function rectangleNode(node: RectangleNode, draft: Draft): SatoriElement {
     Math.max(0, resolveValue(node.strokeWidth, draft) ?? 0),
     Math.max(0, resolveValue(node.cornerRadius, draft) ?? 0),
     draft,
+    node.shadow,
   );
 }
 
@@ -335,6 +341,7 @@ function ellipseNode(node: EllipseNode, draft: Draft): SatoriElement {
     Math.max(0, resolveValue(node.strokeWidth, draft) ?? 0),
     "50%",
     draft,
+    node.shadow,
   );
 }
 

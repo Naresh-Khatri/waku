@@ -1,8 +1,16 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import type { EditorNode } from "./types";
+import type { EditorNode, Shadow } from "./types";
 import { isFlatPaint, paintToCss, resolveValue } from "./types";
+
+function shadowCss(
+  shadow: Shadow,
+  draft: Record<string, unknown>,
+): string {
+  const color = resolveValue(shadow.color, draft) ?? "#00000040";
+  return `${shadow.offsetX}px ${shadow.offsetY}px ${shadow.blur}px ${color}`;
+}
 import {
   EllipseSvg,
   LineSvg,
@@ -41,9 +49,7 @@ export function NodeContent({
         imgStyle.boxSizing = "border-box";
       }
       if (node.shadow) {
-        const shadowColor =
-          resolveValue(node.shadow.color, draft) ?? "#00000040";
-        imgStyle.boxShadow = `${node.shadow.offsetX}px ${node.shadow.offsetY}px ${node.shadow.blur}px ${shadowColor}`;
+        imgStyle.boxShadow = shadowCss(node.shadow, draft);
       }
 
       const img = (
@@ -130,6 +136,9 @@ export function NodeContent({
             whiteSpace: "pre-wrap",
             wordBreak: "break-word",
             pointerEvents: "none",
+            ...(node.shadow
+              ? { textShadow: shadowCss(node.shadow, draft) }
+              : {}),
           }}
         >
           {text}
