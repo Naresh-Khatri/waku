@@ -11,6 +11,7 @@ import {
   Share2,
   ThumbsUp,
 } from "lucide-react";
+import { motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   siBluesky,
@@ -281,6 +282,12 @@ export function StatusDot({ status }: { status: RenderStatus }) {
   );
 }
 
+const OG_IMAGE_TRANSITION = {
+  type: "spring" as const,
+  stiffness: 320,
+  damping: 32,
+};
+
 function OgImage({
   ctx,
   className,
@@ -291,7 +298,9 @@ function OgImage({
   rounded?: boolean;
 }) {
   return (
-    <div
+    <motion.div
+      layoutId="og-preview-image"
+      transition={OG_IMAGE_TRANSITION}
       className={`relative w-full overflow-hidden bg-zinc-100 ${
         rounded ? "rounded-md" : ""
       } ${className ?? ""}`}
@@ -313,7 +322,7 @@ function OgImage({
           {ctx.status.kind === "loading" ? "rendering…" : "no preview"}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
 
