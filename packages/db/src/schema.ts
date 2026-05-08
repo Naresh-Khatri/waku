@@ -43,6 +43,10 @@ export const template = pgTable(
   (t) => [uniqueIndex("template_user_slug_idx").on(t.userId, t.slug)],
 );
 
+// version=1 is the mutable "head" — autosave overwrites it. version>1 rows
+// are immutable snapshots, optionally labeled by the user. Render URLs of the
+// form /r/handle/slug/N point at a specific row; only the head row is mutable
+// in place.
 export const templateVersion = pgTable(
   "template_version",
   {
@@ -51,6 +55,7 @@ export const templateVersion = pgTable(
       .notNull()
       .references(() => template.id, { onDelete: "cascade" }),
     version: integer("version").notNull(),
+    label: text("label"),
     documentJson: jsonb("document_json")
       .$type<TemplateDocumentRow>()
       .notNull(),

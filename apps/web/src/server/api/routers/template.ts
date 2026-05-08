@@ -88,6 +88,7 @@ export const templateRouter = createTRPCRouter({
         .select({
           id: templateVersion.id,
           version: templateVersion.version,
+          label: templateVersion.label,
           publishedAt: templateVersion.publishedAt,
           createdAt: templateVersion.createdAt,
         })
@@ -154,17 +155,25 @@ export const templateRouter = createTRPCRouter({
           .returning();
         if (!tpl) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
+        const now = new Date();
         const [version] = await tx
           .insert(templateVersion)
           .values({
             templateId: tpl.id,
             version: 1,
             documentJson: input.documentJson,
+            publishedAt: now,
           })
           .returning();
         if (!version) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
-        return { template: tpl, version };
+        const [tplWithPointer] = await tx
+          .update(template)
+          .set({ publishedVersionId: version.id })
+          .where(eq(template.id, tpl.id))
+          .returning();
+
+        return { template: tplWithPointer ?? tpl, version };
       });
     }),
 
@@ -188,31 +197,68 @@ export const templateRouter = createTRPCRouter({
         if (!row || row.template.userId !== ctx.session.user.id) {
           throw new TRPCError({ code: "NOT_FOUND" });
         }
-        if (row.version.publishedAt !== null) {
+        // Snapshots (version > 1) are immutable; only the head row can be edited.
+        if (row.version.version !== 1) {
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
-            message: "cannot edit a published version",
+            message: "snapshots are read-only — restore one to edit it",
           });
         }
 
+        const now = new Date();
         const [updated] = await tx
           .update(templateVersion)
           .set({
             documentJson: input.documentJson,
+            publishedAt: row.version.publishedAt ?? now,
           })
           .where(eq(templateVersion.id, input.versionId))
           .returning();
         await tx
           .update(template)
-          .set({ updatedAt: new Date() })
+          .set({
+            publishedVersionId: row.version.id,
+            updatedAt: now,
+          })
           .where(eq(template.id, row.template.id));
         return updated;
       });
     }),
 
-  createVersion: protectedProcedure
+  listSnapshots: protectedProcedure
+    .input(z.object({ templateId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const tpl = await ctx.db.query.template.findFirst({
+        where: eq(template.id, input.templateId),
+        columns: { id: true, userId: true },
+      });
+      if (!tpl || tpl.userId !== ctx.session.user.id) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+      return ctx.db
+        .select({
+          id: templateVersion.id,
+          version: templateVersion.version,
+          label: templateVersion.label,
+          createdAt: templateVersion.createdAt,
+        })
+        .from(templateVersion)
+        .where(
+          and(
+            eq(templateVersion.templateId, tpl.id),
+            // version=1 is the head — exclude it from the snapshot list.
+            sql`${templateVersion.version} > 1`,
+          ),
+        )
+        .orderBy(desc(templateVersion.version));
+    }),
+
+  createSnapshot: protectedProcedure
     .input(
-      z.object({ templateId: z.string().uuid() }).merge(draftInputSchema),
+      z.object({
+        templateId: z.string().uuid(),
+        label: z.string().trim().min(1).max(80).nullable().optional(),
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       return ctx.db.transaction(async (tx) => {
@@ -223,60 +269,144 @@ export const templateRouter = createTRPCRouter({
           throw new TRPCError({ code: "NOT_FOUND" });
         }
 
-        const latest = await tx
+        const headRows = await tx
+          .select({ documentJson: templateVersion.documentJson })
+          .from(templateVersion)
+          .where(
+            and(
+              eq(templateVersion.templateId, tpl.id),
+              eq(templateVersion.version, 1),
+            ),
+          )
+          .limit(1);
+        const head = headRows[0];
+        if (!head) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: "template has no head row to snapshot",
+          });
+        }
+
+        const max = await tx
           .select({ v: sql<number>`MAX(${templateVersion.version})` })
           .from(templateVersion)
           .where(eq(templateVersion.templateId, tpl.id));
-        const nextVersion = (latest[0]?.v ?? 0) + 1;
+        const nextVersion = (max[0]?.v ?? 1) + 1;
 
-        const [version] = await tx
+        const [snapshot] = await tx
           .insert(templateVersion)
           .values({
             templateId: tpl.id,
             version: nextVersion,
-            documentJson: input.documentJson,
+            label: input.label ?? null,
+            documentJson: head.documentJson,
           })
           .returning();
-        await tx
-          .update(template)
-          .set({ updatedAt: new Date() })
-          .where(eq(template.id, tpl.id));
-        return version;
+        return snapshot;
       });
     }),
 
-  publish: protectedProcedure
+  restoreSnapshot: protectedProcedure
     .input(z.object({ versionId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       return ctx.db.transaction(async (tx) => {
         const rows = await tx
-          .select({
-            version: templateVersion,
-            template: template,
-          })
+          .select({ version: templateVersion, template: template })
           .from(templateVersion)
-          .innerJoin(
-            template,
-            eq(template.id, templateVersion.templateId),
-          )
+          .innerJoin(template, eq(template.id, templateVersion.templateId))
           .where(eq(templateVersion.id, input.versionId))
           .limit(1);
         const row = rows[0];
         if (!row || row.template.userId !== ctx.session.user.id) {
           throw new TRPCError({ code: "NOT_FOUND" });
         }
+        if (row.version.version === 1) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: "this is already the head — nothing to restore",
+          });
+        }
 
         const now = new Date();
-        const publishedAt = row.version.publishedAt ?? now;
-        await tx
+        const [updated] = await tx
           .update(templateVersion)
-          .set({ publishedAt })
-          .where(eq(templateVersion.id, row.version.id));
+          .set({
+            documentJson: row.version.documentJson,
+            publishedAt: now,
+          })
+          .where(
+            and(
+              eq(templateVersion.templateId, row.template.id),
+              eq(templateVersion.version, 1),
+            ),
+          )
+          .returning();
         await tx
           .update(template)
-          .set({ publishedVersionId: row.version.id, updatedAt: now })
+          .set({ updatedAt: now })
           .where(eq(template.id, row.template.id));
-        return { versionId: row.version.id, publishedAt };
+        return updated;
+      });
+    }),
+
+  renameSnapshot: protectedProcedure
+    .input(
+      z.object({
+        versionId: z.string().uuid(),
+        label: z.string().trim().min(1).max(80).nullable(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.transaction(async (tx) => {
+        const rows = await tx
+          .select({ version: templateVersion, template: template })
+          .from(templateVersion)
+          .innerJoin(template, eq(template.id, templateVersion.templateId))
+          .where(eq(templateVersion.id, input.versionId))
+          .limit(1);
+        const row = rows[0];
+        if (!row || row.template.userId !== ctx.session.user.id) {
+          throw new TRPCError({ code: "NOT_FOUND" });
+        }
+        if (row.version.version === 1) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: "the head row cannot be labeled",
+          });
+        }
+        const [updated] = await tx
+          .update(templateVersion)
+          .set({ label: input.label })
+          .where(eq(templateVersion.id, input.versionId))
+          .returning();
+        return updated;
+      });
+    }),
+
+  deleteSnapshot: protectedProcedure
+    .input(z.object({ versionId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.transaction(async (tx) => {
+        const rows = await tx
+          .select({ version: templateVersion, template: template })
+          .from(templateVersion)
+          .innerJoin(template, eq(template.id, templateVersion.templateId))
+          .where(eq(templateVersion.id, input.versionId))
+          .limit(1);
+        const row = rows[0];
+        if (!row || row.template.userId !== ctx.session.user.id) {
+          throw new TRPCError({ code: "NOT_FOUND" });
+        }
+        if (row.version.version === 1) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: "the head row cannot be deleted",
+          });
+        }
+        await tx
+          .delete(templateVersion)
+          .where(eq(templateVersion.id, input.versionId));
+        return { ok: true as const };
       });
     }),
 
