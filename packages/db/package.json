@@ -11,7 +11,7 @@
     "./schema": "./src/schema.ts",
     "./auth-schema": "./src/auth-schema.ts"
   },
-  "files": ["src", "README.md", "LICENSE"],
+  "files": ["src", "README.md"],
   "scripts": {
     "typecheck": "tsc --noEmit"
   },

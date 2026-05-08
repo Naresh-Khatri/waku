@@ -10,7 +10,7 @@
     ".": "./src/index.ts",
     "./og-image": "./src/og-image.tsx"
   },
-  "files": ["src", "README.md", "LICENSE"],
+  "files": ["src", "README.md"],
   "scripts": {
     "typecheck": "tsc --noEmit"
   },

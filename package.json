@@ -2,6 +2,7 @@
   "name": "waku-monorepo",
   "version": "0.0.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "dotenv -e .env -- turbo run dev",

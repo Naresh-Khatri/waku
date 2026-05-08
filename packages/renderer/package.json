@@ -10,7 +10,7 @@
     ".": "./src/index.ts",
     "./document": "./src/document.ts"
   },
-  "files": ["src", "fonts", "README.md", "LICENSE"],
+  "files": ["src", "fonts", "README.md"],
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
