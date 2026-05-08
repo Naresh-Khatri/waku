@@ -82,6 +82,7 @@ export function Canvas() {
   } | null>(null);
   const [panning, setPanning] = useState(false);
   const stageRef = useRef({ artLeft: 0, artTop: 0, scale: 1 });
+  const pendingScrollRef = useRef<{ left: number; top: number } | null>(null);
 
   useLayoutEffect(() => {
     const el = wrapperRef.current;
@@ -267,21 +268,52 @@ export function Canvas() {
     };
   }, [scale, updateNode, select]);
 
-  // Cmd/Ctrl + wheel = zoom; otherwise wheel scrolls naturally.
+  // Wheel zooms, anchored at the cursor. Shift+wheel pans horizontally.
   useEffect(() => {
     const el = wrapperRef.current;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
-      if (!(e.ctrlKey || e.metaKey)) return;
+      if (e.shiftKey && !e.ctrlKey && !e.metaKey) return;
       e.preventDefault();
       const current = zoom === "fit" ? fitScale : zoom;
-      const factor = Math.exp(-e.deltaY * 0.0025);
-      const next: Zoom = clamp(current * factor, MIN_ZOOM, MAX_ZOOM);
-      setZoom(next);
+      const factor = Math.exp(-e.deltaY * 0.00125);
+      const nextScale = clamp(current * factor, MIN_ZOOM, MAX_ZOOM);
+      if (nextScale === current) return;
+
+      const rect = el.getBoundingClientRect();
+      const cursorStageX = el.scrollLeft + (e.clientX - rect.left);
+      const cursorStageY = el.scrollTop + (e.clientY - rect.top);
+      const { artLeft: curArtLeft, artTop: curArtTop } = stageRef.current;
+      const artX = (cursorStageX - curArtLeft) / current;
+      const artY = (cursorStageY - curArtTop) / current;
+
+      const newScaledW = artboard.width * nextScale;
+      const newScaledH = artboard.height * nextScale;
+      const newStageW = Math.max(rect.width, newScaledW + STAGE_PADDING * 2);
+      const newStageH = Math.max(rect.height, newScaledH + STAGE_PADDING * 2);
+      const newArtLeft = (newStageW - newScaledW) / 2;
+      const newArtTop = (newStageH - newScaledH) / 2;
+      const newCursorStageX = newArtLeft + artX * nextScale;
+      const newCursorStageY = newArtTop + artY * nextScale;
+
+      pendingScrollRef.current = {
+        left: newCursorStageX - (e.clientX - rect.left),
+        top: newCursorStageY - (e.clientY - rect.top),
+      };
+      setZoom(nextScale);
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
-  }, [zoom, fitScale, setZoom]);
+  }, [zoom, fitScale, setZoom, artboard.width, artboard.height]);
+
+  useLayoutEffect(() => {
+    const el = wrapperRef.current;
+    const pending = pendingScrollRef.current;
+    if (!el || !pending) return;
+    pendingScrollRef.current = null;
+    el.scrollLeft = pending.left;
+    el.scrollTop = pending.top;
+  }, [scale]);
 
   const beginDrag = (
     mode: DragMode,
