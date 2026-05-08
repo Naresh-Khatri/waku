@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import type { EditorNode } from "./types";
 import { resolveValue } from "./types";
 import {
@@ -20,6 +21,21 @@ export function NodeContent({
   switch (node.type) {
     case "image": {
       const src = resolveValue(node.src, draft) ?? "";
+      const style: CSSProperties = {
+        objectFit: node.fit,
+        pointerEvents: "none",
+      };
+      if (node.cornerRadius > 0) style.borderRadius = node.cornerRadius;
+      if (node.strokeWidth > 0) {
+        const stroke = resolveValue(node.stroke, draft) ?? "transparent";
+        style.border = `${node.strokeWidth}px solid ${stroke}`;
+        style.boxSizing = "border-box";
+      }
+      if (node.shadow) {
+        const shadowColor =
+          resolveValue(node.shadow.color, draft) ?? "#00000040";
+        style.boxShadow = `${node.shadow.offsetX}px ${node.shadow.offsetY}px ${node.shadow.blur}px ${shadowColor}`;
+      }
       return (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -27,7 +43,7 @@ export function NodeContent({
           alt=""
           draggable={false}
           className="h-full w-full"
-          style={{ objectFit: node.fit, pointerEvents: "none" }}
+          style={style}
         />
       );
     }

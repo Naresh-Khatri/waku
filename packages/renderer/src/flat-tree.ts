@@ -125,16 +125,24 @@ function nodeToSatori(node: EditorNode, draft: Draft): SatoriElement {
 
 function imageNode(node: ImageNode, draft: Draft): SatoriElement {
   const src = resolveValue(node.src, draft) ?? "";
-  return el("img", {
-    src,
+  const style: Record<string, unknown> = {
     width: node.width,
     height: node.height,
-    style: {
-      width: node.width,
-      height: node.height,
-      objectFit: node.fit,
-    },
-  });
+    objectFit: node.fit,
+  };
+  if (node.cornerRadius > 0) {
+    style.borderRadius = node.cornerRadius;
+  }
+  if (node.strokeWidth > 0) {
+    const stroke = resolveValue(node.stroke, draft) ?? "transparent";
+    style.border = `${node.strokeWidth}px solid ${stroke}`;
+    style.boxSizing = "border-box";
+  }
+  if (node.shadow) {
+    const shadowColor = resolveValue(node.shadow.color, draft) ?? "#00000040";
+    style.boxShadow = `${node.shadow.offsetX}px ${node.shadow.offsetY}px ${node.shadow.blur}px ${shadowColor}`;
+  }
+  return el("img", { src, width: node.width, height: node.height, style });
 }
 
 const ALLOWED_FONTS = new Set(["Inter"]);

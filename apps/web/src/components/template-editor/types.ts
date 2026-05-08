@@ -4,6 +4,7 @@ export type {
   EditorNode,
   EllipseNode,
   ImageNode,
+  ImageShadow,
   LineNode,
   NodeType,
   ParamKind,

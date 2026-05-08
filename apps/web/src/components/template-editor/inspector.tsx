@@ -4,7 +4,7 @@ import { AlignCenter, AlignLeft, AlignRight } from "lucide-react";
 import type { ChangeEvent } from "react";
 import { useState } from "react";
 import { useEditor } from "./store";
-import type { Artboard, EditorNode, Value } from "./types";
+import type { Artboard, EditorNode, ImageShadow, Value } from "./types";
 import { isParamRef } from "./types";
 import { ColorPicker } from "./color-picker";
 import { BindButton } from "./bind-button";
@@ -148,41 +148,138 @@ function TypeSection({ node }: { node: EditorNode }) {
   const set = (patch: Partial<EditorNode>) => update(node.id, patch);
 
   switch (node.type) {
-    case "image":
+    case "image": {
+      const setShadow = (patch: Partial<ImageShadow>) => {
+        const current: ImageShadow = node.shadow ?? {
+          offsetX: 0,
+          offsetY: 4,
+          blur: 12,
+          color: "#00000040",
+        };
+        set({ shadow: { ...current, ...patch } });
+      };
+      const maxRadius = Math.min(node.width, node.height) / 2;
       return (
-        <Section title="Image">
-          <Row label="Source">
-            <TextInput value={node.src} onChange={(v) => set({ src: v })} />
-            <BindButton
-              target={{ kind: "node", id: node.id }}
-              field="src"
-              paramKind="url"
-              value={node.src}
-              fallback=""
-            />
-          </Row>
-          <ImageUploadRow
-            disabled={isParamRef(node.src)}
-            onUploaded={(src) => set({ src })}
-          />
-          <Row label="Library">
-            <AssetPickerButton
+        <>
+          <Section title="Image">
+            <Row label="Source">
+              <TextInput value={node.src} onChange={(v) => set({ src: v })} />
+              <BindButton
+                target={{ kind: "node", id: node.id }}
+                field="src"
+                paramKind="url"
+                value={node.src}
+                fallback=""
+              />
+            </Row>
+            <ImageUploadRow
               disabled={isParamRef(node.src)}
-              onPick={(src) => set({ src })}
+              onUploaded={(src) => set({ src })}
             />
-          </Row>
-          <Row label="Fit">
-            <SelectInput
-              value={node.fit}
-              options={[
-                { value: "cover", label: "Cover" },
-                { value: "contain", label: "Contain" },
-              ]}
-              onChange={(v) => set({ fit: v as "cover" | "contain" })}
-            />
-          </Row>
-        </Section>
+            <Row label="Library">
+              <AssetPickerButton
+                disabled={isParamRef(node.src)}
+                onPick={(src) => set({ src })}
+              />
+            </Row>
+            <Row label="Fit">
+              <SelectInput
+                value={node.fit}
+                options={[
+                  { value: "cover", label: "Cover" },
+                  { value: "contain", label: "Contain" },
+                ]}
+                onChange={(v) => set({ fit: v as "cover" | "contain" })}
+              />
+            </Row>
+            <Row label="Corner radius">
+              <RangeInput
+                min={0}
+                max={maxRadius}
+                step={1}
+                value={node.cornerRadius}
+                onChange={(v) => set({ cornerRadius: v })}
+              />
+            </Row>
+          </Section>
+          <Section title="Border">
+            <Row label="Color">
+              <ColorInput
+                value={node.stroke}
+                onChange={(v) => set({ stroke: v })}
+              />
+              <BindButton
+                target={{ kind: "node", id: node.id }}
+                field="stroke"
+                paramKind="color"
+                value={node.stroke}
+                fallback="#000000"
+              />
+            </Row>
+            <Row label="Width">
+              <RangeInput
+                min={0}
+                max={32}
+                step={1}
+                value={node.strokeWidth}
+                onChange={(v) => set({ strokeWidth: v })}
+              />
+            </Row>
+          </Section>
+          <Section title="Shadow">
+            <Row label="Enabled">
+              <input
+                type="checkbox"
+                checked={node.shadow !== null}
+                onChange={(e) =>
+                  set({
+                    shadow: e.target.checked
+                      ? {
+                          offsetX: 0,
+                          offsetY: 4,
+                          blur: 12,
+                          color: "#00000040",
+                        }
+                      : null,
+                  })
+                }
+              />
+            </Row>
+            {node.shadow ? (
+              <>
+                <PairRow>
+                  <NumberInput
+                    label="X"
+                    value={node.shadow.offsetX}
+                    onChange={(v) => setShadow({ offsetX: v })}
+                  />
+                  <NumberInput
+                    label="Y"
+                    value={node.shadow.offsetY}
+                    onChange={(v) => setShadow({ offsetY: v })}
+                  />
+                </PairRow>
+                <Row label="Blur">
+                  <RangeInput
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={node.shadow.blur}
+                    onChange={(v) => setShadow({ blur: v })}
+                  />
+                </Row>
+                <Row label="Color">
+                  <ColorInput
+                    value={node.shadow.color}
+                    onChange={(v) => setShadow({ color: v })}
+                  />
+                </Row>
+              </>
+            ) : null}
+          </Section>
+        </>
       );
+    }
 
     case "text":
       return (

@@ -76,6 +76,10 @@ const doc: TemplateDocument = {
       height: 50,
       src: "https://cdn.example.com/a.png",
       fit: "cover",
+      cornerRadius: 0,
+      stroke: "#000000",
+      strokeWidth: 0,
+      shadow: null,
     },
   ],
 };

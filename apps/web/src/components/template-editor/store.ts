@@ -56,6 +56,10 @@ export function createNode(
         locked: false,
         src: SAMPLE_IMAGE,
         fit: "cover",
+        cornerRadius: 0,
+        stroke: "#000000",
+        strokeWidth: 0,
+        shadow: null,
       };
     case "text":
       return {

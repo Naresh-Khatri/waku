@@ -52,11 +52,22 @@ const BaseFields = {
   locked: z.boolean(),
 } as const;
 
+const ImageShadowZ = z.object({
+  offsetX: z.number(),
+  offsetY: z.number(),
+  blur: z.number().min(0),
+  color: ValueStringZ,
+});
+
 const ImageNodeZ = z.object({
   ...BaseFields,
   type: z.literal("image"),
   src: ValueStringZ,
   fit: z.enum(["cover", "contain"]),
+  cornerRadius: z.number().min(0).default(0),
+  stroke: ValueStringZ.default("#000000"),
+  strokeWidth: z.number().min(0).default(0),
+  shadow: ImageShadowZ.nullable().default(null),
 });
 
 const TextNodeZ = z.object({
@@ -140,7 +151,7 @@ export const TemplateDocumentZ = z.object({
   artboard: ArtboardZ,
   nodes: z.array(EditorNodeZ),
   paramsSchema: z.record(z.string(), ParamSchemaEntryZ),
-}) satisfies z.ZodType<TemplateDocument>;
+}) satisfies z.ZodType<TemplateDocument, z.ZodTypeDef, unknown>;
 
 export const emptyTemplateDocument = (): TemplateDocument => ({
   artboard: { width: 1200, height: 630, background: "#ffffff" },

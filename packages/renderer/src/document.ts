@@ -52,10 +52,21 @@ export interface BaseNode {
   locked: boolean;
 }
 
+export interface ImageShadow {
+  offsetX: number;
+  offsetY: number;
+  blur: number;
+  color: Value<string>;
+}
+
 export interface ImageNode extends BaseNode {
   type: "image";
   src: Value<string>;
   fit: "cover" | "contain";
+  cornerRadius: number;
+  stroke: Value<string>;
+  strokeWidth: number;
+  shadow: ImageShadow | null;
 }
 
 export interface TextNode extends BaseNode {
