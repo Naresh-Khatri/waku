@@ -39,7 +39,13 @@ export default function EditorPreview(props: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.versionId]);
 
-  const liveUrl = `${RENDER_BASE}/r/${props.handle}/${props.templateSlug}/${props.version}`;
+  // Drafts render through a separate endpoint that loads the latest in-DB
+  // document by versionId — so unpublished edits show up in the preview.
+  // Published versions stay on the public, immutable /r/handle/slug/version
+  // path so cached renders are reused.
+  const liveUrl = props.isPublished
+    ? `${RENDER_BASE}/r/${props.handle}/${props.templateSlug}/${props.version}`
+    : `${RENDER_BASE}/r/draft/${props.versionId}`;
 
   return (
     <div className="fixed inset-0 z-50">

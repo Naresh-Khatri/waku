@@ -98,6 +98,34 @@ export const recordRenderLog = (entry: RenderLogEntry): void => {
     });
 };
 
+// Drafts are mutable, so don't cache them. Caller is responsible for any
+// short-lived caching (e.g. via the response headers).
+export const loadDraftById = async (
+  versionId: string,
+): Promise<LoadedTemplateVersion | null> => {
+  const db = getDb();
+  const rows = await db
+    .select({
+      templateId: templateVersion.templateId,
+      versionId: templateVersion.id,
+      version: templateVersion.version,
+      document: templateVersion.documentJson,
+      publishedAt: templateVersion.publishedAt,
+    })
+    .from(templateVersion)
+    .where(eq(templateVersion.id, versionId))
+    .limit(1);
+
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    templateId: row.templateId,
+    versionId: row.versionId,
+    version: row.version,
+    document: row.document,
+  };
+};
+
 export const resolvePublishedVersion = async (
   handle: string,
   slug: string,
