@@ -179,10 +179,30 @@ export async function GET(req: NextRequest, ctx: Ctx) {
   const draft = paramsFromSearch(url.searchParams, tpl.document.paramsSchema);
   const paramsHash = hashParams(draft);
 
+  const widthParam = Number(url.searchParams.get("w"));
+  const qualityParam = Number(url.searchParams.get("q"));
+  const overrideWidth =
+    Number.isFinite(widthParam) && widthParam >= 64 && widthParam <= 2400
+      ? Math.round(widthParam)
+      : undefined;
+  const overrideHeight = overrideWidth
+    ? Math.round(
+        (overrideWidth * tpl.document.artboard.height) /
+          tpl.document.artboard.width,
+      )
+    : undefined;
+  const overrideQuality =
+    Number.isFinite(qualityParam) && qualityParam >= 1 && qualityParam <= 100
+      ? Math.round(qualityParam)
+      : undefined;
+
   try {
     const out = await withBudget(
       render(tpl.document, draft, {
         format,
+        ...(overrideWidth ? { width: overrideWidth } : {}),
+        ...(overrideHeight ? { height: overrideHeight } : {}),
+        ...(overrideQuality ? { quality: overrideQuality } : {}),
         loadImage: async (src: string) => {
           const r = await proxyImage(src);
           return { data: r.body, contentType: r.contentType };

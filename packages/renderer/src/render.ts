@@ -51,8 +51,10 @@ export const render = async (
   const format = opts.format ?? "png";
   const quality = opts.quality ?? 85;
 
-  const targetW = opts.width ?? doc.artboard.width;
-  const targetH = opts.height ?? doc.artboard.height;
+  const layoutW = doc.artboard.width;
+  const layoutH = doc.artboard.height;
+  const rasterW = opts.width ?? layoutW;
+  const rasterH = opts.height ?? Math.round((rasterW * layoutH) / layoutW);
 
   const tree = documentToSatori(doc, draft);
   if (opts.loadImage) {
@@ -61,8 +63,8 @@ export const render = async (
   const fonts = await loadFonts();
 
   const svg = await satori(tree as never, {
-    width: targetW,
-    height: targetH,
+    width: layoutW,
+    height: layoutH,
     fonts: fonts.map((f) => ({
       name: f.name,
       data: f.data,
@@ -72,7 +74,7 @@ export const render = async (
   });
 
   const resvg = new Resvg(svg, {
-    fitTo: { mode: "width", value: targetW },
+    fitTo: { mode: "width", value: rasterW },
   });
   const png = Buffer.from(resvg.render().asPng());
 
@@ -87,7 +89,7 @@ export const render = async (
     buffer,
     contentType: CONTENT_TYPES[format],
     format,
-    width: targetW,
-    height: targetH,
+    width: rasterW,
+    height: rasterH,
   };
 };
