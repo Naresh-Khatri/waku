@@ -12,7 +12,7 @@ import { useEditor } from "./store";
 import type { Guide, Zoom } from "./store";
 import { snapMove } from "./snap";
 import type { EditorNode } from "./types";
-import { paintToCss } from "./types";
+import { paintToCss, resolveValue } from "./types";
 import { NodeContent } from "./node-view";
 import { FloatingToolbar } from "./floating-toolbar";
 import { ZoomBar } from "./zoom-bar";
@@ -492,7 +492,7 @@ function NodeFrame({
     top: node.y,
     width: node.width,
     height: node.height,
-    opacity: node.opacity,
+    opacity: resolveValue(node.opacity, draft) ?? 1,
     transform: node.rotation ? `rotate(${node.rotation}deg)` : undefined,
     transformOrigin: "center center",
     cursor: node.locked ? "default" : "move",

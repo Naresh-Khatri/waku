@@ -130,12 +130,19 @@ function NodeInspector({ node }: { node: EditorNode }) {
           />
         </Row>
         <Row label="Opacity">
-          <RangeInput
+          <NumberValueField
+            value={node.opacity}
+            onChange={(v) => set({ opacity: v })}
             min={0}
             max={1}
             step={0.01}
+          />
+          <BindButton
+            target={{ kind: "node", id: node.id }}
+            field="opacity"
+            paramKind="number"
             value={node.opacity}
-            onChange={(v) => set({ opacity: v })}
+            fallback={1}
           />
         </Row>
       </Section>
@@ -195,12 +202,19 @@ function TypeSection({ node }: { node: EditorNode }) {
               />
             </Row>
             <Row label="Corner radius">
-              <RangeInput
+              <NumberValueField
                 min={0}
                 max={maxRadius}
                 step={1}
                 value={node.cornerRadius}
                 onChange={(v) => set({ cornerRadius: v })}
+              />
+              <BindButton
+                target={{ kind: "node", id: node.id }}
+                field="cornerRadius"
+                paramKind="number"
+                value={node.cornerRadius}
+                fallback={0}
               />
             </Row>
           </Section>
@@ -220,12 +234,19 @@ function TypeSection({ node }: { node: EditorNode }) {
               />
             </Row>
             <Row label="Width">
-              <RangeInput
+              <NumberValueField
                 min={0}
                 max={32}
                 step={1}
                 value={node.strokeWidth}
                 onChange={(v) => set({ strokeWidth: v })}
+              />
+              <BindButton
+                target={{ kind: "node", id: node.id }}
+                field="strokeWidth"
+                paramKind="number"
+                value={node.strokeWidth}
+                fallback={0}
               />
             </Row>
           </Section>
@@ -297,14 +318,25 @@ function TypeSection({ node }: { node: EditorNode }) {
               fallback=""
             />
           </Row>
-          <PairRow>
-            <NumberInput
-              label="Size"
+          <Row label="Size">
+            {isParamRef(node.fontSize) ? (
+              <BoundChip name={node.fontSize.$param} />
+            ) : (
+              <NumberInput
+                value={node.fontSize}
+                onChange={(v) => set({ fontSize: Math.max(4, v) })}
+              />
+            )}
+            <BindButton
+              target={{ kind: "node", id: node.id }}
+              field="fontSize"
+              paramKind="number"
               value={node.fontSize}
-              onChange={(v) => set({ fontSize: Math.max(4, v) })}
+              fallback={48}
             />
+          </Row>
+          <Row label="Weight">
             <SelectInput
-              label="Weight"
               value={String(node.fontWeight)}
               options={[
                 { value: "400", label: "Regular" },
@@ -317,7 +349,20 @@ function TypeSection({ node }: { node: EditorNode }) {
                 set({ fontWeight: Number(v) as 400 | 500 | 600 | 700 | 800 })
               }
             />
-          </PairRow>
+          </Row>
+          <Row label="Italic">
+            <BoolValueField
+              value={node.italic}
+              onChange={(v) => set({ italic: v })}
+            />
+            <BindButton
+              target={{ kind: "node", id: node.id }}
+              field="italic"
+              paramKind="boolean"
+              value={node.italic}
+              fallback={false}
+            />
+          </Row>
           <Row label="Color">
             <PaintField
               value={node.color}
@@ -355,21 +400,35 @@ function TypeSection({ node }: { node: EditorNode }) {
             </div>
           </Row>
           <Row label="Line height">
-            <RangeInput
+            <NumberValueField
               min={0.8}
               max={2.4}
               step={0.05}
               value={node.lineHeight}
               onChange={(v) => set({ lineHeight: v })}
             />
+            <BindButton
+              target={{ kind: "node", id: node.id }}
+              field="lineHeight"
+              paramKind="number"
+              value={node.lineHeight}
+              fallback={1.2}
+            />
           </Row>
           <Row label="Tracking">
-            <RangeInput
+            <NumberValueField
               min={-2}
               max={20}
               step={0.5}
               value={node.letterSpacing}
               onChange={(v) => set({ letterSpacing: v })}
+            />
+            <BindButton
+              target={{ kind: "node", id: node.id }}
+              field="letterSpacing"
+              paramKind="number"
+              value={node.letterSpacing}
+              fallback={0}
             />
           </Row>
         </Section>
@@ -401,21 +460,35 @@ function TypeSection({ node }: { node: EditorNode }) {
             />
           </Row>
           <Row label="Stroke width">
-            <RangeInput
+            <NumberValueField
               min={0}
               max={32}
               step={1}
               value={node.strokeWidth}
               onChange={(v) => set({ strokeWidth: v })}
             />
+            <BindButton
+              target={{ kind: "node", id: node.id }}
+              field="strokeWidth"
+              paramKind="number"
+              value={node.strokeWidth}
+              fallback={0}
+            />
           </Row>
           <Row label="Corner radius">
-            <RangeInput
+            <NumberValueField
               min={0}
               max={Math.min(node.width, node.height) / 2}
               step={1}
               value={node.cornerRadius}
               onChange={(v) => set({ cornerRadius: v })}
+            />
+            <BindButton
+              target={{ kind: "node", id: node.id }}
+              field="cornerRadius"
+              paramKind="number"
+              value={node.cornerRadius}
+              fallback={0}
             />
           </Row>
         </Section>
@@ -451,12 +524,19 @@ function TypeSection({ node }: { node: EditorNode }) {
             />
           </Row>
           <Row label="Stroke width">
-            <RangeInput
+            <NumberValueField
               min={0}
               max={32}
               step={1}
               value={node.strokeWidth}
               onChange={(v) => set({ strokeWidth: v })}
+            />
+            <BindButton
+              target={{ kind: "node", id: node.id }}
+              field="strokeWidth"
+              paramKind="number"
+              value={node.strokeWidth}
+              fallback={0}
             />
           </Row>
         </Section>
@@ -488,30 +568,51 @@ function TypeSection({ node }: { node: EditorNode }) {
             />
           </Row>
           <Row label="Stroke width">
-            <RangeInput
+            <NumberValueField
               min={0}
               max={32}
               step={1}
               value={node.strokeWidth}
               onChange={(v) => set({ strokeWidth: v })}
             />
+            <BindButton
+              target={{ kind: "node", id: node.id }}
+              field="strokeWidth"
+              paramKind="number"
+              value={node.strokeWidth}
+              fallback={0}
+            />
           </Row>
           <Row label="Points">
-            <RangeInput
+            <NumberValueField
               min={3}
               max={12}
               step={1}
               value={node.points}
               onChange={(v) => set({ points: Math.round(v) })}
             />
+            <BindButton
+              target={{ kind: "node", id: node.id }}
+              field="points"
+              paramKind="number"
+              value={node.points}
+              fallback={5}
+            />
           </Row>
           <Row label="Inner ratio">
-            <RangeInput
+            <NumberValueField
               min={0.1}
               max={0.9}
               step={0.01}
               value={node.innerRadiusRatio}
               onChange={(v) => set({ innerRadiusRatio: v })}
+            />
+            <BindButton
+              target={{ kind: "node", id: node.id }}
+              field="innerRadiusRatio"
+              paramKind="number"
+              value={node.innerRadiusRatio}
+              fallback={0.45}
             />
           </Row>
         </Section>
@@ -532,19 +633,32 @@ function TypeSection({ node }: { node: EditorNode }) {
             />
           </Row>
           <Row label="Width">
-            <RangeInput
+            <NumberValueField
               min={1}
               max={32}
               step={1}
               value={node.strokeWidth}
               onChange={(v) => set({ strokeWidth: v })}
             />
+            <BindButton
+              target={{ kind: "node", id: node.id }}
+              field="strokeWidth"
+              paramKind="number"
+              value={node.strokeWidth}
+              fallback={4}
+            />
           </Row>
           <Row label="Arrow">
-            <input
-              type="checkbox"
-              checked={node.arrow}
-              onChange={(e) => set({ arrow: e.target.checked })}
+            <BoolValueField
+              value={node.arrow}
+              onChange={(v) => set({ arrow: v })}
+            />
+            <BindButton
+              target={{ kind: "node", id: node.id }}
+              field="arrow"
+              paramKind="boolean"
+              value={node.arrow}
+              fallback={false}
             />
           </Row>
         </Section>
@@ -748,6 +862,48 @@ function PaintField({
       onChange={onChange}
       label={label}
       boundChip={bound}
+    />
+  );
+}
+
+function NumberValueField({
+  value,
+  onChange,
+  min,
+  max,
+  step,
+}: {
+  value: Value<number>;
+  onChange: (v: number) => void;
+  min: number;
+  max: number;
+  step: number;
+}) {
+  if (isParamRef(value)) return <BoundChip name={value.$param} />;
+  return (
+    <RangeInput
+      min={min}
+      max={max}
+      step={step}
+      value={value}
+      onChange={onChange}
+    />
+  );
+}
+
+function BoolValueField({
+  value,
+  onChange,
+}: {
+  value: Value<boolean>;
+  onChange: (v: boolean) => void;
+}) {
+  if (isParamRef(value)) return <BoundChip name={value.$param} />;
+  return (
+    <input
+      type="checkbox"
+      checked={value}
+      onChange={(e) => onChange(e.target.checked)}
     />
   );
 }

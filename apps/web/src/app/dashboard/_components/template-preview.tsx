@@ -1,4 +1,15 @@
 import type { TemplateDocument } from "@/components/template-editor/types";
+import { resolveValue } from "@/components/template-editor/types";
+
+const num = (v: unknown, fallback: number): number => {
+  const r = resolveValue(v as never, {});
+  return typeof r === "number" ? r : fallback;
+};
+
+const bool = (v: unknown, fallback: boolean): boolean => {
+  const r = resolveValue(v as never, {});
+  return typeof r === "boolean" ? r : fallback;
+};
 
 export function TemplatePreview({ document }: { document: TemplateDocument }) {
   const { artboard, nodes } = document;
@@ -17,8 +28,10 @@ export function TemplatePreview({ document }: { document: TemplateDocument }) {
       >
         {nodes.map((n) => {
           if (!n.visible) return null;
+          const opacity = num(n.opacity, 1);
           if (n.type === "rectangle") {
             const fill = typeof n.fill === "string" ? n.fill : "#cccccc";
+            const cr = num(n.cornerRadius, 0);
             return (
               <rect
                 key={n.id}
@@ -26,10 +39,10 @@ export function TemplatePreview({ document }: { document: TemplateDocument }) {
                 y={n.y}
                 width={n.width}
                 height={n.height}
-                rx={n.cornerRadius}
-                ry={n.cornerRadius}
+                rx={cr}
+                ry={cr}
                 fill={fill}
-                opacity={n.opacity}
+                opacity={opacity}
               />
             );
           }
@@ -43,7 +56,7 @@ export function TemplatePreview({ document }: { document: TemplateDocument }) {
                 rx={n.width / 2}
                 ry={n.height / 2}
                 fill={fill}
-                opacity={n.opacity}
+                opacity={opacity}
               />
             );
           }
@@ -51,6 +64,9 @@ export function TemplatePreview({ document }: { document: TemplateDocument }) {
             const text =
               typeof n.text === "string" ? n.text : (n.text.default ?? "");
             const color = typeof n.color === "string" ? n.color : "#000000";
+            const fontSize = num(n.fontSize, 16);
+            const letterSpacing = num(n.letterSpacing, 0);
+            const italic = bool(n.italic, false);
             const anchor =
               n.align === "center"
                 ? "middle"
@@ -67,15 +83,15 @@ export function TemplatePreview({ document }: { document: TemplateDocument }) {
               <text
                 key={n.id}
                 x={tx}
-                y={n.y + n.fontSize}
-                fontSize={n.fontSize}
+                y={n.y + fontSize}
+                fontSize={fontSize}
                 fontWeight={n.fontWeight}
-                fontStyle={n.italic ? "italic" : "normal"}
+                fontStyle={italic ? "italic" : "normal"}
                 fill={color}
                 textAnchor={anchor}
                 fontFamily="Inter, sans-serif"
-                letterSpacing={n.letterSpacing}
-                opacity={n.opacity}
+                letterSpacing={letterSpacing}
+                opacity={opacity}
               >
                 {text}
               </text>

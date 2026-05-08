@@ -131,7 +131,7 @@ export interface BaseNode {
   width: number;
   height: number;
   rotation: number;
-  opacity: number;
+  opacity: Value<number>;
   visible: boolean;
   locked: boolean;
 }
@@ -147,34 +147,34 @@ export interface ImageNode extends BaseNode {
   type: "image";
   src: Value<string>;
   fit: "cover" | "contain";
-  cornerRadius: number;
+  cornerRadius: Value<number>;
   stroke: Paint;
-  strokeWidth: number;
+  strokeWidth: Value<number>;
   shadow: ImageShadow | null;
 }
 
 export interface TextNode extends BaseNode {
   type: "text";
   text: Value<string>;
-  fontSize: number;
+  fontSize: Value<number>;
   fontWeight: 400 | 500 | 600 | 700 | 800;
-  italic: boolean;
+  italic: Value<boolean>;
   color: Paint;
   align: "left" | "center" | "right";
   fontFamily: "Inter";
-  letterSpacing: number;
-  lineHeight: number;
+  letterSpacing: Value<number>;
+  lineHeight: Value<number>;
 }
 
 interface ShapeFields {
   fill: Paint;
   stroke: Paint;
-  strokeWidth: number;
+  strokeWidth: Value<number>;
 }
 
 export interface RectangleNode extends BaseNode, ShapeFields {
   type: "rectangle";
-  cornerRadius: number;
+  cornerRadius: Value<number>;
 }
 
 export interface EllipseNode extends BaseNode, ShapeFields {
@@ -187,15 +187,15 @@ export interface TriangleNode extends BaseNode, ShapeFields {
 
 export interface StarNode extends BaseNode, ShapeFields {
   type: "star";
-  points: number;
-  innerRadiusRatio: number;
+  points: Value<number>;
+  innerRadiusRatio: Value<number>;
 }
 
 export interface LineNode extends BaseNode {
   type: "line";
   stroke: Paint;
-  strokeWidth: number;
-  arrow: boolean;
+  strokeWidth: Value<number>;
+  arrow: Value<boolean>;
 }
 
 export type EditorNode =

@@ -104,7 +104,7 @@ function nodeToSatori(node: EditorNode, draft: Draft): SatoriElement {
       top: node.y,
       width: node.width,
       height: node.height,
-      opacity: node.opacity,
+      opacity: resolveValue(node.opacity, draft) ?? 1,
     };
     if (node.rotation !== 0) {
       style.transform = `rotate(${node.rotation}deg)`;
@@ -133,15 +133,17 @@ function nodeToSatori(node: EditorNode, draft: Draft): SatoriElement {
 
 function imageNode(node: ImageNode, draft: Draft): SatoriElement {
   const src = resolveValue(node.src, draft) ?? "";
+  const cornerRadius = Math.max(0, resolveValue(node.cornerRadius, draft) ?? 0);
+  const strokeWidth = Math.max(0, resolveValue(node.strokeWidth, draft) ?? 0);
   const imgStyle: Record<string, unknown> = {
     width: node.width,
     height: node.height,
     objectFit: node.fit,
   };
-  if (node.cornerRadius > 0) imgStyle.borderRadius = node.cornerRadius;
-  const hasFlatStroke = node.strokeWidth > 0 && node.stroke.kind === "flat";
+  if (cornerRadius > 0) imgStyle.borderRadius = cornerRadius;
+  const hasFlatStroke = strokeWidth > 0 && node.stroke.kind === "flat";
   if (hasFlatStroke) {
-    imgStyle.border = `${node.strokeWidth}px solid ${paintToCss(node.stroke, draft)}`;
+    imgStyle.border = `${strokeWidth}px solid ${paintToCss(node.stroke, draft)}`;
     imgStyle.boxSizing = "border-box";
   }
   if (node.shadow) {
@@ -154,10 +156,10 @@ function imageNode(node: ImageNode, draft: Draft): SatoriElement {
     height: node.height,
     style: imgStyle,
   });
-  if (node.strokeWidth > 0 && node.stroke.kind !== "flat") {
-    const innerW = Math.max(0, node.width - node.strokeWidth * 2);
-    const innerH = Math.max(0, node.height - node.strokeWidth * 2);
-    const innerR = Math.max(0, node.cornerRadius - node.strokeWidth);
+  if (strokeWidth > 0 && node.stroke.kind !== "flat") {
+    const innerW = Math.max(0, node.width - strokeWidth * 2);
+    const innerH = Math.max(0, node.height - strokeWidth * 2);
+    const innerR = Math.max(0, cornerRadius - strokeWidth);
     const innerImg = el("img", {
       src,
       width: innerW,
@@ -174,8 +176,8 @@ function imageNode(node: ImageNode, draft: Draft): SatoriElement {
         display: "flex",
         width: node.width,
         height: node.height,
-        borderRadius: node.cornerRadius,
-        padding: node.strokeWidth,
+        borderRadius: cornerRadius,
+        padding: strokeWidth,
         boxSizing: "border-box",
         backgroundImage: paintToCss(node.stroke, draft),
         ...(node.shadow
@@ -197,6 +199,10 @@ const ALLOWED_FONTS = new Set(["Inter"]);
 function textNode(node: TextNode, draft: Draft): SatoriElement {
   const text = resolveValue(node.text, draft) ?? "";
   const fontFamily = ALLOWED_FONTS.has(node.fontFamily) ? node.fontFamily : "Inter";
+  const fontSize = Math.max(1, resolveValue(node.fontSize, draft) ?? 16);
+  const italic = resolveValue(node.italic, draft) ?? false;
+  const letterSpacing = resolveValue(node.letterSpacing, draft) ?? 0;
+  const lineHeight = Math.max(0.1, resolveValue(node.lineHeight, draft) ?? 1.2);
   const colorStyle: Record<string, unknown> =
     node.color.kind === "flat"
       ? { color: paintToCss(node.color, draft) }
@@ -219,13 +225,13 @@ function textNode(node: TextNode, draft: Draft): SatoriElement {
             ? "flex-end"
             : "flex-start",
       fontFamily,
-      fontSize: node.fontSize,
+      fontSize,
       fontWeight: node.fontWeight,
-      fontStyle: node.italic ? "italic" : "normal",
+      fontStyle: italic ? "italic" : "normal",
       ...colorStyle,
       textAlign: node.align,
-      letterSpacing: node.letterSpacing,
-      lineHeight: node.lineHeight,
+      letterSpacing,
+      lineHeight,
       whiteSpace: "pre-wrap",
     },
     children: text,
@@ -314,8 +320,8 @@ function rectangleNode(node: RectangleNode, draft: Draft): SatoriElement {
     node.height,
     node.fill,
     node.stroke,
-    node.strokeWidth,
-    node.cornerRadius,
+    Math.max(0, resolveValue(node.strokeWidth, draft) ?? 0),
+    Math.max(0, resolveValue(node.cornerRadius, draft) ?? 0),
     draft,
   );
 }
@@ -326,7 +332,7 @@ function ellipseNode(node: EllipseNode, draft: Draft): SatoriElement {
     node.height,
     node.fill,
     node.stroke,
-    node.strokeWidth,
+    Math.max(0, resolveValue(node.strokeWidth, draft) ?? 0),
     "50%",
     draft,
   );
@@ -359,10 +365,11 @@ function defsBlock(parts: { def: string }[]): string {
 function triangleNode(node: TriangleNode, draft: Draft): SatoriElement {
   const w = node.width;
   const h = node.height;
+  const sw = Math.max(0, resolveValue(node.strokeWidth, draft) ?? 0);
   const fill = paintToSvgPaint(node.fill, `f-${node.id}`, draft);
   const stroke = paintToSvgPaint(node.stroke, `s-${node.id}`, draft);
   const points = `${w / 2},0 ${w},${h} 0,${h}`;
-  const body = `${defsBlock([fill, stroke])}<polygon points='${points}' fill='${escapeAttr(fill.ref)}' stroke='${escapeAttr(stroke.ref)}' stroke-width='${node.strokeWidth}' />`;
+  const body = `${defsBlock([fill, stroke])}<polygon points='${points}' fill='${escapeAttr(fill.ref)}' stroke='${escapeAttr(stroke.ref)}' stroke-width='${sw}' />`;
   return svgImage(w, h, body);
 }
 
@@ -372,8 +379,14 @@ function starNode(node: StarNode, draft: Draft): SatoriElement {
   const cx = w / 2;
   const cy = h / 2;
   const ro = Math.min(w, h) / 2;
-  const ri = ro * node.innerRadiusRatio;
-  const total = node.points * 2;
+  const points = Math.max(3, Math.round(resolveValue(node.points, draft) ?? 5));
+  const ratio = Math.min(
+    1,
+    Math.max(0, resolveValue(node.innerRadiusRatio, draft) ?? 0.5),
+  );
+  const sw = Math.max(0, resolveValue(node.strokeWidth, draft) ?? 0);
+  const ri = ro * ratio;
+  const total = points * 2;
   const pts: string[] = [];
   for (let i = 0; i < total; i++) {
     const r = i % 2 === 0 ? ro : ri;
@@ -382,7 +395,7 @@ function starNode(node: StarNode, draft: Draft): SatoriElement {
   }
   const fill = paintToSvgPaint(node.fill, `f-${node.id}`, draft);
   const stroke = paintToSvgPaint(node.stroke, `s-${node.id}`, draft);
-  const body = `${defsBlock([fill, stroke])}<polygon points='${pts.join(" ")}' fill='${escapeAttr(fill.ref)}' stroke='${escapeAttr(stroke.ref)}' stroke-width='${node.strokeWidth}' />`;
+  const body = `${defsBlock([fill, stroke])}<polygon points='${pts.join(" ")}' fill='${escapeAttr(fill.ref)}' stroke='${escapeAttr(stroke.ref)}' stroke-width='${sw}' />`;
   return svgImage(w, h, body);
 }
 
@@ -390,11 +403,13 @@ function lineNode(node: LineNode, draft: Draft): SatoriElement {
   const w = node.width;
   const h = node.height;
   const y = h / 2;
-  const headLen = Math.min(w * 0.25, node.strokeWidth * 4 + 6);
-  const x2 = node.arrow ? w - headLen : w;
+  const sw = Math.max(0, resolveValue(node.strokeWidth, draft) ?? 0);
+  const arrow = resolveValue(node.arrow, draft) ?? false;
+  const headLen = Math.min(w * 0.25, sw * 4 + 6);
+  const x2 = arrow ? w - headLen : w;
   const stroke = paintToSvgPaint(node.stroke, `s-${node.id}`, draft);
-  const lineEl = `<line x1='0' y1='${y}' x2='${x2}' y2='${y}' stroke='${escapeAttr(stroke.ref)}' stroke-width='${node.strokeWidth}' stroke-linecap='round' />`;
-  const arrowEl = node.arrow
+  const lineEl = `<line x1='0' y1='${y}' x2='${x2}' y2='${y}' stroke='${escapeAttr(stroke.ref)}' stroke-width='${sw}' stroke-linecap='round' />`;
+  const arrowEl = arrow
     ? `<polygon points='${w},${y} ${x2},${y - headLen / 2} ${x2},${y + headLen / 2}' fill='${escapeAttr(stroke.ref)}' />`
     : "";
   return svgImage(w, h, `${defsBlock([stroke])}${lineEl}${arrowEl}`);

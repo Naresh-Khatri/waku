@@ -64,9 +64,17 @@ function TypeSpecificControls({ node }: { node: EditorNode }) {
             <Bold className="h-4 w-4" />
           </ToolButton>
           <ToolButton
-            active={node.italic}
-            onClick={() => updateNode(node.id, { italic: !node.italic })}
-            label="Italic"
+            active={!isParamRef(node.italic) && node.italic}
+            disabled={isParamRef(node.italic)}
+            onClick={() =>
+              !isParamRef(node.italic) &&
+              updateNode(node.id, { italic: !node.italic })
+            }
+            label={
+              isParamRef(node.italic)
+                ? `Bound to {${node.italic.$param}}`
+                : "Italic"
+            }
           >
             <Italic className="h-4 w-4" />
           </ToolButton>
@@ -125,9 +133,17 @@ function TypeSpecificControls({ node }: { node: EditorNode }) {
             fallback={{ kind: "flat", color: "#111111" }}
           />
           <ToolButton
-            active={node.arrow}
-            onClick={() => updateNode(node.id, { arrow: !node.arrow })}
-            label="Arrow"
+            active={!isParamRef(node.arrow) && node.arrow}
+            disabled={isParamRef(node.arrow)}
+            onClick={() =>
+              !isParamRef(node.arrow) &&
+              updateNode(node.id, { arrow: !node.arrow })
+            }
+            label={
+              isParamRef(node.arrow)
+                ? `Bound to {${node.arrow.$param}}`
+                : "Arrow"
+            }
           >
             <span className="text-[11px] font-medium">Arrow</span>
           </ToolButton>
@@ -242,12 +258,14 @@ function ToolButton({
   label,
   active,
   danger,
+  disabled,
 }: {
   children: React.ReactNode;
   onClick: () => void;
   label: string;
   active?: boolean;
   danger?: boolean;
+  disabled?: boolean;
 }) {
   const cls = active
     ? "bg-indigo-50 text-indigo-700"
@@ -258,7 +276,8 @@ function ToolButton({
     <button
       title={label}
       onClick={onClick}
-      className={`flex h-8 min-w-[32px] items-center justify-center rounded-md px-1.5 ${cls}`}
+      disabled={disabled}
+      className={`flex h-8 min-w-[32px] items-center justify-center rounded-md px-1.5 ${cls} disabled:cursor-not-allowed disabled:opacity-40`}
     >
       {children}
     </button>

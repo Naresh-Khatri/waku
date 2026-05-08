@@ -6,7 +6,20 @@ const ParamRefStringZ = z.object({
   default: z.string().optional(),
 });
 
+const ParamRefNumberZ = z.object({
+  $param: z.string(),
+  default: z.number().optional(),
+});
+
+const ParamRefBooleanZ = z.object({
+  $param: z.string(),
+  default: z.boolean().optional(),
+});
+
 const ValueStringZ = z.union([z.string(), ParamRefStringZ]);
+const valueNumberZ = (n: z.ZodType<number> = z.number()) =>
+  z.union([n, ParamRefNumberZ]);
+const ValueBooleanZ = z.union([z.boolean(), ParamRefBooleanZ]);
 
 const ColorStopZ = z.object({
   color: ValueStringZ,
@@ -76,7 +89,7 @@ const BaseFields = {
   width: z.number(),
   height: z.number(),
   rotation: z.number(),
-  opacity: z.number().min(0).max(1),
+  opacity: valueNumberZ(z.number().min(0).max(1)),
   visible: z.boolean(),
   locked: z.boolean(),
 } as const;
@@ -93,9 +106,9 @@ const ImageNodeZ = z.object({
   type: z.literal("image"),
   src: ValueStringZ,
   fit: z.enum(["cover", "contain"]),
-  cornerRadius: z.number().min(0),
+  cornerRadius: valueNumberZ(z.number().min(0)),
   stroke: PaintZ,
-  strokeWidth: z.number().min(0),
+  strokeWidth: valueNumberZ(z.number().min(0)),
   shadow: ImageShadowZ.nullable(),
 });
 
@@ -103,7 +116,7 @@ const TextNodeZ = z.object({
   ...BaseFields,
   type: z.literal("text"),
   text: ValueStringZ,
-  fontSize: z.number().positive(),
+  fontSize: valueNumberZ(z.number().positive()),
   fontWeight: z.union([
     z.literal(400),
     z.literal(500),
@@ -111,25 +124,25 @@ const TextNodeZ = z.object({
     z.literal(700),
     z.literal(800),
   ]),
-  italic: z.boolean(),
+  italic: ValueBooleanZ,
   color: PaintZ,
   align: z.enum(["left", "center", "right"]),
   fontFamily: z.enum(["Inter"]),
-  letterSpacing: z.number(),
-  lineHeight: z.number().positive(),
+  letterSpacing: valueNumberZ(),
+  lineHeight: valueNumberZ(z.number().positive()),
 });
 
 const ShapeFields = {
   fill: PaintZ,
   stroke: PaintZ,
-  strokeWidth: z.number().min(0),
+  strokeWidth: valueNumberZ(z.number().min(0)),
 } as const;
 
 const RectangleNodeZ = z.object({
   ...BaseFields,
   ...ShapeFields,
   type: z.literal("rectangle"),
-  cornerRadius: z.number().min(0),
+  cornerRadius: valueNumberZ(z.number().min(0)),
 });
 
 const EllipseNodeZ = z.object({
@@ -148,16 +161,16 @@ const StarNodeZ = z.object({
   ...BaseFields,
   ...ShapeFields,
   type: z.literal("star"),
-  points: z.number().int().min(3),
-  innerRadiusRatio: z.number().min(0).max(1),
+  points: valueNumberZ(z.number().int().min(3)),
+  innerRadiusRatio: valueNumberZ(z.number().min(0).max(1)),
 });
 
 const LineNodeZ = z.object({
   ...BaseFields,
   type: z.literal("line"),
   stroke: PaintZ,
-  strokeWidth: z.number().min(0),
-  arrow: z.boolean(),
+  strokeWidth: valueNumberZ(z.number().min(0)),
+  arrow: ValueBooleanZ,
 });
 
 export const EditorNodeZ = z.discriminatedUnion("type", [

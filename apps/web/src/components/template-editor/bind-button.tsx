@@ -15,8 +15,8 @@ type CommonProps = {
 
 type ValueProps = CommonProps & {
   paint?: false;
-  value: Value<string>;
-  fallback: Value<string>;
+  value: Value<unknown>;
+  fallback: unknown;
 };
 
 type PaintProps = CommonProps & {
@@ -31,8 +31,9 @@ export function BindButton(props: ValueProps | PaintProps) {
   const unbind = useEditor((s) => s.unbind);
   if (!enableParams || !openBindModal) return null;
 
-  // Inner value (a Value<string>) used to detect binding state.
-  let inner: Value<string>;
+  // Inner value used to detect binding state. For paint mode, dive into the
+  // flat color; otherwise the value itself is already a Value<unknown>.
+  let inner: Value<unknown>;
   if (props.paint) {
     if (!isFlatPaint(props.value)) return null; // gradient — bind disabled
     inner = props.value.color;
@@ -64,7 +65,12 @@ export function BindButton(props: ValueProps | PaintProps) {
           target,
           field,
           paramKind,
-          currentValue: typeof inner === "string" ? inner : "",
+          currentValue:
+            typeof inner === "string"
+              ? inner
+              : inner === undefined || inner === null
+                ? ""
+                : String(inner),
           paint: props.paint ?? false,
         })
       }

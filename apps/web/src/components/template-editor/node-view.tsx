@@ -21,8 +21,11 @@ export function NodeContent({
   switch (node.type) {
     case "image": {
       const src = resolveValue(node.src, draft) ?? "";
-      const cornerRadius = node.cornerRadius;
-      const sw = node.strokeWidth;
+      const cornerRadius = Math.max(
+        0,
+        resolveValue(node.cornerRadius, draft) ?? 0,
+      );
+      const sw = Math.max(0, resolveValue(node.strokeWidth, draft) ?? 0);
       const strokeIsFlat = isFlatPaint(node.stroke);
       const strokeCss = paintToCss(node.stroke, draft);
 
@@ -87,6 +90,13 @@ export function NodeContent({
     }
     case "text": {
       const text = resolveValue(node.text, draft) ?? "";
+      const fontSize = Math.max(1, resolveValue(node.fontSize, draft) ?? 16);
+      const italic = resolveValue(node.italic, draft) ?? false;
+      const letterSpacing = resolveValue(node.letterSpacing, draft) ?? 0;
+      const lineHeight = Math.max(
+        0.1,
+        resolveValue(node.lineHeight, draft) ?? 1.2,
+      );
       const colorCss = paintToCss(node.color, draft);
       const isFlat = isFlatPaint(node.color);
       const colorStyle: CSSProperties = isFlat
@@ -102,13 +112,13 @@ export function NodeContent({
           className="h-full w-full"
           style={{
             fontFamily: node.fontFamily,
-            fontSize: node.fontSize,
+            fontSize,
             fontWeight: node.fontWeight,
-            fontStyle: node.italic ? "italic" : "normal",
+            fontStyle: italic ? "italic" : "normal",
             ...colorStyle,
             textAlign: node.align,
-            letterSpacing: node.letterSpacing,
-            lineHeight: node.lineHeight,
+            letterSpacing,
+            lineHeight,
             display: "flex",
             alignItems: "center",
             justifyContent:

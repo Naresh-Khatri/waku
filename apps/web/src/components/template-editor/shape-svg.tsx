@@ -5,7 +5,7 @@ import type {
   StarNode,
   TriangleNode,
 } from "./types";
-import { paintToSvgPaint } from "./types";
+import { paintToSvgPaint, resolveValue } from "./types";
 
 type Draft = Record<string, unknown>;
 
@@ -18,8 +18,9 @@ function svgPaint(
 }
 
 export function RectangleSvg({ node, draft }: { node: RectangleNode; draft: Draft }) {
-  const sw = node.strokeWidth;
-  const r = Math.min(node.cornerRadius, node.width / 2, node.height / 2);
+  const sw = Math.max(0, resolveValue(node.strokeWidth, draft) ?? 0);
+  const cr = Math.max(0, resolveValue(node.cornerRadius, draft) ?? 0);
+  const r = Math.min(cr, node.width / 2, node.height / 2);
   const fill = svgPaint(node.fill, `rect-fill-${node.id}`, draft);
   const stroke = svgPaint(node.stroke, `rect-stroke-${node.id}`, draft);
   return (
@@ -46,7 +47,7 @@ export function RectangleSvg({ node, draft }: { node: RectangleNode; draft: Draf
 }
 
 export function EllipseSvg({ node, draft }: { node: EllipseNode; draft: Draft }) {
-  const sw = node.strokeWidth;
+  const sw = Math.max(0, resolveValue(node.strokeWidth, draft) ?? 0);
   const fill = svgPaint(node.fill, `ell-fill-${node.id}`, draft);
   const stroke = svgPaint(node.stroke, `ell-stroke-${node.id}`, draft);
   return (
@@ -71,7 +72,7 @@ export function EllipseSvg({ node, draft }: { node: EllipseNode; draft: Draft })
 }
 
 export function TriangleSvg({ node, draft }: { node: TriangleNode; draft: Draft }) {
-  const sw = node.strokeWidth;
+  const sw = Math.max(0, resolveValue(node.strokeWidth, draft) ?? 0);
   const w = node.width;
   const h = node.height;
   const points = `${w / 2},${sw / 2} ${w - sw / 2},${h - sw / 2} ${sw / 2},${h - sw / 2}`;
@@ -97,17 +98,25 @@ export function TriangleSvg({ node, draft }: { node: TriangleNode; draft: Draft 
 }
 
 export function StarSvg({ node, draft }: { node: StarNode; draft: Draft }) {
-  const sw = node.strokeWidth;
+  const sw = Math.max(0, resolveValue(node.strokeWidth, draft) ?? 0);
+  const points = Math.max(
+    3,
+    Math.round(resolveValue(node.points, draft) ?? 5),
+  );
+  const ratio = Math.min(
+    1,
+    Math.max(0, resolveValue(node.innerRadiusRatio, draft) ?? 0.5),
+  );
   const cx = node.width / 2;
   const cy = node.height / 2;
   const outerX = (node.width - sw) / 2;
   const outerY = (node.height - sw) / 2;
-  const innerX = outerX * node.innerRadiusRatio;
-  const innerY = outerY * node.innerRadiusRatio;
-  const total = node.points * 2;
+  const innerX = outerX * ratio;
+  const innerY = outerY * ratio;
+  const total = points * 2;
   const pts: string[] = [];
   for (let i = 0; i < total; i++) {
-    const angle = (Math.PI * i) / node.points - Math.PI / 2;
+    const angle = (Math.PI * i) / points - Math.PI / 2;
     const rx = i % 2 === 0 ? outerX : innerX;
     const ry = i % 2 === 0 ? outerY : innerY;
     pts.push(`${cx + Math.cos(angle) * rx},${cy + Math.sin(angle) * ry}`);
@@ -137,8 +146,10 @@ export function LineSvg({ node, draft }: { node: LineNode; draft: Draft }) {
   const w = Math.max(node.width, 1);
   const h = Math.max(node.height, 1);
   const cy = h / 2;
-  const arrowSize = node.strokeWidth * 3;
-  const endX = node.arrow ? Math.max(0, w - arrowSize) : w;
+  const sw = Math.max(0, resolveValue(node.strokeWidth, draft) ?? 0);
+  const arrow = resolveValue(node.arrow, draft) ?? false;
+  const arrowSize = sw * 3;
+  const endX = arrow ? Math.max(0, w - arrowSize) : w;
   const stroke = svgPaint(node.stroke, `line-stroke-${node.id}`, draft);
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="block">
@@ -149,10 +160,10 @@ export function LineSvg({ node, draft }: { node: LineNode; draft: Draft }) {
         x2={endX}
         y2={cy}
         stroke={stroke.ref}
-        strokeWidth={node.strokeWidth}
+        strokeWidth={sw}
         strokeLinecap="round"
       />
-      {node.arrow ? (
+      {arrow ? (
         <polygon
           points={`${w},${cy} ${endX},${cy - arrowSize / 2} ${endX},${cy + arrowSize / 2}`}
           fill={stroke.ref}
