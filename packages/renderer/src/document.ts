@@ -126,6 +126,12 @@ export interface BaseNode {
   id: string;
   type: NodeType;
   name: string;
+  /**
+   * Optional id of a parent node. Currently informational — the renderer still
+   * walks `nodes` flatly. Reserved for future grouping/clipping containers
+   * without forcing a tree-shaped storage migration.
+   */
+  parentId?: string | null;
   x: number;
   y: number;
   width: number;

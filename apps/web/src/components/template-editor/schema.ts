@@ -84,6 +84,7 @@ const ParamSchemaEntryZ = z.union([
 const BaseFields = {
   id: z.string(),
   name: z.string(),
+  parentId: z.string().nullable().optional(),
   x: z.number(),
   y: z.number(),
   width: z.number(),
