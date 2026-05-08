@@ -13,6 +13,8 @@ export interface BindRequest {
   field: string;
   paramKind: ParamKind;
   currentValue: string;
+  /** When true, the bound value is wrapped in a flat Paint. */
+  paint?: boolean;
 }
 
 const slugify = (s: string) =>
@@ -123,7 +125,7 @@ export function BindParamModal({
     }
 
     const targetId = request.target.kind === "node" ? request.target.id : "artboard";
-    bindToParam(targetId, request.field, name, entry);
+    bindToParam(targetId, request.field, name, entry, request.paint);
     onClose();
   };
 

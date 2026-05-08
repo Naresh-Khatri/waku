@@ -8,6 +8,35 @@ const ParamRefStringZ = z.object({
 
 const ValueStringZ = z.union([z.string(), ParamRefStringZ]);
 
+const ColorStopZ = z.object({
+  color: ValueStringZ,
+  position: z.number().min(0).max(1),
+});
+
+const FlatPaintZ = z.object({
+  kind: z.literal("flat"),
+  color: ValueStringZ,
+});
+
+const LinearPaintZ = z.object({
+  kind: z.literal("linear"),
+  angle: z.number(),
+  stops: z.array(ColorStopZ).min(2),
+});
+
+const RadialPaintZ = z.object({
+  kind: z.literal("radial"),
+  cx: z.number().min(0).max(1),
+  cy: z.number().min(0).max(1),
+  stops: z.array(ColorStopZ).min(2),
+});
+
+const PaintZ = z.discriminatedUnion("kind", [
+  FlatPaintZ,
+  LinearPaintZ,
+  RadialPaintZ,
+]);
+
 const ParamSchemaEntryZ = z.union([
   z.object({
     kind: z.literal("string"),
@@ -64,10 +93,10 @@ const ImageNodeZ = z.object({
   type: z.literal("image"),
   src: ValueStringZ,
   fit: z.enum(["cover", "contain"]),
-  cornerRadius: z.number().min(0).default(0),
-  stroke: ValueStringZ.default("#000000"),
-  strokeWidth: z.number().min(0).default(0),
-  shadow: ImageShadowZ.nullable().default(null),
+  cornerRadius: z.number().min(0),
+  stroke: PaintZ,
+  strokeWidth: z.number().min(0),
+  shadow: ImageShadowZ.nullable(),
 });
 
 const TextNodeZ = z.object({
@@ -83,7 +112,7 @@ const TextNodeZ = z.object({
     z.literal(800),
   ]),
   italic: z.boolean(),
-  color: ValueStringZ,
+  color: PaintZ,
   align: z.enum(["left", "center", "right"]),
   fontFamily: z.enum(["Inter"]),
   letterSpacing: z.number(),
@@ -91,8 +120,8 @@ const TextNodeZ = z.object({
 });
 
 const ShapeFields = {
-  fill: ValueStringZ,
-  stroke: ValueStringZ,
+  fill: PaintZ,
+  stroke: PaintZ,
   strokeWidth: z.number().min(0),
 } as const;
 
@@ -126,7 +155,7 @@ const StarNodeZ = z.object({
 const LineNodeZ = z.object({
   ...BaseFields,
   type: z.literal("line"),
-  stroke: ValueStringZ,
+  stroke: PaintZ,
   strokeWidth: z.number().min(0),
   arrow: z.boolean(),
 });
@@ -144,17 +173,21 @@ export const EditorNodeZ = z.discriminatedUnion("type", [
 const ArtboardZ = z.object({
   width: z.number().int().positive(),
   height: z.number().int().positive(),
-  background: ValueStringZ,
+  background: PaintZ,
 });
 
 export const TemplateDocumentZ = z.object({
   artboard: ArtboardZ,
   nodes: z.array(EditorNodeZ),
   paramsSchema: z.record(z.string(), ParamSchemaEntryZ),
-}) satisfies z.ZodType<TemplateDocument, z.ZodTypeDef, unknown>;
+}) satisfies z.ZodType<TemplateDocument>;
 
 export const emptyTemplateDocument = (): TemplateDocument => ({
-  artboard: { width: 1200, height: 630, background: "#ffffff" },
+  artboard: {
+    width: 1200,
+    height: 630,
+    background: { kind: "flat", color: "#ffffff" },
+  },
   nodes: [],
   paramsSchema: {},
 });

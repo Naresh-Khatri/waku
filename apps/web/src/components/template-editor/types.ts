@@ -1,12 +1,14 @@
 export type {
   Artboard,
   BaseNode,
+  ColorStop,
   EditorNode,
   EllipseNode,
   ImageNode,
   ImageShadow,
   LineNode,
   NodeType,
+  Paint,
   ParamKind,
   ParamRef,
   ParamSchemaEntry,
@@ -18,7 +20,14 @@ export type {
   TriangleNode,
   Value,
 } from "@waku/renderer/document";
-export { isParamRef, resolveValue } from "@waku/renderer/document";
+export {
+  flatPaint,
+  isFlatPaint,
+  isParamRef,
+  paintToCss,
+  paintToSvgPaint,
+  resolveValue,
+} from "@waku/renderer/document";
 
 import type {
   EllipseNode,

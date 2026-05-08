@@ -1,8 +1,8 @@
 import { render, type RenderFormat } from "@waku/renderer";
-import type { TemplateDocument } from "@waku/renderer/document";
+import { flatPaint, type TemplateDocument } from "@waku/renderer/document";
 
 const errorDoc = (title: string, message: string): TemplateDocument => ({
-  artboard: { width: 1200, height: 630, background: "#1a0606" },
+  artboard: { width: 1200, height: 630, background: flatPaint("#1a0606") },
   paramsSchema: {},
   nodes: [
     {
@@ -17,8 +17,8 @@ const errorDoc = (title: string, message: string): TemplateDocument => ({
       opacity: 1,
       visible: true,
       locked: false,
-      fill: "#ef4444",
-      stroke: "transparent",
+      fill: flatPaint("#ef4444"),
+      stroke: flatPaint("transparent"),
       strokeWidth: 0,
       cornerRadius: 3,
     },
@@ -38,7 +38,7 @@ const errorDoc = (title: string, message: string): TemplateDocument => ({
       fontSize: 64,
       fontWeight: 800,
       italic: false,
-      color: "#fecaca",
+      color: flatPaint("#fecaca"),
       align: "left",
       fontFamily: "Inter",
       letterSpacing: 0,
@@ -60,7 +60,7 @@ const errorDoc = (title: string, message: string): TemplateDocument => ({
       fontSize: 28,
       fontWeight: 400,
       italic: false,
-      color: "#fca5a5",
+      color: flatPaint("#fca5a5"),
       align: "left",
       fontFamily: "Inter",
       letterSpacing: 0,

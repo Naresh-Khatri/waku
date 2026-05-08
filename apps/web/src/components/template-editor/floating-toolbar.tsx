@@ -12,10 +12,10 @@ import {
 } from "lucide-react";
 import type { CSSProperties } from "react";
 import { BindButton } from "./bind-button";
-import { ColorPicker } from "./color-picker";
+import { PaintInput } from "./paint-picker";
 import { useEditor } from "./store";
-import type { EditorNode, ParamKind, Value } from "./types";
-import { isParamRef } from "./types";
+import type { EditorNode, Paint, ParamKind } from "./types";
+import { isFlatPaint, isParamRef } from "./types";
 
 export function FloatingToolbar({
   node,
@@ -70,13 +70,13 @@ function TypeSpecificControls({ node }: { node: EditorNode }) {
           >
             <Italic className="h-4 w-4" />
           </ToolButton>
-          <BindableColor
+          <BindablePaint
             nodeId={node.id}
             field="color"
             value={node.color}
             onChange={(v) => updateNode(node.id, { color: v })}
             label="Text color"
-            fallback="#111111"
+            fallback={{ kind: "flat", color: "#111111" }}
           />
         </>
       );
@@ -94,21 +94,21 @@ function TypeSpecificControls({ node }: { node: EditorNode }) {
               : "#f59e0b";
       return (
         <>
-          <BindableColor
+          <BindablePaint
             nodeId={node.id}
             field="fill"
             value={node.fill}
             onChange={(v) => updateNode(node.id, { fill: v })}
             label="Fill"
-            fallback={fillFallback}
+            fallback={{ kind: "flat", color: fillFallback }}
           />
-          <BindableColor
+          <BindablePaint
             nodeId={node.id}
             field="stroke"
             value={node.stroke}
             onChange={(v) => updateNode(node.id, { stroke: v })}
             label="Stroke"
-            fallback="#000000"
+            fallback={{ kind: "flat", color: "#000000" }}
           />
         </>
       );
@@ -116,13 +116,13 @@ function TypeSpecificControls({ node }: { node: EditorNode }) {
     case "line":
       return (
         <>
-          <BindableColor
+          <BindablePaint
             nodeId={node.id}
             field="stroke"
             value={node.stroke}
             onChange={(v) => updateNode(node.id, { stroke: v })}
             label="Color"
-            fallback="#111111"
+            fallback={{ kind: "flat", color: "#111111" }}
           />
           <ToolButton
             active={node.arrow}
@@ -160,7 +160,7 @@ function TypeSpecificControls({ node }: { node: EditorNode }) {
   }
 }
 
-function BindableColor({
+function BindablePaint({
   nodeId,
   field,
   value,
@@ -171,16 +171,27 @@ function BindableColor({
 }: {
   nodeId: string;
   field: string;
-  value: Value<string>;
-  onChange: (v: string) => void;
+  value: Paint;
+  onChange: (v: Paint) => void;
   label: string;
-  fallback: string;
+  fallback: Paint;
   paramKind?: ParamKind;
 }) {
+  const bound =
+    isFlatPaint(value) && isParamRef(value.color)
+      ? { name: value.color.$param }
+      : null;
   return (
     <>
-      <ColorSwatch value={value} onChange={onChange} label={label} />
+      <PaintInput
+        compact
+        value={value}
+        onChange={onChange}
+        label={label}
+        boundChip={bound}
+      />
       <BindButton
+        paint
         target={{ kind: "node", id: nodeId }}
         field={field}
         paramKind={paramKind}
@@ -252,28 +263,6 @@ function ToolButton({
       {children}
     </button>
   );
-}
-
-function ColorSwatch({
-  value,
-  onChange,
-  label,
-}: {
-  value: Value<string>;
-  onChange: (v: string) => void;
-  label: string;
-}) {
-  if (isParamRef(value)) {
-    return (
-      <span
-        title={`Bound to {${value.$param}}`}
-        className="flex h-7 items-center rounded-md border border-indigo-200 bg-indigo-50 px-2 text-[10px] font-mono text-indigo-700"
-      >
-        {`{${value.$param}}`}
-      </span>
-    );
-  }
-  return <ColorPicker value={value} onChange={onChange} label={label} compact />;
 }
 
 function Divider() {

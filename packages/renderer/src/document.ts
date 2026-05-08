@@ -28,6 +28,90 @@ export type ParamKind =
   | "boolean"
   | "enum";
 
+export interface ColorStop {
+  color: Value<string>;
+  position: number;
+}
+
+export type Paint =
+  | { kind: "flat"; color: Value<string> }
+  | { kind: "linear"; angle: number; stops: ColorStop[] }
+  | { kind: "radial"; cx: number; cy: number; stops: ColorStop[] };
+
+export const flatPaint = (color: Value<string>): Paint => ({
+  kind: "flat",
+  color,
+});
+
+export const isFlatPaint = (
+  p: Paint,
+): p is { kind: "flat"; color: Value<string> } => p.kind === "flat";
+
+const stopsToCss = (
+  stops: ColorStop[],
+  draft: Record<string, unknown>,
+): string =>
+  stops
+    .map(
+      (s) =>
+        `${resolveValue(s.color, draft) ?? "#000000"} ${(s.position * 100).toFixed(2)}%`,
+    )
+    .join(", ");
+
+export const paintToCss = (
+  paint: Paint,
+  draft: Record<string, unknown>,
+): string => {
+  switch (paint.kind) {
+    case "flat":
+      return resolveValue(paint.color, draft) ?? "transparent";
+    case "linear":
+      return `linear-gradient(${paint.angle}deg, ${stopsToCss(paint.stops, draft)})`;
+    case "radial":
+      return `radial-gradient(circle at ${(paint.cx * 100).toFixed(2)}% ${(paint.cy * 100).toFixed(2)}%, ${stopsToCss(paint.stops, draft)})`;
+  }
+};
+
+/**
+ * For SVG-based shapes. For flat paints returns just a paint string for use as
+ * fill/stroke. For gradients returns an SVG `<linearGradient>`/`<radialGradient>`
+ * fragment plus a `url(#id)` reference.
+ */
+export const paintToSvgPaint = (
+  paint: Paint,
+  id: string,
+  draft: Record<string, unknown>,
+): { def: string; ref: string } => {
+  if (paint.kind === "flat") {
+    return { def: "", ref: resolveValue(paint.color, draft) ?? "transparent" };
+  }
+  const stopXml = paint.stops
+    .map((s) => {
+      const c = resolveValue(s.color, draft) ?? "#000000";
+      return `<stop offset='${(s.position * 100).toFixed(2)}%' stop-color='${c}'/>`;
+    })
+    .join("");
+  if (paint.kind === "linear") {
+    const rad = (paint.angle * Math.PI) / 180;
+    const x = Math.sin(rad);
+    const y = -Math.cos(rad);
+    const x1 = (0.5 - x / 2).toFixed(4);
+    const y1 = (0.5 - y / 2).toFixed(4);
+    const x2 = (0.5 + x / 2).toFixed(4);
+    const y2 = (0.5 + y / 2).toFixed(4);
+    return {
+      def: `<linearGradient id='${id}' x1='${x1}' y1='${y1}' x2='${x2}' y2='${y2}'>${stopXml}</linearGradient>`,
+      ref: `url(#${id})`,
+    };
+  }
+  const cx = paint.cx.toFixed(4);
+  const cy = paint.cy.toFixed(4);
+  return {
+    def: `<radialGradient id='${id}' cx='${cx}' cy='${cy}' r='0.7'>${stopXml}</radialGradient>`,
+    ref: `url(#${id})`,
+  };
+};
+
 export type ParamSchemaEntry =
   | { kind: "string"; default?: string; maxLen?: number }
   | { kind: "url"; default?: string }
@@ -64,7 +148,7 @@ export interface ImageNode extends BaseNode {
   src: Value<string>;
   fit: "cover" | "contain";
   cornerRadius: number;
-  stroke: Value<string>;
+  stroke: Paint;
   strokeWidth: number;
   shadow: ImageShadow | null;
 }
@@ -75,7 +159,7 @@ export interface TextNode extends BaseNode {
   fontSize: number;
   fontWeight: 400 | 500 | 600 | 700 | 800;
   italic: boolean;
-  color: Value<string>;
+  color: Paint;
   align: "left" | "center" | "right";
   fontFamily: "Inter";
   letterSpacing: number;
@@ -83,8 +167,8 @@ export interface TextNode extends BaseNode {
 }
 
 interface ShapeFields {
-  fill: Value<string>;
-  stroke: Value<string>;
+  fill: Paint;
+  stroke: Paint;
   strokeWidth: number;
 }
 
@@ -109,7 +193,7 @@ export interface StarNode extends BaseNode, ShapeFields {
 
 export interface LineNode extends BaseNode {
   type: "line";
-  stroke: Value<string>;
+  stroke: Paint;
   strokeWidth: number;
   arrow: boolean;
 }
@@ -126,7 +210,7 @@ export type EditorNode =
 export interface Artboard {
   width: number;
   height: number;
-  background: Value<string>;
+  background: Paint;
 }
 
 export interface TemplateDocument {

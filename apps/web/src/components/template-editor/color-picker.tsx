@@ -236,6 +236,7 @@ function Popover({
       }}
       className="rounded-lg border border-zinc-200 bg-white p-2 shadow-xl"
       onPointerDown={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
     >
       <div className="grid grid-cols-7 gap-1">
         {PRESETS.map((c) => {

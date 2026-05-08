@@ -2,6 +2,7 @@ import { tool } from "ai";
 import { z } from "zod";
 
 import type { EditorNode, TemplateDocument } from "@/components/template-editor/types";
+import { flatPaint } from "@/components/template-editor/types";
 
 const ToolNodeZ = z.object({
   type: z
@@ -134,7 +135,7 @@ function toEditorNode(n: ToolNode, i: number): EditorNode | null {
       fontSize: Math.round(n.fontSize),
       fontWeight: clampWeight(n.fontWeight),
       italic: n.italic ?? false,
-      color: n.color,
+      color: flatPaint(n.color),
       align: n.align ?? "left",
       fontFamily: "Inter",
       letterSpacing: 0,
@@ -145,8 +146,8 @@ function toEditorNode(n: ToolNode, i: number): EditorNode | null {
   if (typeof n.fill !== "string") return null;
   const shapeBase = {
     ...base,
-    fill: n.fill,
-    stroke: "#000000",
+    fill: flatPaint(n.fill),
+    stroke: flatPaint("#000000"),
     strokeWidth: 0,
   };
   if (kind === "rectangle") {
@@ -179,8 +180,8 @@ function expand(input: DesignInput): TemplateDocument {
     // Drop shapes whose fill matches the artboard background — they're invisible noise.
     .filter((n) => {
       if (n.type !== "rectangle" && n.type !== "ellipse") return true;
-      if (typeof n.fill !== "string") return true;
-      return normalizeHex(n.fill) !== bgKey;
+      if (n.fill.kind !== "flat" || typeof n.fill.color !== "string") return true;
+      return normalizeHex(n.fill.color) !== bgKey;
     });
 
   // Force text to render on top regardless of LLM's array order.
@@ -189,7 +190,7 @@ function expand(input: DesignInput): TemplateDocument {
   const nodes = [...shapes, ...texts];
 
   return {
-    artboard: { width: aw, height: ah, background: bg },
+    artboard: { width: aw, height: ah, background: flatPaint(bg) },
     nodes,
     paramsSchema: {},
   };

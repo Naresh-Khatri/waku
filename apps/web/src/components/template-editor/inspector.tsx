@@ -4,9 +4,10 @@ import { AlignCenter, AlignLeft, AlignRight } from "lucide-react";
 import type { ChangeEvent } from "react";
 import { useState } from "react";
 import { useEditor } from "./store";
-import type { Artboard, EditorNode, ImageShadow, Value } from "./types";
-import { isParamRef } from "./types";
+import type { Artboard, EditorNode, ImageShadow, Paint, Value } from "./types";
+import { isFlatPaint, isParamRef } from "./types";
 import { ColorPicker } from "./color-picker";
+import { PaintInput } from "./paint-picker";
 import { BindButton } from "./bind-button";
 import { AssetUploadError, useAssetUploader } from "./asset-upload";
 import { AssetPickerButton } from "./asset-picker";
@@ -62,16 +63,17 @@ function DocumentInspector({
         />
       </Row>
       <Row label="Background">
-        <ColorInput
+        <PaintField
           value={artboard.background}
           onChange={(v) => onChange({ background: v })}
         />
         <BindButton
+          paint
           target={{ kind: "artboard" }}
           field="background"
           paramKind="color"
           value={artboard.background}
-          fallback="#ffffff"
+          fallback={{ kind: "flat", color: "#ffffff" }}
         />
       </Row>
     </Section>
@@ -204,16 +206,17 @@ function TypeSection({ node }: { node: EditorNode }) {
           </Section>
           <Section title="Border">
             <Row label="Color">
-              <ColorInput
+              <PaintField
                 value={node.stroke}
                 onChange={(v) => set({ stroke: v })}
               />
               <BindButton
+                paint
                 target={{ kind: "node", id: node.id }}
                 field="stroke"
                 paramKind="color"
                 value={node.stroke}
-                fallback="#000000"
+                fallback={{ kind: "flat", color: "#000000" }}
               />
             </Row>
             <Row label="Width">
@@ -316,13 +319,17 @@ function TypeSection({ node }: { node: EditorNode }) {
             />
           </PairRow>
           <Row label="Color">
-            <ColorInput value={node.color} onChange={(v) => set({ color: v })} />
+            <PaintField
+              value={node.color}
+              onChange={(v) => set({ color: v })}
+            />
             <BindButton
+              paint
               target={{ kind: "node", id: node.id }}
               field="color"
               paramKind="color"
               value={node.color}
-              fallback="#111111"
+              fallback={{ kind: "flat", color: "#111111" }}
             />
           </Row>
           <Row label="Align">
@@ -372,23 +379,25 @@ function TypeSection({ node }: { node: EditorNode }) {
       return (
         <Section title="Rectangle">
           <Row label="Fill">
-            <ColorInput value={node.fill} onChange={(v) => set({ fill: v })} />
+            <PaintField value={node.fill} onChange={(v) => set({ fill: v })} />
             <BindButton
+              paint
               target={{ kind: "node", id: node.id }}
               field="fill"
               paramKind="color"
               value={node.fill}
-              fallback="#6366f1"
+              fallback={{ kind: "flat", color: "#6366f1" }}
             />
           </Row>
           <Row label="Stroke">
-            <ColorInput value={node.stroke} onChange={(v) => set({ stroke: v })} />
+            <PaintField value={node.stroke} onChange={(v) => set({ stroke: v })} />
             <BindButton
+              paint
               target={{ kind: "node", id: node.id }}
               field="stroke"
               paramKind="color"
               value={node.stroke}
-              fallback="#000000"
+              fallback={{ kind: "flat", color: "#000000" }}
             />
           </Row>
           <Row label="Stroke width">
@@ -417,23 +426,28 @@ function TypeSection({ node }: { node: EditorNode }) {
       return (
         <Section title={node.type === "ellipse" ? "Ellipse" : "Triangle"}>
           <Row label="Fill">
-            <ColorInput value={node.fill} onChange={(v) => set({ fill: v })} />
+            <PaintField value={node.fill} onChange={(v) => set({ fill: v })} />
             <BindButton
+              paint
               target={{ kind: "node", id: node.id }}
               field="fill"
               paramKind="color"
               value={node.fill}
-              fallback={node.type === "ellipse" ? "#ec4899" : "#10b981"}
+              fallback={{
+                kind: "flat",
+                color: node.type === "ellipse" ? "#ec4899" : "#10b981",
+              }}
             />
           </Row>
           <Row label="Stroke">
-            <ColorInput value={node.stroke} onChange={(v) => set({ stroke: v })} />
+            <PaintField value={node.stroke} onChange={(v) => set({ stroke: v })} />
             <BindButton
+              paint
               target={{ kind: "node", id: node.id }}
               field="stroke"
               paramKind="color"
               value={node.stroke}
-              fallback="#000000"
+              fallback={{ kind: "flat", color: "#000000" }}
             />
           </Row>
           <Row label="Stroke width">
@@ -452,23 +466,25 @@ function TypeSection({ node }: { node: EditorNode }) {
       return (
         <Section title="Star">
           <Row label="Fill">
-            <ColorInput value={node.fill} onChange={(v) => set({ fill: v })} />
+            <PaintField value={node.fill} onChange={(v) => set({ fill: v })} />
             <BindButton
+              paint
               target={{ kind: "node", id: node.id }}
               field="fill"
               paramKind="color"
               value={node.fill}
-              fallback="#f59e0b"
+              fallback={{ kind: "flat", color: "#f59e0b" }}
             />
           </Row>
           <Row label="Stroke">
-            <ColorInput value={node.stroke} onChange={(v) => set({ stroke: v })} />
+            <PaintField value={node.stroke} onChange={(v) => set({ stroke: v })} />
             <BindButton
+              paint
               target={{ kind: "node", id: node.id }}
               field="stroke"
               paramKind="color"
               value={node.stroke}
-              fallback="#000000"
+              fallback={{ kind: "flat", color: "#000000" }}
             />
           </Row>
           <Row label="Stroke width">
@@ -505,13 +521,14 @@ function TypeSection({ node }: { node: EditorNode }) {
       return (
         <Section title="Line">
           <Row label="Color">
-            <ColorInput value={node.stroke} onChange={(v) => set({ stroke: v })} />
+            <PaintField value={node.stroke} onChange={(v) => set({ stroke: v })} />
             <BindButton
+              paint
               target={{ kind: "node", id: node.id }}
               field="stroke"
               paramKind="color"
               value={node.stroke}
-              fallback="#111111"
+              fallback={{ kind: "flat", color: "#111111" }}
             />
           </Row>
           <Row label="Width">
@@ -710,6 +727,29 @@ function ColorInput({
 }) {
   if (isParamRef(value)) return <BoundChip name={value.$param} />;
   return <ColorPicker value={value} onChange={onChange} label={label} />;
+}
+
+function PaintField({
+  value,
+  onChange,
+  label,
+}: {
+  value: Paint;
+  onChange: (v: Paint) => void;
+  label?: string;
+}) {
+  const bound =
+    isFlatPaint(value) && isParamRef(value.color)
+      ? { name: value.color.$param }
+      : null;
+  return (
+    <PaintInput
+      value={value}
+      onChange={onChange}
+      label={label}
+      boundChip={bound}
+    />
+  );
 }
 
 function RangeInput({

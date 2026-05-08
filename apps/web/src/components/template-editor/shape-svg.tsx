@@ -5,15 +5,23 @@ import type {
   StarNode,
   TriangleNode,
 } from "./types";
-import { resolveValue } from "./types";
+import { paintToSvgPaint } from "./types";
 
 type Draft = Record<string, unknown>;
+
+function svgPaint(
+  paint: Parameters<typeof paintToSvgPaint>[0],
+  id: string,
+  draft: Draft,
+) {
+  return paintToSvgPaint(paint, id, draft);
+}
 
 export function RectangleSvg({ node, draft }: { node: RectangleNode; draft: Draft }) {
   const sw = node.strokeWidth;
   const r = Math.min(node.cornerRadius, node.width / 2, node.height / 2);
-  const fill = resolveValue(node.fill, draft) ?? "transparent";
-  const stroke = resolveValue(node.stroke, draft) ?? "transparent";
+  const fill = svgPaint(node.fill, `rect-fill-${node.id}`, draft);
+  const stroke = svgPaint(node.stroke, `rect-stroke-${node.id}`, draft);
   return (
     <svg
       width={node.width}
@@ -21,6 +29,7 @@ export function RectangleSvg({ node, draft }: { node: RectangleNode; draft: Draf
       viewBox={`0 0 ${node.width} ${node.height}`}
       className="block"
     >
+      <Defs defs={[fill.def, stroke.def]} />
       <rect
         x={sw / 2}
         y={sw / 2}
@@ -28,8 +37,8 @@ export function RectangleSvg({ node, draft }: { node: RectangleNode; draft: Draf
         height={Math.max(0, node.height - sw)}
         rx={r}
         ry={r}
-        fill={fill}
-        stroke={sw > 0 ? stroke : "none"}
+        fill={fill.ref}
+        stroke={sw > 0 ? stroke.ref : "none"}
         strokeWidth={sw}
       />
     </svg>
@@ -38,8 +47,8 @@ export function RectangleSvg({ node, draft }: { node: RectangleNode; draft: Draf
 
 export function EllipseSvg({ node, draft }: { node: EllipseNode; draft: Draft }) {
   const sw = node.strokeWidth;
-  const fill = resolveValue(node.fill, draft) ?? "transparent";
-  const stroke = resolveValue(node.stroke, draft) ?? "transparent";
+  const fill = svgPaint(node.fill, `ell-fill-${node.id}`, draft);
+  const stroke = svgPaint(node.stroke, `ell-stroke-${node.id}`, draft);
   return (
     <svg
       width={node.width}
@@ -47,13 +56,14 @@ export function EllipseSvg({ node, draft }: { node: EllipseNode; draft: Draft })
       viewBox={`0 0 ${node.width} ${node.height}`}
       className="block"
     >
+      <Defs defs={[fill.def, stroke.def]} />
       <ellipse
         cx={node.width / 2}
         cy={node.height / 2}
         rx={Math.max(0, node.width / 2 - sw / 2)}
         ry={Math.max(0, node.height / 2 - sw / 2)}
-        fill={fill}
-        stroke={sw > 0 ? stroke : "none"}
+        fill={fill.ref}
+        stroke={sw > 0 ? stroke.ref : "none"}
         strokeWidth={sw}
       />
     </svg>
@@ -65,8 +75,8 @@ export function TriangleSvg({ node, draft }: { node: TriangleNode; draft: Draft 
   const w = node.width;
   const h = node.height;
   const points = `${w / 2},${sw / 2} ${w - sw / 2},${h - sw / 2} ${sw / 2},${h - sw / 2}`;
-  const fill = resolveValue(node.fill, draft) ?? "transparent";
-  const stroke = resolveValue(node.stroke, draft) ?? "transparent";
+  const fill = svgPaint(node.fill, `tri-fill-${node.id}`, draft);
+  const stroke = svgPaint(node.stroke, `tri-stroke-${node.id}`, draft);
   return (
     <svg
       width={w}
@@ -74,10 +84,11 @@ export function TriangleSvg({ node, draft }: { node: TriangleNode; draft: Draft 
       viewBox={`0 0 ${w} ${h}`}
       className="block"
     >
+      <Defs defs={[fill.def, stroke.def]} />
       <polygon
         points={points}
-        fill={fill}
-        stroke={sw > 0 ? stroke : "none"}
+        fill={fill.ref}
+        stroke={sw > 0 ? stroke.ref : "none"}
         strokeWidth={sw}
         strokeLinejoin="round"
       />
@@ -101,8 +112,8 @@ export function StarSvg({ node, draft }: { node: StarNode; draft: Draft }) {
     const ry = i % 2 === 0 ? outerY : innerY;
     pts.push(`${cx + Math.cos(angle) * rx},${cy + Math.sin(angle) * ry}`);
   }
-  const fill = resolveValue(node.fill, draft) ?? "transparent";
-  const stroke = resolveValue(node.stroke, draft) ?? "transparent";
+  const fill = svgPaint(node.fill, `star-fill-${node.id}`, draft);
+  const stroke = svgPaint(node.stroke, `star-stroke-${node.id}`, draft);
   return (
     <svg
       width={node.width}
@@ -110,10 +121,11 @@ export function StarSvg({ node, draft }: { node: StarNode; draft: Draft }) {
       viewBox={`0 0 ${node.width} ${node.height}`}
       className="block"
     >
+      <Defs defs={[fill.def, stroke.def]} />
       <polygon
         points={pts.join(" ")}
-        fill={fill}
-        stroke={sw > 0 ? stroke : "none"}
+        fill={fill.ref}
+        stroke={sw > 0 ? stroke.ref : "none"}
         strokeWidth={sw}
         strokeLinejoin="round"
       />
@@ -127,24 +139,31 @@ export function LineSvg({ node, draft }: { node: LineNode; draft: Draft }) {
   const cy = h / 2;
   const arrowSize = node.strokeWidth * 3;
   const endX = node.arrow ? Math.max(0, w - arrowSize) : w;
-  const stroke = resolveValue(node.stroke, draft) ?? "#000";
+  const stroke = svgPaint(node.stroke, `line-stroke-${node.id}`, draft);
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="block">
+      <Defs defs={[stroke.def]} />
       <line
         x1={0}
         y1={cy}
         x2={endX}
         y2={cy}
-        stroke={stroke}
+        stroke={stroke.ref}
         strokeWidth={node.strokeWidth}
         strokeLinecap="round"
       />
       {node.arrow ? (
         <polygon
           points={`${w},${cy} ${endX},${cy - arrowSize / 2} ${endX},${cy + arrowSize / 2}`}
-          fill={stroke}
+          fill={stroke.ref}
         />
       ) : null}
     </svg>
   );
+}
+
+function Defs({ defs }: { defs: string[] }) {
+  const filtered = defs.filter((d) => d.length > 0);
+  if (filtered.length === 0) return null;
+  return <defs dangerouslySetInnerHTML={{ __html: filtered.join("") }} />;
 }

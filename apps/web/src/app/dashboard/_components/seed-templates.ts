@@ -1,4 +1,5 @@
 import type { TemplateDocument } from "@/components/template-editor/types";
+import { flatPaint } from "@/components/template-editor/types";
 
 export type SeedTemplate = {
   id: string;
@@ -9,7 +10,7 @@ export type SeedTemplate = {
 };
 
 const blogPostDoc: TemplateDocument = {
-  artboard: { width: 1200, height: 630, background: "#0f172a" },
+  artboard: { width: 1200, height: 630, background: flatPaint("#0f172a") },
   nodes: [
     {
       id: "n1",
@@ -27,7 +28,7 @@ const blogPostDoc: TemplateDocument = {
       fontSize: 84,
       fontWeight: 700,
       italic: false,
-      color: "#ffffff",
+      color: flatPaint("#ffffff"),
       align: "left",
       fontFamily: "Inter",
       letterSpacing: -2,
@@ -49,7 +50,7 @@ const blogPostDoc: TemplateDocument = {
       fontSize: 28,
       fontWeight: 500,
       italic: false,
-      color: "#94a3b8",
+      color: flatPaint("#94a3b8"),
       align: "left",
       fontFamily: "Inter",
       letterSpacing: 0,
@@ -63,7 +64,7 @@ const blogPostDoc: TemplateDocument = {
 };
 
 const productLaunchDoc: TemplateDocument = {
-  artboard: { width: 1200, height: 630, background: "#7c5cff" },
+  artboard: { width: 1200, height: 630, background: flatPaint("#7c5cff") },
   nodes: [
     {
       id: "r1",
@@ -77,8 +78,8 @@ const productLaunchDoc: TemplateDocument = {
       opacity: 1,
       visible: true,
       locked: false,
-      fill: "#ffffff",
-      stroke: "#000000",
+      fill: flatPaint("#ffffff"),
+      stroke: flatPaint("#000000"),
       strokeWidth: 0,
       cornerRadius: 32,
     },
@@ -98,7 +99,7 @@ const productLaunchDoc: TemplateDocument = {
       fontSize: 22,
       fontWeight: 600,
       italic: false,
-      color: "#7c5cff",
+      color: flatPaint("#7c5cff"),
       align: "left",
       fontFamily: "Inter",
       letterSpacing: 4,
@@ -120,7 +121,7 @@ const productLaunchDoc: TemplateDocument = {
       fontSize: 120,
       fontWeight: 800,
       italic: false,
-      color: "#0f172a",
+      color: flatPaint("#0f172a"),
       align: "left",
       fontFamily: "Inter",
       letterSpacing: -4,
@@ -145,7 +146,7 @@ const productLaunchDoc: TemplateDocument = {
       fontSize: 28,
       fontWeight: 400,
       italic: false,
-      color: "#475569",
+      color: flatPaint("#475569"),
       align: "left",
       fontFamily: "Inter",
       letterSpacing: 0,
@@ -164,7 +165,7 @@ const productLaunchDoc: TemplateDocument = {
 };
 
 const quoteCardDoc: TemplateDocument = {
-  artboard: { width: 1200, height: 630, background: "#fef3c7" },
+  artboard: { width: 1200, height: 630, background: flatPaint("#fef3c7") },
   nodes: [
     {
       id: "q1",
@@ -185,7 +186,7 @@ const quoteCardDoc: TemplateDocument = {
       fontSize: 64,
       fontWeight: 600,
       italic: true,
-      color: "#1e293b",
+      color: flatPaint("#1e293b"),
       align: "center",
       fontFamily: "Inter",
       letterSpacing: -1,
@@ -207,7 +208,7 @@ const quoteCardDoc: TemplateDocument = {
       fontSize: 28,
       fontWeight: 500,
       italic: false,
-      color: "#78716c",
+      color: flatPaint("#78716c"),
       align: "center",
       fontFamily: "Inter",
       letterSpacing: 0,
@@ -225,7 +226,7 @@ const quoteCardDoc: TemplateDocument = {
 };
 
 const minimalLogoDoc: TemplateDocument = {
-  artboard: { width: 1200, height: 630, background: "#ffffff" },
+  artboard: { width: 1200, height: 630, background: flatPaint("#ffffff") },
   nodes: [
     {
       id: "c1",
@@ -239,8 +240,8 @@ const minimalLogoDoc: TemplateDocument = {
       opacity: 1,
       visible: true,
       locked: false,
-      fill: "#7c5cff",
-      stroke: "#000000",
+      fill: flatPaint("#7c5cff"),
+      stroke: flatPaint("#000000"),
       strokeWidth: 0,
     },
     {
@@ -259,7 +260,7 @@ const minimalLogoDoc: TemplateDocument = {
       fontSize: 72,
       fontWeight: 700,
       italic: false,
-      color: "#0f172a",
+      color: flatPaint("#0f172a"),
       align: "center",
       fontFamily: "Inter",
       letterSpacing: -2,
@@ -281,7 +282,7 @@ const minimalLogoDoc: TemplateDocument = {
       fontSize: 24,
       fontWeight: 400,
       italic: false,
-      color: "#64748b",
+      color: flatPaint("#64748b"),
       align: "center",
       fontFamily: "Inter",
       letterSpacing: 1,

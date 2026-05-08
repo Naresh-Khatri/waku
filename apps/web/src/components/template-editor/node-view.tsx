@@ -2,7 +2,7 @@
 
 import type { CSSProperties } from "react";
 import type { EditorNode } from "./types";
-import { resolveValue } from "./types";
+import { isFlatPaint, paintToCss, resolveValue } from "./types";
 import {
   EllipseSvg,
   LineSvg,
@@ -21,35 +21,82 @@ export function NodeContent({
   switch (node.type) {
     case "image": {
       const src = resolveValue(node.src, draft) ?? "";
-      const style: CSSProperties = {
+      const cornerRadius = node.cornerRadius;
+      const sw = node.strokeWidth;
+      const strokeIsFlat = isFlatPaint(node.stroke);
+      const strokeCss = paintToCss(node.stroke, draft);
+
+      const imgStyle: CSSProperties = {
         objectFit: node.fit,
         pointerEvents: "none",
       };
-      if (node.cornerRadius > 0) style.borderRadius = node.cornerRadius;
-      if (node.strokeWidth > 0) {
-        const stroke = resolveValue(node.stroke, draft) ?? "transparent";
-        style.border = `${node.strokeWidth}px solid ${stroke}`;
-        style.boxSizing = "border-box";
+      if (cornerRadius > 0) imgStyle.borderRadius = cornerRadius;
+
+      // Flat stroke: CSS border on the image. Gradient stroke: padding-wrapper.
+      if (sw > 0 && strokeIsFlat) {
+        imgStyle.border = `${sw}px solid ${strokeCss}`;
+        imgStyle.boxSizing = "border-box";
       }
       if (node.shadow) {
         const shadowColor =
           resolveValue(node.shadow.color, draft) ?? "#00000040";
-        style.boxShadow = `${node.shadow.offsetX}px ${node.shadow.offsetY}px ${node.shadow.blur}px ${shadowColor}`;
+        imgStyle.boxShadow = `${node.shadow.offsetX}px ${node.shadow.offsetY}px ${node.shadow.blur}px ${shadowColor}`;
       }
-      return (
+
+      const img = (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={src}
           alt=""
           draggable={false}
           className="h-full w-full"
-          style={style}
+          style={imgStyle}
         />
       );
+
+      if (sw > 0 && !strokeIsFlat) {
+        const innerR = Math.max(0, cornerRadius - sw);
+        const wrapStyle: CSSProperties = {
+          width: "100%",
+          height: "100%",
+          padding: sw,
+          boxSizing: "border-box",
+          background: strokeCss,
+          borderRadius: cornerRadius,
+        };
+        const innerImgStyle: CSSProperties = {
+          ...imgStyle,
+          width: "100%",
+          height: "100%",
+          borderRadius: innerR,
+          border: undefined,
+        };
+        return (
+          <div style={wrapStyle}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={src}
+              alt=""
+              draggable={false}
+              style={innerImgStyle}
+            />
+          </div>
+        );
+      }
+      return img;
     }
     case "text": {
       const text = resolveValue(node.text, draft) ?? "";
-      const color = resolveValue(node.color, draft) ?? "#000";
+      const colorCss = paintToCss(node.color, draft);
+      const isFlat = isFlatPaint(node.color);
+      const colorStyle: CSSProperties = isFlat
+        ? { color: colorCss }
+        : {
+            color: "transparent",
+            backgroundImage: colorCss,
+            backgroundClip: "text",
+            WebkitBackgroundClip: "text",
+          };
       return (
         <div
           className="h-full w-full"
@@ -58,7 +105,7 @@ export function NodeContent({
             fontSize: node.fontSize,
             fontWeight: node.fontWeight,
             fontStyle: node.italic ? "italic" : "normal",
-            color,
+            ...colorStyle,
             textAlign: node.align,
             letterSpacing: node.letterSpacing,
             lineHeight: node.lineHeight,

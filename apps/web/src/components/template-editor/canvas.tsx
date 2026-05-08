@@ -8,15 +8,13 @@ import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { useEditorConfig } from "./editor-config";
 import { useEditor } from "./store";
 import type { Guide, Zoom } from "./store";
 import { snapMove } from "./snap";
 import type { EditorNode } from "./types";
-import { resolveValue } from "./types";
+import { paintToCss } from "./types";
 import { NodeContent } from "./node-view";
 import { FloatingToolbar } from "./floating-toolbar";
-import { ParamsCard } from "./params-card";
 import { ZoomBar } from "./zoom-bar";
 
 type DragMode = "move" | "nw" | "ne" | "sw" | "se";
@@ -64,7 +62,7 @@ export function Canvas() {
   const updateNode = useEditor((s) => s.updateNode);
   const setZoom = useEditor((s) => s.setZoom);
   const draftValues = useEditor((s) => s.draftValues);
-  const artboardBg = resolveValue(artboard.background, draftValues) ?? "#ffffff";
+  const artboardBg = paintToCss(artboard.background, draftValues);
 
   const wrapperRef = useRef<HTMLDivElement>(null);
   const selectionFrameRef = useRef<HTMLDivElement>(null);
@@ -463,7 +461,6 @@ export function Canvas() {
       </div>
 
       <ZoomBar scale={scale} fitScale={fitScale} />
-      <ParamsCardOverlay />
     </div>
   );
 }
@@ -658,8 +655,3 @@ function SnapGuides({
   );
 }
 
-function ParamsCardOverlay() {
-  const { enableParams, liveUrl } = useEditorConfig();
-  if (!enableParams) return null;
-  return <ParamsCard liveUrl={liveUrl ?? undefined} />;
-}

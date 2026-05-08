@@ -11,6 +11,7 @@ import type {
   TemplateDocument,
   Value,
 } from "./types";
+import { flatPaint } from "./types";
 
 const newId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -57,7 +58,7 @@ export function createNode(
         src: SAMPLE_IMAGE,
         fit: "cover",
         cornerRadius: 0,
-        stroke: "#000000",
+        stroke: flatPaint("#000000"),
         strokeWidth: 0,
         shadow: null,
       };
@@ -78,7 +79,7 @@ export function createNode(
         fontSize: 48,
         fontWeight: 600,
         italic: false,
-        color: "#111111",
+        color: flatPaint("#111111"),
         align: "center",
         fontFamily: "Inter",
         letterSpacing: 0,
@@ -97,8 +98,8 @@ export function createNode(
         opacity: 1,
         visible: true,
         locked: false,
-        fill: "#6366f1",
-        stroke: "#000000",
+        fill: flatPaint("#6366f1"),
+        stroke: flatPaint("#000000"),
         strokeWidth: 0,
         cornerRadius: 16,
       };
@@ -115,8 +116,8 @@ export function createNode(
         opacity: 1,
         visible: true,
         locked: false,
-        fill: "#ec4899",
-        stroke: "#000000",
+        fill: flatPaint("#ec4899"),
+        stroke: flatPaint("#000000"),
         strokeWidth: 0,
       };
     case "triangle":
@@ -132,8 +133,8 @@ export function createNode(
         opacity: 1,
         visible: true,
         locked: false,
-        fill: "#10b981",
-        stroke: "#000000",
+        fill: flatPaint("#10b981"),
+        stroke: flatPaint("#000000"),
         strokeWidth: 0,
       };
     case "star":
@@ -149,8 +150,8 @@ export function createNode(
         opacity: 1,
         visible: true,
         locked: false,
-        fill: "#f59e0b",
-        stroke: "#000000",
+        fill: flatPaint("#f59e0b"),
+        stroke: flatPaint("#000000"),
         strokeWidth: 0,
         points: 5,
         innerRadiusRatio: 0.45,
@@ -168,7 +169,7 @@ export function createNode(
         opacity: 1,
         visible: true,
         locked: false,
-        stroke: "#111111",
+        stroke: flatPaint("#111111"),
         strokeWidth: 4,
         arrow: false,
       };
@@ -208,6 +209,7 @@ interface EditorState {
 
   paramsSchema: ParamsSchema;
   draftValues: Record<string, unknown>;
+  previewOpen: boolean;
 
   past: Snapshot[];
   future: Snapshot[];
@@ -235,6 +237,7 @@ interface EditorState {
     field: string,
     paramName: string,
     schemaEntry: ParamSchemaEntry,
+    paint?: boolean,
   ) => void;
   unbind: (
     nodeId: string | "artboard",
@@ -243,6 +246,7 @@ interface EditorState {
   ) => void;
   setDraftValue: (name: string, value: unknown) => void;
   setDraftValues: (values: Record<string, unknown>) => void;
+  setPreviewOpen: (open: boolean) => void;
 
   loadDocument: (doc: TemplateDocument) => void;
   getDocument: () => TemplateDocument;
@@ -290,7 +294,7 @@ const ZERO_COUNT: Record<NodeType, number> = {
 };
 
 export const useEditor = create<EditorState>((set, get) => ({
-  artboard: { width: 1200, height: 630, background: "#ffffff" },
+  artboard: { width: 1200, height: 630, background: flatPaint("#ffffff") },
   nodes: [],
   selectedId: null,
   drag: null,
@@ -299,6 +303,7 @@ export const useEditor = create<EditorState>((set, get) => ({
 
   paramsSchema: {},
   draftValues: {},
+  previewOpen: false,
 
   past: [],
   future: [],
@@ -434,9 +439,10 @@ export const useEditor = create<EditorState>((set, get) => ({
 
   setZoom: (zoom) => set({ zoom }),
 
-  bindToParam: (nodeId, field, paramName, schemaEntry) =>
+  bindToParam: (nodeId, field, paramName, schemaEntry, paint) =>
     set((s) => {
-      const ref: ParamRef = { $param: paramName };
+      const ref: ParamRef<string> = { $param: paramName };
+      const fieldValue = paint ? flatPaint(ref) : ref;
       const nextSchema: ParamsSchema = {
         ...s.paramsSchema,
         [paramName]: schemaEntry,
@@ -444,16 +450,14 @@ export const useEditor = create<EditorState>((set, get) => ({
       if (nodeId === "artboard") {
         return {
           ...withHistory(s, `bind-artboard-${field}-${paramName}`),
-          artboard: { ...s.artboard, [field]: ref } as Artboard,
+          artboard: { ...s.artboard, [field]: fieldValue },
           paramsSchema: nextSchema,
         };
       }
       return {
         ...withHistory(s, `bind-${nodeId}-${field}-${paramName}`),
         nodes: s.nodes.map((n) =>
-          n.id === nodeId
-            ? ({ ...n, [field]: ref } as EditorNode)
-            : n,
+          n.id === nodeId ? { ...n, [field]: fieldValue } : n,
         ),
         paramsSchema: nextSchema,
       };
@@ -464,15 +468,13 @@ export const useEditor = create<EditorState>((set, get) => ({
       if (nodeId === "artboard") {
         return {
           ...withHistory(s, `unbind-artboard-${field}`),
-          artboard: { ...s.artboard, [field]: fallback } as Artboard,
+          artboard: { ...s.artboard, [field]: fallback },
         };
       }
       return {
         ...withHistory(s, `unbind-${nodeId}-${field}`),
         nodes: s.nodes.map((n) =>
-          n.id === nodeId
-            ? ({ ...n, [field]: fallback } as EditorNode)
-            : n,
+          n.id === nodeId ? { ...n, [field]: fallback } : n,
         ),
       };
     }),
@@ -481,6 +483,8 @@ export const useEditor = create<EditorState>((set, get) => ({
     set((s) => ({ draftValues: { ...s.draftValues, [name]: value } })),
 
   setDraftValues: (values) => set({ draftValues: values }),
+
+  setPreviewOpen: (open) => set({ previewOpen: open }),
 
   loadDocument: (doc) =>
     set({

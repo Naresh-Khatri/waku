@@ -5,7 +5,7 @@ import {
   resolveImages,
   type SatoriElement,
 } from "../flat-tree";
-import type { TemplateDocument } from "../document";
+import { flatPaint, type TemplateDocument } from "../document";
 
 const baseNode = {
   rotation: 0,
@@ -16,7 +16,7 @@ const baseNode = {
 };
 
 const doc: TemplateDocument = {
-  artboard: { width: 200, height: 100, background: "#ffffff" },
+  artboard: { width: 200, height: 100, background: flatPaint("#ffffff") },
   paramsSchema: {
     title: { kind: "string", default: "Hi" },
   },
@@ -29,8 +29,8 @@ const doc: TemplateDocument = {
       y: 0,
       width: 50,
       height: 50,
-      fill: "#ff0000",
-      stroke: "#000000",
+      fill: flatPaint("#ff0000"),
+      stroke: flatPaint("#000000"),
       strokeWidth: 0,
       cornerRadius: 4,
     },
@@ -46,7 +46,7 @@ const doc: TemplateDocument = {
       fontSize: 16,
       fontWeight: 400,
       italic: false,
-      color: "#000000",
+      color: flatPaint("#000000"),
       align: "left",
       fontFamily: "Inter",
       letterSpacing: 0,
@@ -61,8 +61,8 @@ const doc: TemplateDocument = {
       y: 0,
       width: 1,
       height: 1,
-      fill: "#000",
-      stroke: "#000",
+      fill: flatPaint("#000"),
+      stroke: flatPaint("#000"),
       strokeWidth: 0,
       cornerRadius: 0,
     },
@@ -77,7 +77,7 @@ const doc: TemplateDocument = {
       src: "https://cdn.example.com/a.png",
       fit: "cover",
       cornerRadius: 0,
-      stroke: "#000000",
+      stroke: flatPaint("#000000"),
       strokeWidth: 0,
       shadow: null,
     },
