@@ -23,9 +23,9 @@ export default async function EditTemplatePage({
   } catch {
     notFound();
   }
-  const latest = tpl.versions[0];
-  if (!latest) notFound();
-  const version = await api.template.getVersion({ versionId: latest.id });
+  const head = tpl.versions.find((v) => v.version === 1);
+  if (!head) notFound();
+  const version = await api.template.getVersion({ versionId: head.id });
 
   return (
     <EditorPreview
@@ -36,7 +36,6 @@ export default async function EditTemplatePage({
       handle={handle}
       version={version.version}
       versionId={version.id}
-      isPublished={version.publishedAt !== null}
     />
   );
 }

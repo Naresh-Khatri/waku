@@ -2,10 +2,11 @@
 
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { Editor } from "@/components/template-editor/editor";
+import { PreviewPanel } from "@/components/template-editor/preview-panel";
 import { useEditor } from "@/components/template-editor/store";
 import type { TemplateDocument } from "@/components/template-editor/types";
 import { paramsFromSearch } from "@/components/template-editor/url-params";
@@ -23,7 +24,6 @@ type Props = {
   handle: string;
   version: number;
   versionId: string;
-  isPublished: boolean;
 };
 
 export default function EditorPreview(props: Props) {
@@ -33,26 +33,21 @@ export default function EditorPreview(props: Props) {
 
   useEffect(() => {
     loadDocument(props.document);
-    setDraftValues(
-      paramsFromSearch(searchParams, props.document.paramsSchema),
-    );
+    setDraftValues(paramsFromSearch(searchParams, props.document.paramsSchema));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.versionId]);
 
-  // Drafts render through a separate endpoint that loads the latest in-DB
-  // document by versionId — so unpublished edits show up in the preview.
-  // Published versions stay on the public, immutable /r/handle/slug/version
-  // path so cached renders are reused.
-  const liveUrl = props.isPublished
-    ? `${RENDER_BASE}/r/${props.handle}/${props.templateSlug}/${props.version}`
-    : `${RENDER_BASE}/r/draft/${props.versionId}`;
+  // Autosave publishes to the canonical versioned URL, so the editor preview
+  // can read straight from it. Only stale CDN/browser caches stand between an
+  // edit and the rendered output, and we keep those windows short.
+  const liveUrl = `${RENDER_BASE}/r/${props.handle}/${props.templateSlug}/${props.version}`;
 
   return (
     <div className="fixed inset-0 z-50">
       <Editor
         enableParams
         liveUrl={liveUrl}
-        topBar={<EditorTopBar {...props} />}
+        topBar={<EditorTopBar {...props} liveUrl={liveUrl} />}
       />
     </div>
   );
@@ -62,18 +57,17 @@ function EditorTopBar({
   templateId,
   templateName,
   templateSlug,
+  handle,
   version,
   versionId,
-  isPublished,
-}: Props) {
-  const router = useRouter();
+  liveUrl,
+}: Props & { liveUrl: string }) {
   const dirty = useEditor((s) => s.dirty);
   const getDocument = useEditor((s) => s.getDocument);
   const markClean = useEditor((s) => s.markClean);
 
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
-  const [publishedAt, setPublishedAt] = useState<boolean>(isPublished);
 
   const updateDraft = api.template.updateDraft.useMutation({
     onSuccess: () => {
@@ -83,27 +77,12 @@ function EditorTopBar({
     },
     onError: (err) => setSaveError(err.message),
   });
-  const publish = api.template.publish.useMutation({
-    onSuccess: () => setPublishedAt(true),
-    onError: (err) => setSaveError(err.message),
-  });
-  const fork = api.template.createVersion.useMutation({
-    onSuccess: () => {
-      setSaveError(null);
-      router.refresh();
-    },
-    onError: (err) => setSaveError(err.message),
-  });
 
   const saveTimerRef = useRef<number | null>(null);
   const inFlightRef = useRef(false);
 
   const save = () => {
     if (inFlightRef.current || updateDraft.isPending) return;
-    if (publishedAt) {
-      setSaveError("cannot edit a published version — fork to a new draft");
-      return;
-    }
     inFlightRef.current = true;
     updateDraft.mutate(
       { versionId, documentJson: getDocument() },
@@ -111,19 +90,16 @@ function EditorTopBar({
     );
   };
 
-  // Auto-save: debounce while dirty.
   useEffect(() => {
     if (!dirty) return;
-    if (publishedAt) return;
     if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
     saveTimerRef.current = window.setTimeout(save, AUTOSAVE_DEBOUNCE_MS);
     return () => {
       if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dirty, publishedAt]);
+  }, [dirty]);
 
-  // Cmd/Ctrl+S manual save.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
@@ -138,7 +114,8 @@ function EditorTopBar({
 
   const status = (() => {
     if (saveError) return { tone: "error" as const, label: saveError };
-    if (updateDraft.isPending) return { tone: "info" as const, label: "saving…" };
+    if (updateDraft.isPending)
+      return { tone: "info" as const, label: "saving…" };
     if (dirty) return { tone: "warn" as const, label: "unsaved" };
     if (savedAt) return { tone: "ok" as const, label: "saved" };
     return null;
@@ -158,10 +135,7 @@ function EditorTopBar({
         <span className="truncate text-sm font-semibold text-zinc-800">
           {templateName}
         </span>
-        <span className="font-mono text-[10px] text-zinc-400">
-          v{version}
-          {publishedAt ? " · published" : " · draft"}
-        </span>
+        <span className="font-mono text-[10px] text-zinc-400">v{version}</span>
       </div>
 
       {status ? (
@@ -192,38 +166,13 @@ function EditorTopBar({
       ) : null}
 
       <div className="ml-auto flex items-center gap-2">
-        {publishedAt ? (
-          <button
-            onClick={() =>
-              fork.mutate({ templateId, documentJson: getDocument() })
-            }
-            disabled={fork.isPending}
-            className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-            title="Create a new draft version from this published version"
-          >
-            {fork.isPending ? "Forking…" : "Fork to new draft"}
-          </button>
-        ) : (
-          <>
-            <button
-              onClick={save}
-              disabled={!dirty || updateDraft.isPending}
-              className="rounded-md border border-zinc-200 px-3 py-1.5 text-xs text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {updateDraft.isPending ? "Saving…" : "Save"}
-            </button>
-            <button
-              onClick={() => publish.mutate({ versionId })}
-              disabled={publish.isPending || dirty}
-              className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-              title={
-                dirty ? "Save changes before publishing" : "Publish this version"
-              }
-            >
-              {publish.isPending ? "Publishing…" : "Publish"}
-            </button>
-          </>
-        )}
+        <PreviewPanel
+          liveUrl={liveUrl}
+          templateId={templateId}
+          handle={handle}
+          templateSlug={templateSlug}
+          renderBase={RENDER_BASE}
+        />
       </div>
     </header>
   );
