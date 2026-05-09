@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { BindParamModal, type BindRequest } from "./bind-param-modal";
+import { useEffect, type ReactNode } from "react";
 import { Canvas } from "./canvas";
 import { EditorConfigProvider } from "./editor-config";
 import { InsertBar } from "./insert-bar";
@@ -26,10 +25,6 @@ export function Editor({
   const setZoom = useEditor((s) => s.setZoom);
   const undo = useEditor((s) => s.undo);
   const redo = useEditor((s) => s.redo);
-
-  const [bindRequest, setBindRequest] = useState<BindRequest | null>(null);
-  const openBindModal = useCallback((req: BindRequest) => setBindRequest(req), []);
-  const closeBindModal = useCallback(() => setBindRequest(null), []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -91,7 +86,6 @@ export function Editor({
   return (
     <EditorConfigProvider
       enableParams={enableParams}
-      openBindModal={enableParams ? openBindModal : null}
       liveUrl={liveUrl ?? null}
     >
       <div
@@ -108,9 +102,6 @@ export function Editor({
           <Canvas />
           <Inspector />
         </div>
-        {enableParams ? (
-          <BindParamModal request={bindRequest} onClose={closeBindModal} />
-        ) : null}
       </div>
     </EditorConfigProvider>
   );
