@@ -301,13 +301,29 @@ export function PreviewPanel({
                 </div>
 
                 {liveUrl ? (
-                  <div
-                    className={`flex shrink-0 border-t ${
-                      copied
-                        ? "border-emerald-300 bg-emerald-100"
-                        : "border-emerald-200 bg-emerald-50"
-                    }`}
-                  >
+                  <>
+                    {create.error ? (
+                      <div className="flex shrink-0 items-center gap-2 border-t border-rose-200 bg-rose-50 px-2 py-1.5 text-[11px] text-rose-800">
+                        <span className="font-semibold">Snapshot failed:</span>
+                        <span className="min-w-0 flex-1 truncate">
+                          {create.error.message}
+                        </span>
+                        <button
+                          onClick={() => create.reset()}
+                          aria-label="Dismiss"
+                          className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-rose-600 hover:bg-rose-100 hover:text-rose-900"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : null}
+                    <div
+                      className={`flex shrink-0 border-t ${
+                        copied
+                          ? "border-emerald-300 bg-emerald-100"
+                          : "border-emerald-200 bg-emerald-50"
+                      }`}
+                    >
                     <button
                       onClick={copyUrl}
                       title={fullUrl ?? undefined}
@@ -358,7 +374,8 @@ export function PreviewPanel({
                       <Save className="h-3.5 w-3.5" />
                       {create.isPending ? "Saving…" : "Snapshot"}
                     </button>
-                  </div>
+                    </div>
+                  </>
                 ) : null}
               </>
             ) : (
