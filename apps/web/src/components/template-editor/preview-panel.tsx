@@ -33,7 +33,13 @@ import {
   type Platform,
 } from "./og-preview";
 import { useEditor } from "./store";
-import type { ParamSchemaEntry, ParamsSchema, TemplateDocument } from "./types";
+import { effectiveParams, isParamRef } from "./types";
+import type {
+  Artboard,
+  EditorNode,
+  ParamSchemaEntry,
+  TemplateDocument,
+} from "./types";
 import { searchFromParams } from "./url-params";
 
 const TRANSITION = { type: "spring" as const, stiffness: 320, damping: 32 };
@@ -57,6 +63,8 @@ export function PreviewPanel({
   const draftValues = useEditor((s) => s.draftValues);
   const setDraftValue = useEditor((s) => s.setDraftValue);
   const loadDocument = useEditor((s) => s.loadDocument);
+  const nodes = useEditor((s) => s.nodes);
+  const artboard = useEditor((s) => s.artboard);
 
   const expanded = useEditor((s) => s.previewOpen);
   const setExpanded = useEditor((s) => s.setPreviewOpen);
@@ -104,25 +112,33 @@ export function PreviewPanel({
     onSuccess: () => utils.template.listSnapshots.invalidate({ templateId }),
   });
 
+  // Only surface params that are actually wired into a node or the artboard —
+  // an unbound schema entry has no visible effect, so editing it is just noise.
+  const boundParams = useMemo(() => collectBoundParams(nodes, artboard), [
+    nodes,
+    artboard,
+  ]);
   const entries = useMemo(
-    () => Object.entries(paramsSchema).sort(([a], [b]) => a.localeCompare(b)),
-    [paramsSchema],
+    () =>
+      Object.entries(paramsSchema)
+        .filter(([name]) => boundParams.has(name))
+        .sort(([a], [b]) => a.localeCompare(b)),
+    [paramsSchema, boundParams],
   );
 
-  const fullUrl =
-    buildLiveUrl(liveUrl, draftValues, paramsSchema) ?? liveUrl ?? null;
-  const showPreview = Boolean(liveUrl && fullUrl);
-  const { imageUrl, status } = useRenderedImage(showPreview ? fullUrl : null);
-
-  // Bake the *effective* params (draft values falling back to schema defaults)
-  // into snapshot URLs so the link a user copies always names every param the
-  // renderer will use — not a bare URL that secretly relies on defaults.
+  // Bake effective params (drafts falling back to schema defaults) into every
+  // URL we build. The renderer reads only what's in the query string, so a
+  // bare URL would silently drop bound-but-not-overridden params and render
+  // their fallbacks — diverging from the canvas which uses effective values.
   const effective = effectiveParams(paramsSchema, draftValues);
   const qs = searchFromParams(effective, paramsSchema).toString();
-  const buildSnapshotUrl = (version: number): string => {
-    const base = `${renderBase}/r/${handle}/${templateSlug}/${version}`;
-    return qs.length > 0 ? `${base}?${qs}` : base;
-  };
+  const appendQs = (base: string) =>
+    qs.length === 0 ? base : `${base}${base.includes("?") ? "&" : "?"}${qs}`;
+  const fullUrl = liveUrl ? appendQs(liveUrl) : null;
+  const showPreview = Boolean(liveUrl && fullUrl);
+  const { imageUrl, status } = useRenderedImage(showPreview ? fullUrl : null);
+  const buildSnapshotUrl = (version: number): string =>
+    appendQs(`${renderBase}/r/${handle}/${templateSlug}/${version}`);
 
   const copyUrl = async () => {
     if (!fullUrl) return;
@@ -159,7 +175,7 @@ export function PreviewPanel({
             layoutId="preview-panel"
             transition={TRANSITION}
             onClick={() => setExpanded(true)}
-            className="flex h-8 items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 shadow-sm hover:bg-zinc-50"
+            className="flex h-8 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 shadow-sm hover:bg-zinc-50"
             title="Show preview"
           >
             <Sliders className="h-3.5 w-3.5 text-zinc-500" />
@@ -173,7 +189,7 @@ export function PreviewPanel({
             ref={panelRef}
             layoutId="preview-panel"
             transition={TRANSITION}
-            className="fixed right-3 top-2 z-[60] flex h-[475px] w-[720px] max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white text-xs shadow-md"
+            className="fixed right-3 top-2 z-[60] flex h-[475px] w-[720px] max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-md border border-zinc-200 bg-white text-xs shadow-md"
           >
             <header className="flex h-9 shrink-0 items-center gap-1 border-b border-zinc-200 px-2">
               <TabButton
@@ -324,56 +340,58 @@ export function PreviewPanel({
                           : "border-emerald-200 bg-emerald-50"
                       }`}
                     >
-                    <button
-                      onClick={copyUrl}
-                      title={fullUrl ?? undefined}
-                      className={`group flex min-w-0 flex-1 items-center gap-2 px-2 py-2 text-[11px] transition-colors ${
-                        copied ? "" : "hover:bg-emerald-100/60"
-                      }`}
-                    >
-                      <span
-                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${
-                          copied
-                            ? "bg-emerald-200 text-emerald-800"
-                            : "bg-emerald-100 text-emerald-700 group-hover:bg-emerald-200"
+                      <button
+                        onClick={copyUrl}
+                        title={fullUrl ?? undefined}
+                        className={`group flex min-w-0 flex-1 items-center gap-2 px-2 py-2 text-[11px] transition-colors ${
+                          copied ? "" : "hover:bg-emerald-100/60"
                         }`}
                       >
-                        <Link className="h-3.5 w-3.5" />
-                      </span>
-                      <span
-                        className={`min-w-0 flex-1 truncate text-left font-mono ${
-                          copied ? "text-emerald-800" : "text-emerald-900"
-                        }`}
+                        <span
+                          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${
+                            copied
+                              ? "bg-emerald-200 text-emerald-800"
+                              : "bg-emerald-100 text-emerald-700 group-hover:bg-emerald-200"
+                          }`}
+                        >
+                          <Link className="h-3.5 w-3.5" />
+                        </span>
+                        <span
+                          className={`min-w-0 flex-1 truncate text-left font-mono ${
+                            copied ? "text-emerald-800" : "text-emerald-900"
+                          }`}
+                        >
+                          {copied
+                            ? "Copied to clipboard"
+                            : (fullUrl ?? liveUrl)}
+                        </span>
+                        <span
+                          className={`flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold text-white transition-colors ${
+                            copied
+                              ? "bg-emerald-600"
+                              : "bg-emerald-700 group-hover:bg-emerald-800"
+                          }`}
+                        >
+                          {copied ? (
+                            <>
+                              <Check className="h-3.5 w-3.5" /> Copied
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="h-3.5 w-3.5" /> Copy
+                            </>
+                          )}
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => create.mutate({ templateId })}
+                        disabled={create.isPending}
+                        className="flex shrink-0 items-center gap-1.5 border-l border-emerald-200 px-3 text-[11px] font-medium text-emerald-900 hover:bg-emerald-100/60 disabled:cursor-not-allowed disabled:opacity-50"
+                        title="Save snapshot"
                       >
-                        {copied ? "Copied to clipboard" : (fullUrl ?? liveUrl)}
-                      </span>
-                      <span
-                        className={`flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold text-white transition-colors ${
-                          copied
-                            ? "bg-emerald-600"
-                            : "bg-emerald-700 group-hover:bg-emerald-800"
-                        }`}
-                      >
-                        {copied ? (
-                          <>
-                            <Check className="h-3.5 w-3.5" /> Copied
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="h-3.5 w-3.5" /> Copy
-                          </>
-                        )}
-                      </span>
-                    </button>
-                    <button
-                      onClick={() => create.mutate({ templateId })}
-                      disabled={create.isPending}
-                      className="flex shrink-0 items-center gap-1.5 border-l border-emerald-200 px-3 text-[11px] font-medium text-emerald-900 hover:bg-emerald-100/60 disabled:cursor-not-allowed disabled:opacity-50"
-                      title="Save snapshot"
-                    >
-                      <Save className="h-3.5 w-3.5" />
-                      {create.isPending ? "Saving…" : "Snapshot"}
-                    </button>
+                        <Save className="h-3.5 w-3.5" />
+                        {create.isPending ? "Saving…" : "Snapshot"}
+                      </button>
                     </div>
                   </>
                 ) : null}
@@ -815,36 +833,31 @@ function ParamControl({
   }
 }
 
-function buildLiveUrl(
-  base: string | undefined,
-  values: Record<string, unknown>,
-  schema: ParamsSchema,
-): string | null {
-  if (!base) return null;
-  const sp = searchFromParams(values, schema);
-  const qs = sp.toString();
-  if (!qs) return base;
-  const sep = base.includes("?") ? "&" : "?";
-  return `${base}${sep}${qs}`;
-}
-
-// Fill in schema defaults wherever the user hasn't overridden a value, so the
-// resulting URL/chip set names every param the renderer will use rather than
-// silently relying on bare-URL defaults.
-function effectiveParams(
-  schema: ParamsSchema,
-  values: Record<string, unknown>,
-): Record<string, unknown> {
-  const out: Record<string, unknown> = { ...values };
-  for (const [name, entry] of Object.entries(schema)) {
-    const v = out[name];
-    if (v !== undefined && v !== null && v !== "") continue;
-    if ("default" in entry && entry.default !== undefined) {
-      out[name] = entry.default;
-    } else if (entry.kind === "enum" && entry.values.length > 0) {
-      out[name] = entry.values[0];
+// Walks nodes + artboard for any { $param: name } reference (including those
+// nested inside Paint stops/shadows). The filter is intentionally permissive —
+// we don't care *where* a param is bound, only that it is.
+function collectBoundParams(
+  nodes: EditorNode[],
+  artboard: Artboard,
+): Set<string> {
+  const out = new Set<string>();
+  const visit = (v: unknown): void => {
+    if (v === null || v === undefined) return;
+    if (typeof v !== "object") return;
+    if (isParamRef(v as never)) {
+      out.add((v as { $param: string }).$param);
+      return;
     }
-  }
+    if (Array.isArray(v)) {
+      for (const item of v) visit(item);
+      return;
+    }
+    for (const key of Object.keys(v)) {
+      visit((v as Record<string, unknown>)[key]);
+    }
+  };
+  visit(nodes);
+  visit(artboard);
   return out;
 }
 
