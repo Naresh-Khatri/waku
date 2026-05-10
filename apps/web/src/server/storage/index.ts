@@ -29,8 +29,6 @@ const getClient = (): S3Client => {
   return globalForS3.s3;
 };
 
-const publicBase = env.R2_PUBLIC_BASE_URL.replace(/\/$/, "");
-
 export const storage: StorageAdapter = {
   async getUploadUrl(key, mime): Promise<UploadInstruction> {
     const cmd = new PutObjectCommand({
@@ -50,7 +48,7 @@ export const storage: StorageAdapter = {
   },
 
   getReadUrl(key) {
-    return `${publicBase}/${key}`;
+    return `${env.R2_PUBLIC_BASE_URL.replace(/\/$/, "")}/${key}`;
   },
 
   async head(key): Promise<HeadResult> {
