@@ -1,4 +1,4 @@
-FROM node:22 AS base
+FROM node:23 AS base
 
 # 1. Prune
 FROM base AS pruner
@@ -17,6 +17,7 @@ RUN corepack enable
 RUN pnpm install --frozen-lockfile
 
 COPY --from=pruner /app/out/full/ .
+COPY --from=pruner /app/tsconfig.base.json ./tsconfig.base.json
 RUN SKIP_ENV_VALIDATION=1 pnpm turbo build --filter=@waku/render...
 
 # 3. Runner — pulls in the standalone bundle plus the native binaries
