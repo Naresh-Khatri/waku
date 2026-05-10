@@ -11,7 +11,6 @@ RUN npx turbo prune --scope=@waku/web --docker
 FROM base AS installer
 WORKDIR /app
 
-COPY .gitignore .gitignore
 COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 RUN corepack enable
