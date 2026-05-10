@@ -12,7 +12,7 @@ import { useEditor } from "./store";
 import type { Guide, Zoom } from "./store";
 import { snapMove } from "./snap";
 import type { EditorNode } from "./types";
-import { paintToCss, resolveValue } from "./types";
+import { effectiveParams, paintToCss, resolveValue } from "./types";
 import { NodeContent } from "./node-view";
 import { FloatingToolbar } from "./floating-toolbar";
 import { ZoomBar } from "./zoom-bar";
@@ -62,7 +62,9 @@ export function Canvas() {
   const updateNode = useEditor((s) => s.updateNode);
   const setZoom = useEditor((s) => s.setZoom);
   const draftValues = useEditor((s) => s.draftValues);
-  const artboardBg = paintToCss(artboard.background, draftValues);
+  const paramsSchema = useEditor((s) => s.paramsSchema);
+  const draft = effectiveParams(paramsSchema, draftValues);
+  const artboardBg = paintToCss(artboard.background, draft);
 
   const wrapperRef = useRef<HTMLDivElement>(null);
   const selectionFrameRef = useRef<HTMLDivElement>(null);
@@ -408,7 +410,7 @@ export function Canvas() {
                   selected={node.id === selectedId}
                   hovered={hoverId === node.id}
                   scale={scale}
-                  draft={draftValues}
+                  draft={draft}
                   onPointerEnter={() => {
                     if (dragRef.current) return;
                     setHoverId(node.id);
