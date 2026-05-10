@@ -1,15 +1,21 @@
 "use client";
 
-import { Link2, Link2Off } from "lucide-react";
+import { Hash, Link2, Link2Off, Plus, Trash2, X } from "lucide-react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useEditorConfig } from "./editor-config";
 import { useEditor } from "./store";
-import type { Paint, ParamKind, ParamSchemaEntry, Value } from "./types";
+import type {
+  Paint,
+  ParamKind,
+  ParamSchemaEntry,
+  ParamsSchema,
+  Value,
+} from "./types";
 import { isFlatPaint, isParamRef } from "./types";
 
 export type BindTarget = { kind: "node"; id: string } | { kind: "artboard" };
@@ -18,19 +24,526 @@ type CommonProps = {
   target: BindTarget;
   field: string;
   paramKind: ParamKind;
+  children: ReactNode;
 };
-
-type ValueProps = CommonProps & {
+type ValueBindable = CommonProps & {
   paint?: false;
   value: Value<unknown>;
   fallback: unknown;
 };
-
-type PaintProps = CommonProps & {
+type PaintBindable = CommonProps & {
   paint: true;
   value: Paint;
   fallback: Paint;
 };
+
+export function Bindable(props: ValueBindable | PaintBindable) {
+  const { enableParams } = useEditorConfig();
+  if (!enableParams) return <>{props.children}</>;
+  return <BindableInner {...props} />;
+}
+
+function BindableInner(props: ValueBindable | PaintBindable) {
+  const inner: Value<unknown> | null = props.paint
+    ? isFlatPaint(props.value)
+      ? props.value.color
+      : null
+    : props.value;
+  const bound = inner !== null && isParamRef(inner);
+  const boundName = bound ? (inner as { $param: string }).$param : null;
+
+  const currentRaw = useMemo(() => {
+    if (bound) return "";
+    if (inner === null || inner === undefined) return "";
+    if (typeof inner === "string") return inner;
+    if (typeof inner === "number" || typeof inner === "boolean")
+      return String(inner);
+    return "";
+  }, [bound, inner]);
+
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="flex min-w-0 flex-1 items-center gap-1">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            title={
+              bound && boundName
+                ? `Bound to {${boundName}}`
+                : "Bind to a variable"
+            }
+            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded transition-colors ${
+              bound
+                ? "text-indigo-500 hover:bg-indigo-50"
+                : "text-zinc-300 hover:bg-zinc-100 hover:text-zinc-700"
+            }`}
+          >
+            <Link2 className="h-3 w-3" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent
+          side="bottom"
+          align="end"
+          sideOffset={6}
+          className="w-[260px] p-0"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
+          <PickerBody
+            target={props.target}
+            field={props.field}
+            paramKind={props.paramKind}
+            paint={!!props.paint}
+            fallback={props.fallback}
+            boundName={boundName}
+            currentRaw={currentRaw}
+            onClose={() => setOpen(false)}
+          />
+        </PopoverContent>
+      </Popover>
+      {bound && boundName ? (
+        <BoundPill name={boundName} onClick={() => setOpen((v) => !v)} />
+      ) : (
+        <div className="flex min-w-0 flex-1 items-center">{props.children}</div>
+      )}
+    </div>
+  );
+}
+
+function BoundPill({
+  name,
+  onClick,
+}: {
+  name: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={`Bound to {${name}} — click to edit`}
+      className="flex h-7 w-full min-w-0 items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50 px-2 text-left font-mono text-[11px] text-indigo-700 hover:border-indigo-300 hover:bg-indigo-100"
+    >
+      <Hash className="h-3 w-3 shrink-0 text-indigo-400" />
+      <span className="min-w-0 flex-1 truncate">{name}</span>
+    </button>
+  );
+}
+
+function PickerBody({
+  target,
+  field,
+  paramKind,
+  paint,
+  fallback,
+  boundName,
+  currentRaw,
+  onClose,
+}: {
+  target: BindTarget;
+  field: string;
+  paramKind: ParamKind;
+  paint: boolean;
+  fallback: unknown;
+  boundName: string | null;
+  currentRaw: string;
+  onClose: () => void;
+}) {
+  const paramsSchema = useEditor((s) => s.paramsSchema);
+  const bindToParam = useEditor((s) => s.bindToParam);
+  const unbind = useEditor((s) => s.unbind);
+  const setParamDefault = useEditor((s) => s.setParamDefault);
+  const removeParam = useEditor((s) => s.removeParam);
+
+  const [mode, setMode] = useState<"list" | "create">("list");
+  const [createName, setCreateName] = useState<string>(
+    () => slugify(field) || "param",
+  );
+
+  const compatible = useMemo(
+    () =>
+      Object.entries(paramsSchema)
+        .filter(([, e]) => e.kind === paramKind)
+        .sort(([a], [b]) => a.localeCompare(b)),
+    [paramsSchema, paramKind],
+  );
+
+  const targetId = target.kind === "node" ? target.id : "artboard";
+
+  const pickExisting = (name: string) => {
+    const entry = paramsSchema[name];
+    if (!entry) return;
+    bindToParam(targetId, field, name, entry, paint);
+  };
+
+  const unbindNow = () => {
+    unbind(targetId, field, fallback);
+    onClose();
+  };
+
+  const startCreate = (prefill?: string) => {
+    setCreateName(
+      uniqueName(prefill || slugify(field) || "param", paramsSchema),
+    );
+    setMode("create");
+  };
+
+  const boundEntry = (boundName ? paramsSchema[boundName] : null) ?? null;
+  const totalParams = Object.keys(paramsSchema).length;
+
+  if (mode === "create") {
+    return (
+      <CreateVariableForm
+        paramKind={paramKind}
+        suggestedName={createName}
+        initialDefault={currentRaw}
+        onCancel={() => setMode("list")}
+        onCreate={(name, raw) => {
+          const entry = makeEntry(paramKind, raw);
+          if (!entry) return;
+          bindToParam(targetId, field, name, entry, paint);
+          onClose();
+        }}
+      />
+    );
+  }
+
+  return (
+    <ListBody
+      boundEntry={boundEntry}
+      boundName={boundName}
+      compatible={compatible}
+      paramKind={paramKind}
+      totalParams={totalParams}
+      onPick={pickExisting}
+      onUnbind={unbindNow}
+      onSetDefault={(v) => boundName && setParamDefault(boundName, v)}
+      onRemoveParam={removeParam}
+      onStartCreate={() => startCreate()}
+    />
+  );
+}
+
+function ListBody({
+  boundEntry,
+  boundName,
+  compatible,
+  paramKind,
+  totalParams,
+  onPick,
+  onUnbind,
+  onSetDefault,
+  onRemoveParam,
+  onStartCreate,
+}: {
+  boundEntry: ParamSchemaEntry | null;
+  boundName: string | null;
+  compatible: [string, ParamSchemaEntry][];
+  paramKind: ParamKind;
+  totalParams: number;
+  onPick: (name: string) => void;
+  onUnbind: () => void;
+  onSetDefault: (v: unknown) => void;
+  onRemoveParam: (name: string) => void;
+  onStartCreate: () => void;
+}) {
+  return (
+    <>
+      {boundEntry && boundName ? (
+        <div className="flex items-center gap-1.5 border-b border-zinc-100 bg-indigo-50/40 px-2 py-1.5">
+          <Hash className="h-3 w-3 shrink-0 text-indigo-400" />
+          <span
+            title={boundName}
+            className="max-w-[80px] shrink-0 truncate font-mono text-[11px] text-indigo-700"
+          >
+            {boundName}
+          </span>
+          <div className="min-w-0 flex-1">
+            <DefaultEditor
+              key={boundName}
+              entry={boundEntry}
+              onCommit={onSetDefault}
+            />
+          </div>
+          <button
+            onClick={onUnbind}
+            title="Unbind variable"
+            aria-label="Unbind variable"
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-indigo-400 hover:bg-rose-50 hover:text-rose-600"
+          >
+            <Link2Off className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      ) : null}
+
+      <div className="max-h-[240px] overflow-y-auto p-1">
+        {compatible.length === 0 ? (
+          <div className="px-2 py-3 text-center text-[11px] text-zinc-400">
+            {totalParams > 0
+              ? `No ${paramKind} variables`
+              : "No variables yet"}
+          </div>
+        ) : (
+          compatible.map(([n, e]) => {
+            const preview = defaultPreview(e);
+            return (
+              <VarRow
+                key={n}
+                name={n}
+                previewText={preview.text}
+                previewSwatch={preview.swatch}
+                selected={n === boundName}
+                onClick={() => onPick(n)}
+                onDelete={() => onRemoveParam(n)}
+              />
+            );
+          })
+        )}
+        <button
+          onClick={onStartCreate}
+          className="mt-0.5 flex w-full items-center gap-2 rounded px-2 py-1 text-left text-[11px] text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700"
+        >
+          <Plus className="h-3 w-3 shrink-0" />
+          <span>New variable</span>
+        </button>
+      </div>
+    </>
+  );
+}
+
+function VarRow({
+  name,
+  previewText,
+  previewSwatch,
+  selected,
+  onClick,
+  onDelete,
+}: {
+  name: string;
+  previewText: string;
+  previewSwatch?: string;
+  selected?: boolean;
+  onClick: () => void;
+  onDelete?: () => void;
+}) {
+  return (
+    <div
+      className={`group relative flex w-full items-center gap-2 rounded px-2 py-1 text-[11px] ${
+        selected ? "bg-indigo-50" : "hover:bg-zinc-50"
+      }`}
+    >
+      {selected ? (
+        <span className="absolute bottom-1 left-0 top-1 w-0.5 rounded-r bg-indigo-500" />
+      ) : null}
+      <button
+        onClick={onClick}
+        className="flex min-w-0 flex-1 items-center gap-2 text-left"
+      >
+        <Hash
+          className={`h-3 w-3 shrink-0 ${selected ? "text-indigo-500" : "text-indigo-400"}`}
+        />
+        <span
+          className={`min-w-0 flex-1 truncate font-mono ${
+            selected ? "text-indigo-700" : "text-zinc-700"
+          }`}
+        >
+          {name}
+        </span>
+        {previewText || previewSwatch ? (
+          <span className="flex max-w-[45%] shrink-0 items-center gap-1 text-[10px] text-zinc-400">
+            {previewSwatch ? (
+              <span
+                style={{ background: previewSwatch }}
+                className="h-2.5 w-2.5 shrink-0 rounded-sm border border-zinc-200"
+              />
+            ) : null}
+            {previewText ? (
+              <span className="min-w-0 truncate">{previewText}</span>
+            ) : null}
+          </span>
+        ) : null}
+      </button>
+      {onDelete ? (
+        <button
+          onClick={onDelete}
+          title="Delete variable"
+          className="-ml-2 flex h-4 w-0 shrink-0 items-center justify-center overflow-hidden rounded text-zinc-300 transition-all duration-150 hover:bg-rose-50 hover:text-rose-600 group-hover:ml-0 group-hover:w-4 focus-visible:ml-0 focus-visible:w-4"
+        >
+          <Trash2 className="h-3 w-3 shrink-0" />
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function DefaultEditor({
+  entry,
+  onCommit,
+}: {
+  entry: ParamSchemaEntry;
+  onCommit: (v: unknown) => void;
+}) {
+  if (entry.kind === "boolean") {
+    const cur = entry.default === true;
+    return (
+      <label className="flex h-6 items-center gap-2 px-1 text-[11px] text-zinc-700">
+        <input
+          type="checkbox"
+          checked={cur}
+          onChange={(e) => onCommit(e.target.checked)}
+          className="accent-indigo-500"
+        />
+        <span>{cur ? "true" : "false"}</span>
+      </label>
+    );
+  }
+  if (entry.kind === "enum") {
+    const cur = String(entry.default ?? entry.values[0]);
+    return (
+      <select
+        value={cur}
+        onChange={(e) => onCommit(e.target.value)}
+        className="h-6 w-full rounded border border-indigo-200 bg-white px-1.5 text-[11px] outline-none focus:border-indigo-400"
+      >
+        {entry.values.map((v) => (
+          <option key={v} value={v}>
+            {v}
+          </option>
+        ))}
+      </select>
+    );
+  }
+  return (
+    <CommitInput
+      initial={String(entry.default ?? "")}
+      kind={entry.kind}
+      onCommit={onCommit}
+    />
+  );
+}
+
+function CommitInput({
+  initial,
+  kind,
+  onCommit,
+}: {
+  initial: string;
+  kind: ParamKind;
+  onCommit: (v: unknown) => void;
+}) {
+  const [v, setV] = useState(initial);
+  return (
+    <input
+      value={v}
+      onChange={(e) => {
+        const next = e.target.value;
+        setV(next);
+        onCommit(parseRaw(kind, next));
+      }}
+      spellCheck={false}
+      className="h-6 w-full rounded border border-indigo-200 bg-white px-1.5 font-mono text-[11px] text-zinc-900 outline-none focus:border-indigo-400"
+    />
+  );
+}
+
+function CreateVariableForm({
+  paramKind,
+  suggestedName,
+  initialDefault,
+  onCancel,
+  onCreate,
+}: {
+  paramKind: ParamKind;
+  suggestedName: string;
+  initialDefault: string;
+  onCancel: () => void;
+  onCreate: (name: string, raw: string) => void;
+}) {
+  const paramsSchema = useEditor((s) => s.paramsSchema);
+  const [name, setName] = useState(() =>
+    uniqueName(suggestedName, paramsSchema),
+  );
+  const [raw, setRaw] = useState(initialDefault);
+  const valid =
+    VALID_NAME.test(name) &&
+    !(name in paramsSchema) &&
+    (paramKind !== "enum" ||
+      raw
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean).length > 0);
+
+  return (
+    <div
+      className="flex flex-col gap-2 p-2"
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && valid) {
+          e.preventDefault();
+          onCreate(name, raw);
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          onCancel();
+        }
+      }}
+    >
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-zinc-700">
+          New variable
+        </span>
+        <button
+          onClick={onCancel}
+          className="flex h-5 w-5 items-center justify-center rounded text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+        >
+          <X className="h-3 w-3" />
+        </button>
+      </div>
+      <FormField label="Name">
+        <input
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          spellCheck={false}
+          className="h-6 w-full rounded border border-zinc-200 bg-zinc-50 px-1.5 font-mono text-[11px] text-zinc-900 outline-none focus:border-indigo-400 focus:bg-white"
+        />
+      </FormField>
+      <FormField label="Default">
+        <input
+          value={raw}
+          onChange={(e) => setRaw(e.target.value)}
+          placeholder={paramKind === "enum" ? "a, b, c" : ""}
+          spellCheck={false}
+          className="h-6 w-full rounded border border-zinc-200 bg-zinc-50 px-1.5 font-mono text-[11px] text-zinc-900 outline-none focus:border-indigo-400 focus:bg-white"
+        />
+      </FormField>
+      <button
+        onClick={() => onCreate(name, raw)}
+        disabled={!valid}
+        className="h-7 w-full rounded bg-zinc-900 text-[11px] font-medium text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        Create
+      </button>
+    </div>
+  );
+}
+
+function FormField({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="w-12 shrink-0 text-[10px] uppercase tracking-wide text-zinc-400">
+        {label}
+      </span>
+      <div className="min-w-0 flex-1">{children}</div>
+    </div>
+  );
+}
 
 const slugify = (s: string) =>
   s
@@ -41,83 +554,14 @@ const slugify = (s: string) =>
 
 const VALID_NAME = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
 
-export function BindButton(props: ValueProps | PaintProps) {
-  const { target, field, paramKind } = props;
-  const { enableParams } = useEditorConfig();
-  const unbind = useEditor((s) => s.unbind);
-  const [open, setOpen] = useState(false);
-  const btnRef = useRef<HTMLButtonElement>(null);
-
-  if (!enableParams) return null;
-
-  let inner: Value<unknown>;
-  if (props.paint) {
-    if (!isFlatPaint(props.value)) return null;
-    inner = props.value.color;
-  } else {
-    inner = props.value;
-  }
-
-  const bound = isParamRef(inner);
-  if (bound) {
-    const ref = inner as { $param: string };
-    return (
-      <button
-        onClick={() => {
-          const id = target.kind === "node" ? target.id : "artboard";
-          unbind(id, field, props.fallback);
-        }}
-        title={`Unbind from {${ref.$param}}`}
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-indigo-600 hover:bg-indigo-50"
-      >
-        <Link2Off className="h-3.5 w-3.5" />
-      </button>
-    );
-  }
-
-  const currentValue =
-    typeof inner === "string"
-      ? inner
-      : inner === undefined || inner === null
-        ? ""
-        : String(inner);
-
-  return (
-    <>
-      <button
-        ref={btnRef}
-        onClick={() => setOpen((v) => !v)}
-        title="Bind to a param"
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
-      >
-        <Link2 className="h-3.5 w-3.5" />
-      </button>
-      {open ? (
-        <BindPopover
-          anchorRef={btnRef}
-          field={field}
-          paramKind={paramKind}
-          currentValue={currentValue}
-          onClose={() => setOpen(false)}
-          onConfirm={(name, defaultStr) => {
-            const entry = makeEntry(paramKind, defaultStr);
-            if (!entry) return;
-            const id = target.kind === "node" ? target.id : "artboard";
-            useEditor
-              .getState()
-              .bindToParam(id, field, name, entry, props.paint);
-            setOpen(false);
-          }}
-        />
-      ) : null}
-    </>
-  );
+function uniqueName(base: string, schema: ParamsSchema): string {
+  if (!(base in schema)) return base;
+  let i = 2;
+  while (`${base}-${i}` in schema) i++;
+  return `${base}-${i}`;
 }
 
-function makeEntry(
-  kind: ParamKind,
-  raw: string,
-): ParamSchemaEntry | null {
+function makeEntry(kind: ParamKind, raw: string): ParamSchemaEntry | null {
   switch (kind) {
     case "string":
     case "url":
@@ -149,104 +593,31 @@ function makeEntry(
   }
 }
 
-function BindPopover({
-  anchorRef,
-  field,
-  paramKind,
-  currentValue,
-  onClose,
-  onConfirm,
-}: {
-  anchorRef: React.RefObject<HTMLButtonElement | null>;
-  field: string;
-  paramKind: ParamKind;
-  currentValue: string;
-  onClose: () => void;
-  onConfirm: (name: string, defaultStr: string) => void;
-}) {
-  const [name, setName] = useState(() => slugify(field) || "param");
-  const [defaultStr, setDefaultStr] = useState(currentValue);
-  const popRef = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
+function parseRaw(kind: ParamKind, raw: string): unknown {
+  switch (kind) {
+    case "string":
+    case "url":
+    case "color":
+    case "enum":
+      return raw;
+    case "number": {
+      const n = Number(raw);
+      return Number.isFinite(n) ? n : 0;
+    }
+    case "boolean":
+      return raw === "true";
+  }
+}
 
-  useLayoutEffect(() => {
-    const el = anchorRef.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    setPos({ top: r.bottom + 6, right: window.innerWidth - r.right });
-  }, [anchorRef]);
-
-  useEffect(() => {
-    const onDown = (e: MouseEvent) => {
-      const t = e.target as Node;
-      if (popRef.current?.contains(t)) return;
-      if (anchorRef.current?.contains(t)) return;
-      onClose();
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("mousedown", onDown);
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("mousedown", onDown);
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [anchorRef, onClose]);
-
-  const valid = VALID_NAME.test(name);
-  const submit = () => {
-    if (!valid) return;
-    onConfirm(name, defaultStr);
-  };
-
-  if (!pos) return null;
-
-  return (
-    <div
-      ref={popRef}
-      style={{ position: "fixed", top: pos.top, right: pos.right }}
-      className="z-50 flex w-[220px] flex-col gap-1.5 rounded-lg border border-zinc-200 bg-white p-2 shadow-xl"
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          submit();
-        }
-      }}
-    >
-      <div className="flex items-center gap-1.5">
-        <span className="w-12 shrink-0 text-[10px] uppercase tracking-wide text-zinc-400">
-          name
-        </span>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          autoFocus
-          spellCheck={false}
-          className="h-6 min-w-0 flex-1 rounded border border-transparent bg-zinc-50 px-1.5 font-mono text-[11px] outline-none focus:border-indigo-400 focus:bg-white"
-        />
-      </div>
-      <div className="flex items-center gap-1.5">
-        <span className="w-12 shrink-0 text-[10px] uppercase tracking-wide text-zinc-400">
-          default
-        </span>
-        <input
-          value={defaultStr}
-          onChange={(e) => setDefaultStr(e.target.value)}
-          placeholder={paramKind === "enum" ? "a, b, c" : ""}
-          spellCheck={false}
-          className="h-6 min-w-0 flex-1 rounded border border-transparent bg-zinc-50 px-1.5 font-mono text-[11px] outline-none focus:border-indigo-400 focus:bg-white"
-        />
-      </div>
-      <div className="flex justify-end">
-        <button
-          onClick={submit}
-          disabled={!valid}
-          className="h-6 rounded bg-zinc-900 px-2.5 text-[11px] font-medium text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Bind
-        </button>
-      </div>
-    </div>
-  );
+function defaultPreview(entry: ParamSchemaEntry): {
+  text: string;
+  swatch?: string;
+} {
+  if (entry.kind === "enum")
+    return { text: String(entry.default ?? entry.values[0]) };
+  const d = (entry as { default?: unknown }).default;
+  if (d === undefined) return { text: "" };
+  if (entry.kind === "color" && typeof d === "string")
+    return { text: d, swatch: d };
+  return { text: String(d) };
 }

@@ -11,7 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import type { CSSProperties } from "react";
-import { BindButton } from "./bind-button";
+import { Bindable } from "./bind-button";
 import { PaintInput } from "./paint-picker";
 import { useEditor } from "./store";
 import type { EditorNode, Paint, ParamKind } from "./types";
@@ -151,27 +151,25 @@ function TypeSpecificControls({ node }: { node: EditorNode }) {
       );
     case "image":
       return (
-        <>
+        <Bindable
+          target={{ kind: "node", id: node.id }}
+          field="src"
+          paramKind="url"
+          value={node.src}
+          fallback=""
+        >
           <button
-            disabled={isParamRef(node.src)}
             onClick={() => {
               const current = isParamRef(node.src) ? "" : node.src;
               const url = window.prompt("Image URL", current);
               if (url) updateNode(node.id, { src: url });
             }}
-            className="rounded-md px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-40"
-            title={isParamRef(node.src) ? `Bound to {${node.src.$param}}` : "Replace image"}
+            className="rounded-md px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100"
+            title="Replace image"
           >
-            {isParamRef(node.src) ? `{${node.src.$param}}` : "Replace"}
+            Replace
           </button>
-          <BindButton
-            target={{ kind: "node", id: node.id }}
-            field="src"
-            paramKind="url"
-            value={node.src}
-            fallback=""
-          />
-        </>
+        </Bindable>
       );
   }
 }
@@ -193,28 +191,17 @@ function BindablePaint({
   fallback: Paint;
   paramKind?: ParamKind;
 }) {
-  const bound =
-    isFlatPaint(value) && isParamRef(value.color)
-      ? { name: value.color.$param }
-      : null;
   return (
-    <>
-      <PaintInput
-        compact
-        value={value}
-        onChange={onChange}
-        label={label}
-        boundChip={bound}
-      />
-      <BindButton
-        paint
-        target={{ kind: "node", id: nodeId }}
-        field={field}
-        paramKind={paramKind}
-        value={value}
-        fallback={fallback}
-      />
-    </>
+    <Bindable
+      paint
+      target={{ kind: "node", id: nodeId }}
+      field={field}
+      paramKind={paramKind}
+      value={value}
+      fallback={fallback}
+    >
+      <PaintInput compact value={value} onChange={onChange} label={label} />
+    </Bindable>
   );
 }
 

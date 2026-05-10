@@ -8,7 +8,7 @@ import type { Artboard, EditorNode, Paint, Shadow, Value } from "./types";
 import { isFlatPaint, isParamRef } from "./types";
 import { ColorPicker } from "./color-picker";
 import { PaintInput } from "./paint-picker";
-import { BindButton } from "./bind-button";
+import { Bindable } from "./bind-button";
 import { AssetUploadError, useAssetUploader } from "./asset-upload";
 import { AssetPickerButton } from "./asset-picker";
 
@@ -63,18 +63,19 @@ function DocumentInspector({
         />
       </Row>
       <Row label="Background">
-        <PaintField
-          value={artboard.background}
-          onChange={(v) => onChange({ background: v })}
-        />
-        <BindButton
+        <Bindable
           paint
           target={{ kind: "artboard" }}
           field="background"
           paramKind="color"
           value={artboard.background}
           fallback={{ kind: "flat", color: "#ffffff" }}
-        />
+        >
+          <PaintField
+            value={artboard.background}
+            onChange={(v) => onChange({ background: v })}
+          />
+        </Bindable>
       </Row>
     </Section>
   );
@@ -130,20 +131,21 @@ function NodeInspector({ node }: { node: EditorNode }) {
           />
         </Row>
         <Row label="Opacity">
-          <NumberValueField
-            value={node.opacity}
-            onChange={(v) => set({ opacity: v })}
-            min={0}
-            max={1}
-            step={0.01}
-          />
-          <BindButton
+          <Bindable
             target={{ kind: "node", id: node.id }}
             field="opacity"
             paramKind="number"
             value={node.opacity}
             fallback={1}
-          />
+          >
+            <NumberValueField
+              value={node.opacity}
+              onChange={(v) => set({ opacity: v })}
+              min={0}
+              max={1}
+              step={0.01}
+            />
+          </Bindable>
         </Row>
       </Section>
 
@@ -163,14 +165,15 @@ function TypeSection({ node }: { node: EditorNode }) {
         <>
           <Section title="Image">
             <Row label="Source">
-              <TextInput value={node.src} onChange={(v) => set({ src: v })} />
-              <BindButton
+              <Bindable
                 target={{ kind: "node", id: node.id }}
                 field="src"
                 paramKind="url"
                 value={node.src}
                 fallback=""
-              />
+              >
+                <TextInput value={node.src} onChange={(v) => set({ src: v })} />
+              </Bindable>
             </Row>
             <ImageUploadRow
               disabled={isParamRef(node.src)}
@@ -193,52 +196,55 @@ function TypeSection({ node }: { node: EditorNode }) {
               />
             </Row>
             <Row label="Corner radius">
-              <NumberValueField
-                min={0}
-                max={maxRadius}
-                step={1}
-                value={node.cornerRadius}
-                onChange={(v) => set({ cornerRadius: v })}
-              />
-              <BindButton
+              <Bindable
                 target={{ kind: "node", id: node.id }}
                 field="cornerRadius"
                 paramKind="number"
                 value={node.cornerRadius}
                 fallback={0}
-              />
+              >
+                <NumberValueField
+                  min={0}
+                  max={maxRadius}
+                  step={1}
+                  value={node.cornerRadius}
+                  onChange={(v) => set({ cornerRadius: v })}
+                />
+              </Bindable>
             </Row>
           </Section>
           <Section title="Border">
             <Row label="Color">
-              <PaintField
-                value={node.stroke}
-                onChange={(v) => set({ stroke: v })}
-              />
-              <BindButton
+              <Bindable
                 paint
                 target={{ kind: "node", id: node.id }}
                 field="stroke"
                 paramKind="color"
                 value={node.stroke}
                 fallback={{ kind: "flat", color: "#000000" }}
-              />
+              >
+                <PaintField
+                  value={node.stroke}
+                  onChange={(v) => set({ stroke: v })}
+                />
+              </Bindable>
             </Row>
             <Row label="Width">
-              <NumberValueField
-                min={0}
-                max={32}
-                step={1}
-                value={node.strokeWidth}
-                onChange={(v) => set({ strokeWidth: v })}
-              />
-              <BindButton
+              <Bindable
                 target={{ kind: "node", id: node.id }}
                 field="strokeWidth"
                 paramKind="number"
                 value={node.strokeWidth}
                 fallback={0}
-              />
+              >
+                <NumberValueField
+                  min={0}
+                  max={32}
+                  step={1}
+                  value={node.strokeWidth}
+                  onChange={(v) => set({ strokeWidth: v })}
+                />
+              </Bindable>
             </Row>
           </Section>
           <ShadowSection
@@ -254,31 +260,33 @@ function TypeSection({ node }: { node: EditorNode }) {
         <>
         <Section title="Text">
           <Row label="Content">
-            <TextArea value={node.text} onChange={(v) => set({ text: v })} />
-            <BindButton
+            <Bindable
               target={{ kind: "node", id: node.id }}
               field="text"
               paramKind="string"
               value={node.text}
               fallback=""
-            />
+            >
+              <TextArea value={node.text} onChange={(v) => set({ text: v })} />
+            </Bindable>
           </Row>
           <Row label="Size">
-            {isParamRef(node.fontSize) ? (
-              <BoundChip name={node.fontSize.$param} />
-            ) : (
-              <NumberInput
-                value={node.fontSize}
-                onChange={(v) => set({ fontSize: Math.max(4, v) })}
-              />
-            )}
-            <BindButton
+            <Bindable
               target={{ kind: "node", id: node.id }}
               field="fontSize"
               paramKind="number"
               value={node.fontSize}
               fallback={48}
-            />
+            >
+              {isParamRef(node.fontSize) ? (
+                <BoundChip name={node.fontSize.$param} />
+              ) : (
+                <NumberInput
+                  value={node.fontSize}
+                  onChange={(v) => set({ fontSize: Math.max(4, v) })}
+                />
+              )}
+            </Bindable>
           </Row>
           <Row label="Weight">
             <SelectInput
@@ -296,31 +304,33 @@ function TypeSection({ node }: { node: EditorNode }) {
             />
           </Row>
           <Row label="Italic">
-            <BoolValueField
-              value={node.italic}
-              onChange={(v) => set({ italic: v })}
-            />
-            <BindButton
+            <Bindable
               target={{ kind: "node", id: node.id }}
               field="italic"
               paramKind="boolean"
               value={node.italic}
               fallback={false}
-            />
+            >
+              <BoolValueField
+                value={node.italic}
+                onChange={(v) => set({ italic: v })}
+              />
+            </Bindable>
           </Row>
           <Row label="Color">
-            <PaintField
-              value={node.color}
-              onChange={(v) => set({ color: v })}
-            />
-            <BindButton
+            <Bindable
               paint
               target={{ kind: "node", id: node.id }}
               field="color"
               paramKind="color"
               value={node.color}
               fallback={{ kind: "flat", color: "#111111" }}
-            />
+            >
+              <PaintField
+                value={node.color}
+                onChange={(v) => set({ color: v })}
+              />
+            </Bindable>
           </Row>
           <Row label="Align">
             <div className="flex gap-1">
@@ -345,36 +355,38 @@ function TypeSection({ node }: { node: EditorNode }) {
             </div>
           </Row>
           <Row label="Line height">
-            <NumberValueField
-              min={0.8}
-              max={2.4}
-              step={0.05}
-              value={node.lineHeight}
-              onChange={(v) => set({ lineHeight: v })}
-            />
-            <BindButton
+            <Bindable
               target={{ kind: "node", id: node.id }}
               field="lineHeight"
               paramKind="number"
               value={node.lineHeight}
               fallback={1.2}
-            />
+            >
+              <NumberValueField
+                min={0.8}
+                max={2.4}
+                step={0.05}
+                value={node.lineHeight}
+                onChange={(v) => set({ lineHeight: v })}
+              />
+            </Bindable>
           </Row>
           <Row label="Tracking">
-            <NumberValueField
-              min={-2}
-              max={20}
-              step={0.5}
-              value={node.letterSpacing}
-              onChange={(v) => set({ letterSpacing: v })}
-            />
-            <BindButton
+            <Bindable
               target={{ kind: "node", id: node.id }}
               field="letterSpacing"
               paramKind="number"
               value={node.letterSpacing}
               fallback={0}
-            />
+            >
+              <NumberValueField
+                min={-2}
+                max={20}
+                step={0.5}
+                value={node.letterSpacing}
+                onChange={(v) => set({ letterSpacing: v })}
+              />
+            </Bindable>
           </Row>
         </Section>
         <ShadowSection
@@ -389,58 +401,62 @@ function TypeSection({ node }: { node: EditorNode }) {
         <>
         <Section title="Rectangle">
           <Row label="Fill">
-            <PaintField value={node.fill} onChange={(v) => set({ fill: v })} />
-            <BindButton
+            <Bindable
               paint
               target={{ kind: "node", id: node.id }}
               field="fill"
               paramKind="color"
               value={node.fill}
               fallback={{ kind: "flat", color: "#6366f1" }}
-            />
+            >
+              <PaintField value={node.fill} onChange={(v) => set({ fill: v })} />
+            </Bindable>
           </Row>
           <Row label="Stroke">
-            <PaintField value={node.stroke} onChange={(v) => set({ stroke: v })} />
-            <BindButton
+            <Bindable
               paint
               target={{ kind: "node", id: node.id }}
               field="stroke"
               paramKind="color"
               value={node.stroke}
               fallback={{ kind: "flat", color: "#000000" }}
-            />
+            >
+              <PaintField value={node.stroke} onChange={(v) => set({ stroke: v })} />
+            </Bindable>
           </Row>
           <Row label="Stroke width">
-            <NumberValueField
-              min={0}
-              max={32}
-              step={1}
-              value={node.strokeWidth}
-              onChange={(v) => set({ strokeWidth: v })}
-            />
-            <BindButton
+            <Bindable
               target={{ kind: "node", id: node.id }}
               field="strokeWidth"
               paramKind="number"
               value={node.strokeWidth}
               fallback={0}
-            />
+            >
+              <NumberValueField
+                min={0}
+                max={32}
+                step={1}
+                value={node.strokeWidth}
+                onChange={(v) => set({ strokeWidth: v })}
+              />
+            </Bindable>
           </Row>
           <Row label="Corner radius">
-            <NumberValueField
-              min={0}
-              max={Math.min(node.width, node.height) / 2}
-              step={1}
-              value={node.cornerRadius}
-              onChange={(v) => set({ cornerRadius: v })}
-            />
-            <BindButton
+            <Bindable
               target={{ kind: "node", id: node.id }}
               field="cornerRadius"
               paramKind="number"
               value={node.cornerRadius}
               fallback={0}
-            />
+            >
+              <NumberValueField
+                min={0}
+                max={Math.min(node.width, node.height) / 2}
+                step={1}
+                value={node.cornerRadius}
+                onChange={(v) => set({ cornerRadius: v })}
+              />
+            </Bindable>
           </Row>
         </Section>
         <ShadowSection
@@ -456,8 +472,7 @@ function TypeSection({ node }: { node: EditorNode }) {
         <>
         <Section title={node.type === "ellipse" ? "Ellipse" : "Triangle"}>
           <Row label="Fill">
-            <PaintField value={node.fill} onChange={(v) => set({ fill: v })} />
-            <BindButton
+            <Bindable
               paint
               target={{ kind: "node", id: node.id }}
               field="fill"
@@ -467,34 +482,38 @@ function TypeSection({ node }: { node: EditorNode }) {
                 kind: "flat",
                 color: node.type === "ellipse" ? "#ec4899" : "#10b981",
               }}
-            />
+            >
+              <PaintField value={node.fill} onChange={(v) => set({ fill: v })} />
+            </Bindable>
           </Row>
           <Row label="Stroke">
-            <PaintField value={node.stroke} onChange={(v) => set({ stroke: v })} />
-            <BindButton
+            <Bindable
               paint
               target={{ kind: "node", id: node.id }}
               field="stroke"
               paramKind="color"
               value={node.stroke}
               fallback={{ kind: "flat", color: "#000000" }}
-            />
+            >
+              <PaintField value={node.stroke} onChange={(v) => set({ stroke: v })} />
+            </Bindable>
           </Row>
           <Row label="Stroke width">
-            <NumberValueField
-              min={0}
-              max={32}
-              step={1}
-              value={node.strokeWidth}
-              onChange={(v) => set({ strokeWidth: v })}
-            />
-            <BindButton
+            <Bindable
               target={{ kind: "node", id: node.id }}
               field="strokeWidth"
               paramKind="number"
               value={node.strokeWidth}
               fallback={0}
-            />
+            >
+              <NumberValueField
+                min={0}
+                max={32}
+                step={1}
+                value={node.strokeWidth}
+                onChange={(v) => set({ strokeWidth: v })}
+              />
+            </Bindable>
           </Row>
         </Section>
         {node.type === "ellipse" ? (
@@ -510,74 +529,79 @@ function TypeSection({ node }: { node: EditorNode }) {
       return (
         <Section title="Star">
           <Row label="Fill">
-            <PaintField value={node.fill} onChange={(v) => set({ fill: v })} />
-            <BindButton
+            <Bindable
               paint
               target={{ kind: "node", id: node.id }}
               field="fill"
               paramKind="color"
               value={node.fill}
               fallback={{ kind: "flat", color: "#f59e0b" }}
-            />
+            >
+              <PaintField value={node.fill} onChange={(v) => set({ fill: v })} />
+            </Bindable>
           </Row>
           <Row label="Stroke">
-            <PaintField value={node.stroke} onChange={(v) => set({ stroke: v })} />
-            <BindButton
+            <Bindable
               paint
               target={{ kind: "node", id: node.id }}
               field="stroke"
               paramKind="color"
               value={node.stroke}
               fallback={{ kind: "flat", color: "#000000" }}
-            />
+            >
+              <PaintField value={node.stroke} onChange={(v) => set({ stroke: v })} />
+            </Bindable>
           </Row>
           <Row label="Stroke width">
-            <NumberValueField
-              min={0}
-              max={32}
-              step={1}
-              value={node.strokeWidth}
-              onChange={(v) => set({ strokeWidth: v })}
-            />
-            <BindButton
+            <Bindable
               target={{ kind: "node", id: node.id }}
               field="strokeWidth"
               paramKind="number"
               value={node.strokeWidth}
               fallback={0}
-            />
+            >
+              <NumberValueField
+                min={0}
+                max={32}
+                step={1}
+                value={node.strokeWidth}
+                onChange={(v) => set({ strokeWidth: v })}
+              />
+            </Bindable>
           </Row>
           <Row label="Points">
-            <NumberValueField
-              min={3}
-              max={12}
-              step={1}
-              value={node.points}
-              onChange={(v) => set({ points: Math.round(v) })}
-            />
-            <BindButton
+            <Bindable
               target={{ kind: "node", id: node.id }}
               field="points"
               paramKind="number"
               value={node.points}
               fallback={5}
-            />
+            >
+              <NumberValueField
+                min={3}
+                max={12}
+                step={1}
+                value={node.points}
+                onChange={(v) => set({ points: Math.round(v) })}
+              />
+            </Bindable>
           </Row>
           <Row label="Inner ratio">
-            <NumberValueField
-              min={0.1}
-              max={0.9}
-              step={0.01}
-              value={node.innerRadiusRatio}
-              onChange={(v) => set({ innerRadiusRatio: v })}
-            />
-            <BindButton
+            <Bindable
               target={{ kind: "node", id: node.id }}
               field="innerRadiusRatio"
               paramKind="number"
               value={node.innerRadiusRatio}
               fallback={0.45}
-            />
+            >
+              <NumberValueField
+                min={0.1}
+                max={0.9}
+                step={0.01}
+                value={node.innerRadiusRatio}
+                onChange={(v) => set({ innerRadiusRatio: v })}
+              />
+            </Bindable>
           </Row>
         </Section>
       );
@@ -586,44 +610,47 @@ function TypeSection({ node }: { node: EditorNode }) {
       return (
         <Section title="Line">
           <Row label="Color">
-            <PaintField value={node.stroke} onChange={(v) => set({ stroke: v })} />
-            <BindButton
+            <Bindable
               paint
               target={{ kind: "node", id: node.id }}
               field="stroke"
               paramKind="color"
               value={node.stroke}
               fallback={{ kind: "flat", color: "#111111" }}
-            />
+            >
+              <PaintField value={node.stroke} onChange={(v) => set({ stroke: v })} />
+            </Bindable>
           </Row>
           <Row label="Width">
-            <NumberValueField
-              min={1}
-              max={32}
-              step={1}
-              value={node.strokeWidth}
-              onChange={(v) => set({ strokeWidth: v })}
-            />
-            <BindButton
+            <Bindable
               target={{ kind: "node", id: node.id }}
               field="strokeWidth"
               paramKind="number"
               value={node.strokeWidth}
               fallback={4}
-            />
+            >
+              <NumberValueField
+                min={1}
+                max={32}
+                step={1}
+                value={node.strokeWidth}
+                onChange={(v) => set({ strokeWidth: v })}
+              />
+            </Bindable>
           </Row>
           <Row label="Arrow">
-            <BoolValueField
-              value={node.arrow}
-              onChange={(v) => set({ arrow: v })}
-            />
-            <BindButton
+            <Bindable
               target={{ kind: "node", id: node.id }}
               field="arrow"
               paramKind="boolean"
               value={node.arrow}
               fallback={false}
-            />
+            >
+              <BoolValueField
+                value={node.arrow}
+                onChange={(v) => set({ arrow: v })}
+              />
+            </Bindable>
           </Row>
         </Section>
       );
@@ -778,7 +805,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   return (
     <div className="flex items-center gap-2">
       <span className="w-20 shrink-0 text-[11px] text-zinc-500">{label}</span>
-      <div className="flex flex-1 items-center">{children}</div>
+      <div className="flex min-w-0 flex-1 items-center">{children}</div>
     </div>
   );
 }
