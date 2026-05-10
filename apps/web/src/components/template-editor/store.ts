@@ -11,7 +11,7 @@ import type {
   TemplateDocument,
   Value,
 } from "./types";
-import { flatPaint } from "./types";
+import { flatPaint, isParamRef } from "./types";
 
 const newId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -255,6 +255,9 @@ interface EditorState {
   setDraftValues: (values: Record<string, unknown>) => void;
   setPreviewOpen: (open: boolean) => void;
 
+  setParamDefault: (name: string, value: unknown) => void;
+  removeParam: (name: string) => void;
+
   loadDocument: (doc: TemplateDocument) => void;
   getDocument: () => TemplateDocument;
   markClean: () => void;
@@ -288,6 +291,23 @@ function withHistory(s: EditorState, opKey: string): Partial<EditorState> {
     lastOpTime: now,
     dirty: true,
   };
+}
+
+function defaultForEntry(entry: ParamSchemaEntry): unknown {
+  if ("default" in entry && entry.default !== undefined) return entry.default;
+  switch (entry.kind) {
+    case "string":
+    case "url":
+      return "";
+    case "color":
+      return "#000000";
+    case "number":
+      return 0;
+    case "boolean":
+      return false;
+    case "enum":
+      return entry.values[0];
+  }
 }
 
 const ZERO_COUNT: Record<NodeType, number> = {
@@ -492,6 +512,91 @@ export const useEditor = create<EditorState>((set, get) => ({
   setDraftValues: (values) => set({ draftValues: values }),
 
   setPreviewOpen: (open) => set({ previewOpen: open }),
+
+  setParamDefault: (name, value) =>
+    set((s) => {
+      const entry = s.paramsSchema[name];
+      if (!entry) return s;
+      let nextEntry: ParamSchemaEntry;
+      switch (entry.kind) {
+        case "string":
+        case "url":
+        case "color":
+          nextEntry = { ...entry, default: typeof value === "string" ? value : "" };
+          break;
+        case "number": {
+          const n = typeof value === "number" ? value : Number(value);
+          nextEntry = { ...entry, default: Number.isFinite(n) ? n : 0 };
+          break;
+        }
+        case "boolean":
+          nextEntry = { ...entry, default: Boolean(value) };
+          break;
+        case "enum":
+          nextEntry = {
+            ...entry,
+            default:
+              typeof value === "string" && entry.values.includes(value)
+                ? value
+                : entry.values[0],
+          };
+          break;
+      }
+      return {
+        ...withHistory(s, `param-default-${name}`),
+        paramsSchema: { ...s.paramsSchema, [name]: nextEntry },
+      };
+    }),
+
+  removeParam: (name) =>
+    set((s) => {
+      const entry = s.paramsSchema[name];
+      if (!entry) return s;
+      const { [name]: _drop, ...rest } = s.paramsSchema;
+      const replacement = defaultForEntry(entry);
+      const stripValue = <T,>(v: unknown): unknown =>
+        isParamRef(v as Value<T>) && (v as { $param: string }).$param === name
+          ? replacement
+          : v;
+      const stripPaint = (p: unknown): unknown => {
+        if (
+          p &&
+          typeof p === "object" &&
+          (p as { kind?: string }).kind === "flat"
+        ) {
+          const fp = p as { kind: "flat"; color: unknown };
+          if (
+            isParamRef(fp.color as Value<string>) &&
+            (fp.color as { $param: string }).$param === name
+          ) {
+            return flatPaint(typeof replacement === "string" ? replacement : "#000000");
+          }
+        }
+        return p;
+      };
+      const stripObj = (o: Record<string, unknown>): Record<string, unknown> => {
+        const out: Record<string, unknown> = { ...o };
+        for (const k of Object.keys(out)) {
+          out[k] = stripPaint(stripValue(out[k]));
+        }
+        return out;
+      };
+      const nodes = s.nodes.map(
+        (n) => stripObj(n as unknown as Record<string, unknown>) as unknown as EditorNode,
+      );
+      const artboard = stripObj(
+        s.artboard as unknown as Record<string, unknown>,
+      ) as unknown as Artboard;
+      const nextDraft = { ...s.draftValues };
+      delete nextDraft[name];
+      return {
+        ...withHistory(s, `remove-param-${name}`),
+        paramsSchema: rest,
+        nodes,
+        artboard,
+        draftValues: nextDraft,
+      };
+    }),
 
   loadDocument: (doc) =>
     set({
