@@ -23,7 +23,9 @@ export async function ensureProfile(user: {
   });
   if (existing) return { handle: existing.handle };
 
-  const baseHandle = slugify(user.name || user.email.split("@")[0] || user.id);
+  const baseHandle = slugify(
+    (user.name ?? user.email.split("@")[0]) || user.id,
+  );
   let handle = baseHandle;
   let suffix = 0;
   while (true) {
