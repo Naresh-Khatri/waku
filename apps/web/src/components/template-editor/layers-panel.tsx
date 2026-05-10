@@ -32,6 +32,9 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useEditor } from "./store";
 import type { EditorNode, NodeType } from "./types";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 const ICON: Record<NodeType, LucideIcon> = {
   image: ImageIcon,
@@ -53,7 +56,6 @@ export function LayersPanel() {
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
   );
 
-  // Layer panel order: top of list = top of stack = end of nodes array.
   const ordered = [...nodes].reverse();
   const ids = ordered.map((n) => n.id);
 
@@ -64,7 +66,6 @@ export function LayersPanel() {
     const to = ids.indexOf(over.id as string);
     if (from === -1 || to === -1) return;
     const reordered = arrayMove(ordered, from, to);
-    // Map back to canonical (bottom-first) order.
     useEditor.setState({ nodes: [...reordered].reverse() });
   };
 
@@ -76,38 +77,40 @@ export function LayersPanel() {
         </span>
         <span className="text-[10px] text-zinc-400">{nodes.length}</span>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-1">
-        {nodes.length === 0 ? (
-          <div className="px-3 py-6 text-xs text-zinc-400">
-            Add a layer from the top bar.
-          </div>
-        ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={onDragEnd}
-          >
-            <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-              <ul className="space-y-0.5">
-                {ordered.map((node) => (
-                  <LayerRow
-                    key={node.id}
-                    node={node}
-                    selected={node.id === selectedId}
-                    onSelect={() => select(node.id)}
-                    onToggleVisible={() =>
-                      updateNode(node.id, { visible: !node.visible })
-                    }
-                    onToggleLocked={() =>
-                      updateNode(node.id, { locked: !node.locked })
-                    }
-                  />
-                ))}
-              </ul>
-            </SortableContext>
-          </DndContext>
-        )}
-      </div>
+      <ScrollArea className="min-h-0 flex-1">
+        <div className="p-1">
+          {nodes.length === 0 ? (
+            <div className="px-3 py-6 text-xs text-zinc-400">
+              Add a layer from the top bar.
+            </div>
+          ) : (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={onDragEnd}
+            >
+              <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+                <ul className="space-y-0.5">
+                  {ordered.map((node) => (
+                    <LayerRow
+                      key={node.id}
+                      node={node}
+                      selected={node.id === selectedId}
+                      onSelect={() => select(node.id)}
+                      onToggleVisible={() =>
+                        updateNode(node.id, { visible: !node.visible })
+                      }
+                      onToggleLocked={() =>
+                        updateNode(node.id, { locked: !node.locked })
+                      }
+                    />
+                  ))}
+                </ul>
+              </SortableContext>
+            </DndContext>
+          )}
+        </div>
+      </ScrollArea>
     </aside>
   );
 }
@@ -138,13 +141,17 @@ function LayerRow({
       ref={setNodeRef}
       style={style}
       onClick={onSelect}
-      className={`flex h-8 items-center gap-1.5 rounded-md px-1.5 text-xs ${
-        selected ? "bg-indigo-50 text-indigo-900" : "text-zinc-700 hover:bg-zinc-50"
-      }`}
+      className={cn(
+        "flex h-8 items-center gap-1.5 rounded-md px-1.5 text-xs",
+        selected
+          ? "bg-indigo-50 text-indigo-900"
+          : "text-zinc-700 hover:bg-zinc-50",
+      )}
     >
       <button
         {...attributes}
         {...listeners}
+        type="button"
         className="flex h-6 w-4 cursor-grab items-center justify-center text-zinc-300 hover:text-zinc-500"
         onClick={(e) => e.stopPropagation()}
       >
@@ -152,24 +159,32 @@ function LayerRow({
       </button>
       <Icon className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
       <span className="flex-1 truncate">{node.name}</span>
-      <button
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-xs"
         onClick={(e) => {
           e.stopPropagation();
           onToggleLocked();
         }}
-        className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+        className="text-zinc-400 hover:text-zinc-700"
+        aria-label={node.locked ? "Unlock layer" : "Lock layer"}
       >
         {node.locked ? <Lock className="h-3 w-3" /> : <LockOpen className="h-3 w-3" />}
-      </button>
-      <button
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-xs"
         onClick={(e) => {
           e.stopPropagation();
           onToggleVisible();
         }}
-        className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+        className="text-zinc-400 hover:text-zinc-700"
+        aria-label={node.visible ? "Hide layer" : "Show layer"}
       >
         {node.visible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-      </button>
+      </Button>
     </li>
   );
 }

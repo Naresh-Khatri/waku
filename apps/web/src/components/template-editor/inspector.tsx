@@ -11,6 +11,23 @@ import { PaintInput } from "./paint-picker";
 import { Bindable } from "./bind-button";
 import { AssetUploadError, useAssetUploader } from "./asset-upload";
 import { AssetPickerButton } from "./asset-picker";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 export function Inspector() {
   const selectedId = useEditor((s) => s.selectedId);
@@ -27,7 +44,7 @@ export function Inspector() {
           {selectedId ? "Inspect" : "Document"}
         </span>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <ScrollArea className="min-h-0 flex-1">
         {node ? (
           <NodeInspector key={node.id} node={node} />
         ) : (
@@ -36,7 +53,7 @@ export function Inspector() {
             onChange={(p) => setArtboard(p)}
           />
         )}
-      </div>
+      </ScrollArea>
     </aside>
   );
 }
@@ -89,10 +106,7 @@ function NodeInspector({ node }: { node: EditorNode }) {
     <>
       <Section title="Layer">
         <Row label="Name">
-          <TextInput
-            value={node.name}
-            onChange={(v) => set({ name: v })}
-          />
+          <TextInput value={node.name} onChange={(v) => set({ name: v })} />
         </Row>
       </Section>
 
@@ -258,211 +272,217 @@ function TypeSection({ node }: { node: EditorNode }) {
     case "text":
       return (
         <>
-        <Section title="Text">
-          <Row label="Content">
-            <Bindable
-              target={{ kind: "node", id: node.id }}
-              field="text"
-              paramKind="string"
-              value={node.text}
-              fallback=""
-            >
-              <TextArea value={node.text} onChange={(v) => set({ text: v })} />
-            </Bindable>
-          </Row>
-          <Row label="Size">
-            <Bindable
-              target={{ kind: "node", id: node.id }}
-              field="fontSize"
-              paramKind="number"
-              value={node.fontSize}
-              fallback={48}
-            >
-              {isParamRef(node.fontSize) ? (
-                <BoundChip name={node.fontSize.$param} />
-              ) : (
-                <NumberInput
-                  value={node.fontSize}
-                  onChange={(v) => set({ fontSize: Math.max(4, v) })}
+          <Section title="Text">
+            <Row label="Content">
+              <Bindable
+                target={{ kind: "node", id: node.id }}
+                field="text"
+                paramKind="string"
+                value={node.text}
+                fallback=""
+              >
+                <TextAreaField
+                  value={node.text}
+                  onChange={(v) => set({ text: v })}
                 />
-              )}
-            </Bindable>
-          </Row>
-          <Row label="Weight">
-            <SelectInput
-              value={String(node.fontWeight)}
-              options={[
-                { value: "400", label: "Regular" },
-                { value: "500", label: "Medium" },
-                { value: "600", label: "Semi" },
-                { value: "700", label: "Bold" },
-                { value: "800", label: "Black" },
-              ]}
-              onChange={(v) =>
-                set({ fontWeight: Number(v) as 400 | 500 | 600 | 700 | 800 })
-              }
-            />
-          </Row>
-          <Row label="Italic">
-            <Bindable
-              target={{ kind: "node", id: node.id }}
-              field="italic"
-              paramKind="boolean"
-              value={node.italic}
-              fallback={false}
-            >
-              <BoolValueField
+              </Bindable>
+            </Row>
+            <Row label="Size">
+              <Bindable
+                target={{ kind: "node", id: node.id }}
+                field="fontSize"
+                paramKind="number"
+                value={node.fontSize}
+                fallback={48}
+              >
+                {isParamRef(node.fontSize) ? (
+                  <BoundChip name={node.fontSize.$param} />
+                ) : (
+                  <NumberInput
+                    value={node.fontSize}
+                    onChange={(v) => set({ fontSize: Math.max(4, v) })}
+                  />
+                )}
+              </Bindable>
+            </Row>
+            <Row label="Weight">
+              <SelectInput
+                value={String(node.fontWeight)}
+                options={[
+                  { value: "400", label: "Regular" },
+                  { value: "500", label: "Medium" },
+                  { value: "600", label: "Semi" },
+                  { value: "700", label: "Bold" },
+                  { value: "800", label: "Black" },
+                ]}
+                onChange={(v) =>
+                  set({ fontWeight: Number(v) as 400 | 500 | 600 | 700 | 800 })
+                }
+              />
+            </Row>
+            <Row label="Italic">
+              <Bindable
+                target={{ kind: "node", id: node.id }}
+                field="italic"
+                paramKind="boolean"
                 value={node.italic}
-                onChange={(v) => set({ italic: v })}
-              />
-            </Bindable>
-          </Row>
-          <Row label="Color">
-            <Bindable
-              paint
-              target={{ kind: "node", id: node.id }}
-              field="color"
-              paramKind="color"
-              value={node.color}
-              fallback={{ kind: "flat", color: "#111111" }}
-            >
-              <PaintField
+                fallback={false}
+              >
+                <BoolValueField
+                  value={node.italic}
+                  onChange={(v) => set({ italic: v })}
+                />
+              </Bindable>
+            </Row>
+            <Row label="Color">
+              <Bindable
+                paint
+                target={{ kind: "node", id: node.id }}
+                field="color"
+                paramKind="color"
                 value={node.color}
-                onChange={(v) => set({ color: v })}
-              />
-            </Bindable>
-          </Row>
-          <Row label="Align">
-            <div className="flex gap-1">
-              <AlignBtn
-                active={node.align === "left"}
-                onClick={() => set({ align: "left" })}
+                fallback={{ kind: "flat", color: "#111111" }}
               >
-                <AlignLeft className="h-3.5 w-3.5" />
-              </AlignBtn>
-              <AlignBtn
-                active={node.align === "center"}
-                onClick={() => set({ align: "center" })}
-              >
-                <AlignCenter className="h-3.5 w-3.5" />
-              </AlignBtn>
-              <AlignBtn
-                active={node.align === "right"}
-                onClick={() => set({ align: "right" })}
-              >
-                <AlignRight className="h-3.5 w-3.5" />
-              </AlignBtn>
-            </div>
-          </Row>
-          <Row label="Line height">
-            <Bindable
-              target={{ kind: "node", id: node.id }}
-              field="lineHeight"
-              paramKind="number"
-              value={node.lineHeight}
-              fallback={1.2}
-            >
-              <NumberValueField
-                min={0.8}
-                max={2.4}
-                step={0.05}
+                <PaintField
+                  value={node.color}
+                  onChange={(v) => set({ color: v })}
+                />
+              </Bindable>
+            </Row>
+            <Row label="Align">
+              <div className="flex gap-1">
+                <AlignBtn
+                  active={node.align === "left"}
+                  onClick={() => set({ align: "left" })}
+                  aria-label="Align left"
+                >
+                  <AlignLeft className="h-3.5 w-3.5" />
+                </AlignBtn>
+                <AlignBtn
+                  active={node.align === "center"}
+                  onClick={() => set({ align: "center" })}
+                  aria-label="Align center"
+                >
+                  <AlignCenter className="h-3.5 w-3.5" />
+                </AlignBtn>
+                <AlignBtn
+                  active={node.align === "right"}
+                  onClick={() => set({ align: "right" })}
+                  aria-label="Align right"
+                >
+                  <AlignRight className="h-3.5 w-3.5" />
+                </AlignBtn>
+              </div>
+            </Row>
+            <Row label="Line height">
+              <Bindable
+                target={{ kind: "node", id: node.id }}
+                field="lineHeight"
+                paramKind="number"
                 value={node.lineHeight}
-                onChange={(v) => set({ lineHeight: v })}
-              />
-            </Bindable>
-          </Row>
-          <Row label="Tracking">
-            <Bindable
-              target={{ kind: "node", id: node.id }}
-              field="letterSpacing"
-              paramKind="number"
-              value={node.letterSpacing}
-              fallback={0}
-            >
-              <NumberValueField
-                min={-2}
-                max={20}
-                step={0.5}
+                fallback={1.2}
+              >
+                <NumberValueField
+                  min={0.8}
+                  max={2.4}
+                  step={0.05}
+                  value={node.lineHeight}
+                  onChange={(v) => set({ lineHeight: v })}
+                />
+              </Bindable>
+            </Row>
+            <Row label="Tracking">
+              <Bindable
+                target={{ kind: "node", id: node.id }}
+                field="letterSpacing"
+                paramKind="number"
                 value={node.letterSpacing}
-                onChange={(v) => set({ letterSpacing: v })}
-              />
-            </Bindable>
-          </Row>
-        </Section>
-        <ShadowSection
-          shadow={node.shadow ?? null}
-          onChange={(s) => set({ shadow: s })}
-        />
+                fallback={0}
+              >
+                <NumberValueField
+                  min={-2}
+                  max={20}
+                  step={0.5}
+                  value={node.letterSpacing}
+                  onChange={(v) => set({ letterSpacing: v })}
+                />
+              </Bindable>
+            </Row>
+          </Section>
+          <ShadowSection
+            shadow={node.shadow ?? null}
+            onChange={(s) => set({ shadow: s })}
+          />
         </>
       );
 
     case "rectangle":
       return (
         <>
-        <Section title="Rectangle">
-          <Row label="Fill">
-            <Bindable
-              paint
-              target={{ kind: "node", id: node.id }}
-              field="fill"
-              paramKind="color"
-              value={node.fill}
-              fallback={{ kind: "flat", color: "#6366f1" }}
-            >
-              <PaintField value={node.fill} onChange={(v) => set({ fill: v })} />
-            </Bindable>
-          </Row>
-          <Row label="Stroke">
-            <Bindable
-              paint
-              target={{ kind: "node", id: node.id }}
-              field="stroke"
-              paramKind="color"
-              value={node.stroke}
-              fallback={{ kind: "flat", color: "#000000" }}
-            >
-              <PaintField value={node.stroke} onChange={(v) => set({ stroke: v })} />
-            </Bindable>
-          </Row>
-          <Row label="Stroke width">
-            <Bindable
-              target={{ kind: "node", id: node.id }}
-              field="strokeWidth"
-              paramKind="number"
-              value={node.strokeWidth}
-              fallback={0}
-            >
-              <NumberValueField
-                min={0}
-                max={32}
-                step={1}
+          <Section title="Rectangle">
+            <Row label="Fill">
+              <Bindable
+                paint
+                target={{ kind: "node", id: node.id }}
+                field="fill"
+                paramKind="color"
+                value={node.fill}
+                fallback={{ kind: "flat", color: "#6366f1" }}
+              >
+                <PaintField value={node.fill} onChange={(v) => set({ fill: v })} />
+              </Bindable>
+            </Row>
+            <Row label="Stroke">
+              <Bindable
+                paint
+                target={{ kind: "node", id: node.id }}
+                field="stroke"
+                paramKind="color"
+                value={node.stroke}
+                fallback={{ kind: "flat", color: "#000000" }}
+              >
+                <PaintField value={node.stroke} onChange={(v) => set({ stroke: v })} />
+              </Bindable>
+            </Row>
+            <Row label="Stroke width">
+              <Bindable
+                target={{ kind: "node", id: node.id }}
+                field="strokeWidth"
+                paramKind="number"
                 value={node.strokeWidth}
-                onChange={(v) => set({ strokeWidth: v })}
-              />
-            </Bindable>
-          </Row>
-          <Row label="Corner radius">
-            <Bindable
-              target={{ kind: "node", id: node.id }}
-              field="cornerRadius"
-              paramKind="number"
-              value={node.cornerRadius}
-              fallback={0}
-            >
-              <NumberValueField
-                min={0}
-                max={Math.min(node.width, node.height) / 2}
-                step={1}
+                fallback={0}
+              >
+                <NumberValueField
+                  min={0}
+                  max={32}
+                  step={1}
+                  value={node.strokeWidth}
+                  onChange={(v) => set({ strokeWidth: v })}
+                />
+              </Bindable>
+            </Row>
+            <Row label="Corner radius">
+              <Bindable
+                target={{ kind: "node", id: node.id }}
+                field="cornerRadius"
+                paramKind="number"
                 value={node.cornerRadius}
-                onChange={(v) => set({ cornerRadius: v })}
-              />
-            </Bindable>
-          </Row>
-        </Section>
-        <ShadowSection
-          shadow={node.shadow ?? null}
-          onChange={(s) => set({ shadow: s })}
-        />
+                fallback={0}
+              >
+                <NumberValueField
+                  min={0}
+                  max={Math.min(node.width, node.height) / 2}
+                  step={1}
+                  value={node.cornerRadius}
+                  onChange={(v) => set({ cornerRadius: v })}
+                />
+              </Bindable>
+            </Row>
+          </Section>
+          <ShadowSection
+            shadow={node.shadow ?? null}
+            onChange={(s) => set({ shadow: s })}
+          />
         </>
       );
 
@@ -470,58 +490,58 @@ function TypeSection({ node }: { node: EditorNode }) {
     case "triangle":
       return (
         <>
-        <Section title={node.type === "ellipse" ? "Ellipse" : "Triangle"}>
-          <Row label="Fill">
-            <Bindable
-              paint
-              target={{ kind: "node", id: node.id }}
-              field="fill"
-              paramKind="color"
-              value={node.fill}
-              fallback={{
-                kind: "flat",
-                color: node.type === "ellipse" ? "#ec4899" : "#10b981",
-              }}
-            >
-              <PaintField value={node.fill} onChange={(v) => set({ fill: v })} />
-            </Bindable>
-          </Row>
-          <Row label="Stroke">
-            <Bindable
-              paint
-              target={{ kind: "node", id: node.id }}
-              field="stroke"
-              paramKind="color"
-              value={node.stroke}
-              fallback={{ kind: "flat", color: "#000000" }}
-            >
-              <PaintField value={node.stroke} onChange={(v) => set({ stroke: v })} />
-            </Bindable>
-          </Row>
-          <Row label="Stroke width">
-            <Bindable
-              target={{ kind: "node", id: node.id }}
-              field="strokeWidth"
-              paramKind="number"
-              value={node.strokeWidth}
-              fallback={0}
-            >
-              <NumberValueField
-                min={0}
-                max={32}
-                step={1}
+          <Section title={node.type === "ellipse" ? "Ellipse" : "Triangle"}>
+            <Row label="Fill">
+              <Bindable
+                paint
+                target={{ kind: "node", id: node.id }}
+                field="fill"
+                paramKind="color"
+                value={node.fill}
+                fallback={{
+                  kind: "flat",
+                  color: node.type === "ellipse" ? "#ec4899" : "#10b981",
+                }}
+              >
+                <PaintField value={node.fill} onChange={(v) => set({ fill: v })} />
+              </Bindable>
+            </Row>
+            <Row label="Stroke">
+              <Bindable
+                paint
+                target={{ kind: "node", id: node.id }}
+                field="stroke"
+                paramKind="color"
+                value={node.stroke}
+                fallback={{ kind: "flat", color: "#000000" }}
+              >
+                <PaintField value={node.stroke} onChange={(v) => set({ stroke: v })} />
+              </Bindable>
+            </Row>
+            <Row label="Stroke width">
+              <Bindable
+                target={{ kind: "node", id: node.id }}
+                field="strokeWidth"
+                paramKind="number"
                 value={node.strokeWidth}
-                onChange={(v) => set({ strokeWidth: v })}
-              />
-            </Bindable>
-          </Row>
-        </Section>
-        {node.type === "ellipse" ? (
-          <ShadowSection
-            shadow={node.shadow ?? null}
-            onChange={(s) => set({ shadow: s })}
-          />
-        ) : null}
+                fallback={0}
+              >
+                <NumberValueField
+                  min={0}
+                  max={32}
+                  step={1}
+                  value={node.strokeWidth}
+                  onChange={(v) => set({ strokeWidth: v })}
+                />
+              </Bindable>
+            </Row>
+          </Section>
+          {node.type === "ellipse" ? (
+            <ShadowSection
+              shadow={node.shadow ?? null}
+              onChange={(s) => set({ shadow: s })}
+            />
+          ) : null}
         </>
       );
 
@@ -676,18 +696,12 @@ function ShadowSection({
   return (
     <Section title="Shadow">
       <Row label="Enabled">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={shadow !== null}
-          onChange={(e) =>
+          onCheckedChange={(checked) =>
             onChange(
-              e.target.checked
-                ? {
-                    offsetX: 0,
-                    offsetY: 4,
-                    blur: 12,
-                    color: "#00000040",
-                  }
+              checked === true
+                ? { offsetX: 0, offsetY: 4, blur: 12, color: "#00000040" }
                 : null,
             )
           }
@@ -758,11 +772,11 @@ function ImageUploadRow({
   return (
     <>
       <Row label="Upload">
-        <input
+        <Input
           type="file"
           accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
           onChange={onChange}
-          className="text-xs text-zinc-600"
+          className="h-7 cursor-pointer text-xs"
           disabled={disabled || isUploading}
         />
       </Row>
@@ -792,11 +806,12 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="border-b border-zinc-100 px-3 py-3">
+    <div className="px-3 py-3">
       <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
         {title}
       </div>
       <div className="space-y-2">{children}</div>
+      <Separator className="mt-3 -mx-3 w-auto" />
     </div>
   );
 }
@@ -814,9 +829,7 @@ function PairRow({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-2 gap-2">{children}</div>;
 }
 
-function inputClass() {
-  return "h-7 w-full rounded-md border border-zinc-200 bg-white px-2 text-xs text-zinc-800 outline-none focus:border-indigo-400";
-}
+const compactInput = "h-7 text-xs";
 
 function NumberInput({
   value,
@@ -832,14 +845,14 @@ function NumberInput({
       {label ? (
         <span className="w-4 text-[11px] text-zinc-400">{label}</span>
       ) : null}
-      <input
+      <Input
         type="number"
         value={Number.isFinite(value) ? value : 0}
         onChange={(e) => {
           const n = parseFloat(e.target.value);
           onChange(Number.isFinite(n) ? n : 0);
         }}
-        className={inputClass()}
+        className={compactInput}
       />
     </div>
   );
@@ -847,12 +860,14 @@ function NumberInput({
 
 function BoundChip({ name }: { name: string }) {
   return (
-    <span
-      title={`Bound to {${name}}`}
-      className="flex h-7 w-full items-center rounded-md border border-indigo-200 bg-indigo-50 px-2 font-mono text-[11px] text-indigo-700"
-    >
-      {`{${name}}`}
-    </span>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="flex h-7 w-full items-center rounded-md border border-indigo-200 bg-indigo-50 px-2 font-mono text-[11px] text-indigo-700">
+          {`{${name}}`}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{`Bound to {${name}}`}</TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -865,16 +880,16 @@ function TextInput({
 }) {
   if (isParamRef(value)) return <BoundChip name={value.$param} />;
   return (
-    <input
+    <Input
       type="text"
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className={inputClass()}
+      className={compactInput}
     />
   );
 }
 
-function TextArea({
+function TextAreaField({
   value,
   onChange,
 }: {
@@ -883,11 +898,11 @@ function TextArea({
 }) {
   if (isParamRef(value)) return <BoundChip name={value.$param} />;
   return (
-    <textarea
+    <Textarea
       value={value}
       onChange={(e) => onChange(e.target.value)}
       rows={3}
-      className="min-h-[60px] w-full rounded-md border border-zinc-200 bg-white p-2 text-xs text-zinc-800 outline-none focus:border-indigo-400"
+      className="min-h-[60px] text-xs"
     />
   );
 }
@@ -962,10 +977,9 @@ function BoolValueField({
 }) {
   if (isParamRef(value)) return <BoundChip name={value.$param} />;
   return (
-    <input
-      type="checkbox"
+    <Switch
       checked={value}
-      onChange={(e) => onChange(e.target.checked)}
+      onCheckedChange={(checked) => onChange(checked === true)}
     />
   );
 }
@@ -985,14 +999,13 @@ function RangeInput({
 }) {
   return (
     <div className="flex w-full items-center gap-2">
-      <input
-        type="range"
+      <Slider
         min={min}
         max={max}
         step={step}
-        value={value}
-        onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="flex-1 accent-indigo-500"
+        value={[value]}
+        onValueChange={(v) => onChange(v[0] ?? value)}
+        className="flex-1"
       />
       <span className="w-10 text-right text-[11px] text-zinc-500">
         {Number.isInteger(step) ? Math.round(value) : value.toFixed(2)}
@@ -1017,17 +1030,18 @@ function SelectInput({
       {label ? (
         <span className="w-12 text-[11px] text-zinc-400">{label}</span>
       ) : null}
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className={inputClass()}
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger size="sm" className="w-full text-xs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((o) => (
+            <SelectItem key={o.value} value={o.value} className="text-xs">
+              {o.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }
@@ -1036,21 +1050,24 @@ function AlignBtn({
   active,
   onClick,
   children,
+  ...props
 }: {
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
-}) {
+} & React.ComponentProps<"button">) {
   return (
-    <button
+    <Button
+      type="button"
+      variant={active ? "secondary" : "ghost"}
+      size="icon-sm"
       onClick={onClick}
-      className={`flex h-7 w-7 items-center justify-center rounded-md ${
-        active
-          ? "bg-indigo-50 text-indigo-700"
-          : "text-zinc-600 hover:bg-zinc-100"
-      }`}
+      className={cn(
+        active ? "bg-indigo-50 text-indigo-700 hover:bg-indigo-100" : undefined,
+      )}
+      {...props}
     >
       {children}
-    </button>
+    </Button>
   );
 }

@@ -14,6 +14,13 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useEditor } from "./store";
 import type { NodeType } from "./types";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const ITEMS: { type: NodeType; icon: LucideIcon; label: string }[] = [
   { type: "image", icon: ImageIcon, label: "Image" },
@@ -36,35 +43,55 @@ export function InsertBar() {
     <div className="flex items-center gap-1 border-b border-zinc-200 bg-white px-3">
       <div className="flex items-center gap-0.5">
         {ITEMS.map(({ type, icon: Icon, label }) => (
-          <button
-            key={type}
-            onClick={() => addNode(type)}
-            title={`Add ${label}`}
-            className="flex h-7 items-center gap-1.5 rounded-md px-2 text-xs text-zinc-700 hover:bg-zinc-100"
-          >
-            <Icon className="h-3.5 w-3.5" />
-            <span>{label}</span>
-          </button>
+          <Tooltip key={type}>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => addNode(type)}
+                className="text-zinc-700"
+              >
+                <Icon className="h-3.5 w-3.5" />
+                <span>{label}</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Add {label}</TooltipContent>
+          </Tooltip>
         ))}
       </div>
-      <div className="mx-2 h-4 w-px bg-zinc-200" />
+      <Separator orientation="vertical" className="mx-2 !h-4" />
       <div className="flex items-center gap-0.5">
-        <button
-          onClick={undo}
-          disabled={!canUndo}
-          title="Undo"
-          className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:text-zinc-300 disabled:hover:bg-transparent"
-        >
-          <Undo2 className="h-3.5 w-3.5" />
-        </button>
-        <button
-          onClick={redo}
-          disabled={!canRedo}
-          title="Redo"
-          className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:text-zinc-300 disabled:hover:bg-transparent"
-        >
-          <Redo2 className="h-3.5 w-3.5" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              onClick={undo}
+              disabled={!canUndo}
+              aria-label="Undo"
+            >
+              <Undo2 className="h-3.5 w-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Undo</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              onClick={redo}
+              disabled={!canRedo}
+              aria-label="Redo"
+            >
+              <Redo2 className="h-3.5 w-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Redo</TooltipContent>
+        </Tooltip>
       </div>
     </div>
   );

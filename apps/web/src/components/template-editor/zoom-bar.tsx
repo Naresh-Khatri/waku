@@ -2,6 +2,21 @@
 
 import { Maximize2, Minus, Plus } from "lucide-react";
 import { useEditor } from "./store";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 const STEPS = [0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4];
 const MIN = 0.05;
@@ -26,52 +41,84 @@ export function ZoomBar({
     setZoom(Math.min(MAX, next ?? MAX));
   };
 
+  const selectValue = zoom === "fit" ? "fit" : String(closestStep(scale));
+
   return (
     <div className="absolute bottom-3 right-3 z-10 inline-flex h-9 items-center gap-1 rounded-xl border border-zinc-200 bg-white px-1.5 text-xs text-zinc-700 shadow-md">
-      <button
-        title="Fit to screen"
-        onClick={() => setZoom("fit")}
-        className={`flex h-7 items-center gap-1 rounded-md px-2 ${
-          zoom === "fit" ? "bg-indigo-50 text-indigo-700" : "hover:bg-zinc-100"
-        }`}
-      >
-        <Maximize2 className="h-3.5 w-3.5" />
-        Fit
-      </button>
-      <span className="mx-1 h-4 w-px bg-zinc-200" />
-      <button
-        title="Zoom out"
-        onClick={stepDown}
-        className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-zinc-100"
-      >
-        <Minus className="h-3.5 w-3.5" />
-      </button>
-      <select
-        value={zoom === "fit" ? "fit" : closestStep(scale)}
-        onChange={(e) => {
-          const v = e.target.value;
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setZoom("fit")}
+            className={cn(
+              "gap-1",
+              zoom === "fit" &&
+                "bg-indigo-50 text-indigo-700 hover:bg-indigo-100",
+            )}
+          >
+            <Maximize2 className="h-3.5 w-3.5" />
+            Fit
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Fit to screen</TooltipContent>
+      </Tooltip>
+      <Separator orientation="vertical" className="mx-1 !h-4" />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={stepDown}
+            aria-label="Zoom out"
+          >
+            <Minus className="h-3.5 w-3.5" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Zoom out</TooltipContent>
+      </Tooltip>
+      <Select
+        value={selectValue}
+        onValueChange={(v) => {
           if (v === "fit") setZoom("fit");
           else setZoom(parseFloat(v));
         }}
-        className="h-7 cursor-pointer rounded-md border border-zinc-200 bg-white px-2 text-xs outline-none hover:bg-zinc-50"
       >
-        <option value="fit">Fit ({Math.round(fitScale * 100)}%)</option>
-        {STEPS.map((s) => (
-          <option key={s} value={s}>
-            {Math.round(s * 100)}%
-          </option>
-        ))}
-        {zoom !== "fit" && !STEPS.includes(zoom) ? (
-          <option value={zoom}>{Math.round(scale * 100)}%</option>
-        ) : null}
-      </select>
-      <button
-        title="Zoom in"
-        onClick={stepUp}
-        className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-zinc-100"
-      >
-        <Plus className="h-3.5 w-3.5" />
-      </button>
+        <SelectTrigger size="sm" className="text-xs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="fit" className="text-xs">
+            {`Fit (${Math.round(fitScale * 100)}%)`}
+          </SelectItem>
+          {STEPS.map((s) => (
+            <SelectItem key={s} value={String(s)} className="text-xs">
+              {Math.round(s * 100)}%
+            </SelectItem>
+          ))}
+          {zoom !== "fit" && !STEPS.includes(zoom) ? (
+            <SelectItem value={String(zoom)} className="text-xs">
+              {Math.round(scale * 100)}%
+            </SelectItem>
+          ) : null}
+        </SelectContent>
+      </Select>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={stepUp}
+            aria-label="Zoom in"
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Zoom in</TooltipContent>
+      </Tooltip>
     </div>
   );
 }

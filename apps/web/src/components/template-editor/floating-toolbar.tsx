@@ -15,7 +15,15 @@ import { Bindable } from "./bind-button";
 import { PaintInput } from "./paint-picker";
 import { useEditor } from "./store";
 import type { EditorNode, Paint, ParamKind } from "./types";
-import { isFlatPaint, isParamRef } from "./types";
+import { isParamRef } from "./types";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 export function FloatingToolbar({
   node,
@@ -42,7 +50,7 @@ export function FloatingToolbar({
       className="flex items-center gap-0.5 rounded-lg border border-zinc-200 bg-white px-1 py-1 shadow-lg"
     >
       <TypeSpecificControls node={node} />
-      <Divider />
+      <Separator orientation="vertical" className="mx-1 !h-5" />
       <CommonControls node={node} />
     </div>
   );
@@ -57,7 +65,9 @@ function TypeSpecificControls({ node }: { node: EditorNode }) {
           <ToolButton
             active={node.fontWeight >= 700}
             onClick={() =>
-              updateNode(node.id, { fontWeight: node.fontWeight >= 700 ? 400 : 700 })
+              updateNode(node.id, {
+                fontWeight: node.fontWeight >= 700 ? 400 : 700,
+              })
             }
             label="Bold"
           >
@@ -158,17 +168,24 @@ function TypeSpecificControls({ node }: { node: EditorNode }) {
           value={node.src}
           fallback=""
         >
-          <button
-            onClick={() => {
-              const current = isParamRef(node.src) ? "" : node.src;
-              const url = window.prompt("Image URL", current);
-              if (url) updateNode(node.id, { src: url });
-            }}
-            className="rounded-md px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100"
-            title="Replace image"
-          >
-            Replace
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const current = isParamRef(node.src) ? "" : node.src;
+                  const url = window.prompt("Image URL", current);
+                  if (url) updateNode(node.id, { src: url });
+                }}
+                className="text-xs text-zinc-700"
+              >
+                Replace
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Replace image</TooltipContent>
+          </Tooltip>
         </Bindable>
       );
   }
@@ -254,23 +271,28 @@ function ToolButton({
   danger?: boolean;
   disabled?: boolean;
 }) {
-  const cls = active
-    ? "bg-indigo-50 text-indigo-700"
-    : danger
-      ? "text-zinc-600 hover:bg-rose-50 hover:text-rose-600"
-      : "text-zinc-700 hover:bg-zinc-100";
   return (
-    <button
-      title={label}
-      onClick={onClick}
-      disabled={disabled}
-      className={`flex h-8 min-w-[32px] items-center justify-center rounded-md px-1.5 ${cls} disabled:cursor-not-allowed disabled:opacity-40`}
-    >
-      {children}
-    </button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          type="button"
+          variant={active ? "secondary" : "ghost"}
+          size="icon"
+          onClick={onClick}
+          disabled={disabled}
+          aria-label={label}
+          className={cn(
+            "min-w-8",
+            active && "bg-indigo-50 text-indigo-700 hover:bg-indigo-100",
+            danger &&
+              !active &&
+              "text-zinc-600 hover:bg-rose-50 hover:text-rose-600",
+          )}
+        >
+          {children}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   );
-}
-
-function Divider() {
-  return <span className="mx-1 h-5 w-px bg-zinc-200" />;
 }

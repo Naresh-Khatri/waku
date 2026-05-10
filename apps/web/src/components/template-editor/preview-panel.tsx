@@ -23,6 +23,22 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import { ColorPicker } from "./color-picker";
 import {
   OgSocialPreview,
@@ -215,29 +231,38 @@ export function PreviewPanel({
               </TabButton>
               <div className="ml-auto flex items-center gap-1.5">
                 {tab === "preview" ? (
-                  <span
-                    className="flex h-6 w-6 items-center justify-center rounded-md border border-zinc-200 bg-white shadow-sm"
-                    title={
-                      status.kind === "ok"
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="flex h-6 w-6 items-center justify-center rounded-md border border-zinc-200 bg-white shadow-sm">
+                        <StatusDot status={status} />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {status.kind === "ok"
                         ? `rendered in ${status.ms}ms`
                         : status.kind === "loading"
                           ? "rendering…"
                           : status.kind === "error"
                             ? status.message
-                            : "idle"
-                    }
-                  >
-                    <StatusDot status={status} />
-                  </span>
+                            : "idle"}
+                    </TooltipContent>
+                  </Tooltip>
                 ) : null}
-                <button
-                  onClick={() => setExpanded(false)}
-                  className="flex h-6 w-6 items-center justify-center rounded-md border border-zinc-200 bg-zinc-100 text-zinc-600 shadow-sm hover:border-zinc-300 hover:bg-zinc-200 hover:text-zinc-900"
-                  aria-label="Hide"
-                  title="Hide"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-xs"
+                      onClick={() => setExpanded(false)}
+                      aria-label="Hide"
+                      className="border border-zinc-200 bg-zinc-100 text-zinc-600 shadow-sm hover:border-zinc-300 hover:bg-zinc-200 hover:text-zinc-900"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Hide</TooltipContent>
+                </Tooltip>
               </div>
             </header>
 
@@ -324,13 +349,16 @@ export function PreviewPanel({
                         <span className="min-w-0 flex-1 truncate">
                           {create.error.message}
                         </span>
-                        <button
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-xs"
                           onClick={() => create.reset()}
                           aria-label="Dismiss"
-                          className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-rose-600 hover:bg-rose-100 hover:text-rose-900"
+                          className="size-5 text-rose-600 hover:bg-rose-100 hover:text-rose-900"
                         >
                           <X className="h-3 w-3" />
-                        </button>
+                        </Button>
                       </div>
                     ) : null}
                     <div
@@ -437,13 +465,14 @@ export function PreviewPanel({
                 </div>
 
                 <footer className="shrink-0 border-t border-zinc-200 p-3">
-                  <button
+                  <Button
+                    type="button"
                     onClick={() => create.mutate({ templateId })}
                     disabled={create.isPending}
-                    className="w-full rounded-md bg-indigo-600 px-3 py-2 text-xs font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="w-full bg-indigo-600 text-white hover:bg-indigo-700"
                   >
                     {create.isPending ? "Saving…" : "+ Save snapshot"}
-                  </button>
+                  </Button>
                   {create.error ? (
                     <p className="mt-2 text-[11px] text-rose-600">
                       {create.error.message}
@@ -469,16 +498,20 @@ function TabButton({
   children: React.ReactNode;
 }) {
   return (
-    <button
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
       onClick={onClick}
-      className={`flex h-7 items-center gap-1 rounded-md px-2.5 text-[11px] font-semibold uppercase tracking-wide transition-colors ${
+      className={cn(
+        "h-7 px-2.5 text-[11px] font-semibold uppercase tracking-wide",
         active
-          ? "bg-zinc-900 text-white"
-          : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
-      }`}
+          ? "bg-zinc-900 text-white hover:bg-zinc-800 hover:text-white"
+          : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800",
+      )}
     >
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -544,7 +577,7 @@ function SnapshotRow({
           </span>
           <div className="min-w-0 flex-1">
             {editing ? (
-              <input
+              <Input
                 autoFocus
                 value={label}
                 onClick={stop}
@@ -560,24 +593,32 @@ function SnapshotRow({
                 onChange={(e) => setLabel(e.target.value)}
                 onBlur={submitRename}
                 placeholder="Name this snapshot"
-                className="w-full rounded border border-indigo-300 px-2 py-1 text-xs outline-none focus:border-indigo-500"
+                className="h-7 border-indigo-300 text-xs focus-visible:border-indigo-500"
               />
             ) : (
               <div className="flex min-w-0 items-center gap-1">
                 <p className="min-w-0 truncate text-xs font-medium text-zinc-800">
                   {display}
                 </p>
-                <button
-                  onClick={(e) => {
-                    stop(e);
-                    setEditing(true);
-                  }}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  className="shrink-0 rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
-                  title="Rename"
-                >
-                  <Pencil className="h-3 w-3" />
-                </button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-xs"
+                      onClick={(e) => {
+                        stop(e);
+                        setEditing(true);
+                      }}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      aria-label="Rename"
+                      className="size-5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Rename</TooltipContent>
+                </Tooltip>
               </div>
             )}
             <p className="mt-0.5 text-[10px] text-zinc-400">
@@ -585,33 +626,49 @@ function SnapshotRow({
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-0.5">
-            <button
-              onClick={(e) => {
-                stop(e);
-                onRestore();
-              }}
-              onPointerDown={(e) => e.stopPropagation()}
-              disabled={restoring}
-              title={restoring ? "Restoring…" : "Restore"}
-              aria-label="Restore"
-              className="flex h-7 w-7 items-center justify-center rounded text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-50"
-            >
-              <RotateCcw
-                className={`h-3.5 w-3.5 ${restoring ? "animate-spin" : ""}`}
-              />
-            </button>
-            <button
-              onClick={(e) => {
-                stop(e);
-                if (confirm(`Delete "${display}"?`)) onDelete();
-              }}
-              onPointerDown={(e) => e.stopPropagation()}
-              title="Delete"
-              aria-label="Delete"
-              className="flex h-7 w-7 items-center justify-center rounded text-zinc-500 hover:bg-rose-50 hover:text-rose-600"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={(e) => {
+                    stop(e);
+                    onRestore();
+                  }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  disabled={restoring}
+                  aria-label="Restore"
+                  className="text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+                >
+                  <RotateCcw
+                    className={cn("h-3.5 w-3.5", restoring && "animate-spin")}
+                  />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {restoring ? "Restoring…" : "Restore"}
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={(e) => {
+                    stop(e);
+                    if (confirm(`Delete "${display}"?`)) onDelete();
+                  }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  aria-label="Delete"
+                  className="text-zinc-500 hover:bg-rose-50 hover:text-rose-600"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Delete</TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </AccordionTrigger>
@@ -621,13 +678,17 @@ function SnapshotRow({
           <ColoredUrl url={url} />
         </code>
         <div className="mt-2 flex items-center gap-1">
-          <button
+          <Button
+            type="button"
+            variant="outline"
+            size="xs"
             onClick={copy}
-            className={`flex items-center gap-1 rounded border px-2 py-1 text-[11px] transition-colors ${
+            className={cn(
+              "text-[11px]",
               copied
-                ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                : "border-zinc-200 text-zinc-700 hover:bg-zinc-100"
-            }`}
+                ? "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-700"
+                : "border-zinc-200 text-zinc-700",
+            )}
           >
             {copied ? (
               <Check className="h-3 w-3" />
@@ -635,16 +696,18 @@ function SnapshotRow({
               <Copy className="h-3 w-3" />
             )}
             {copied ? "Copied" : "Copy"}
-          </button>
-          <a
-            href={url}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="flex items-center gap-1 rounded border border-zinc-200 px-2 py-1 text-[11px] text-zinc-700 hover:bg-zinc-100"
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            size="xs"
+            className="border-zinc-200 text-[11px] text-zinc-700"
           >
-            <ExternalLink className="h-3 w-3" />
-            Open
-          </a>
+            <a href={url} target="_blank" rel="noreferrer noopener">
+              <ExternalLink className="h-3 w-3" />
+              Open
+            </a>
+          </Button>
         </div>
       </AccordionContent>
     </AccordionItem>
@@ -745,32 +808,31 @@ function ParamControl({
   value: unknown;
   onChange: (v: unknown) => void;
 }) {
-  const cls =
-    "h-7 w-full rounded-md border border-zinc-200 bg-white px-2 text-xs text-zinc-800 outline-none focus:border-indigo-400";
+  const inputCls = "h-7 text-xs";
 
   switch (entry.kind) {
     case "string": {
       const v = typeof value === "string" ? value : (entry.default ?? "");
       return (
-        <input
+        <Input
           type="text"
           value={v}
           maxLength={entry.maxLen}
           onChange={(e) => onChange(e.target.value)}
           placeholder={entry.default}
-          className={cls}
+          className={inputCls}
         />
       );
     }
     case "url": {
       const v = typeof value === "string" ? value : (entry.default ?? "");
       return (
-        <input
+        <Input
           type="url"
           value={v}
           onChange={(e) => onChange(e.target.value)}
           placeholder={entry.default}
-          className={cls}
+          className={inputCls}
         />
       );
     }
@@ -782,7 +844,7 @@ function ParamControl({
     case "number": {
       const v = typeof value === "number" ? value : (entry.default ?? 0);
       return (
-        <input
+        <Input
           type="number"
           value={Number.isFinite(v) ? v : 0}
           min={entry.min}
@@ -791,7 +853,7 @@ function ParamControl({
             const n = parseFloat(e.target.value);
             onChange(Number.isFinite(n) ? n : 0);
           }}
-          className={cls}
+          className={inputCls}
         />
       );
     }
@@ -799,11 +861,9 @@ function ParamControl({
       const v = typeof value === "boolean" ? value : (entry.default ?? false);
       return (
         <label className="flex h-7 items-center gap-2">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={v}
-            onChange={(e) => onChange(e.target.checked)}
-            className="accent-indigo-500"
+            onCheckedChange={(c) => onChange(c === true)}
           />
           <span className="text-[11px] text-zinc-500">
             {v ? "true" : "false"}
@@ -817,17 +877,18 @@ function ParamControl({
           ? value
           : (entry.default ?? entry.values[0]);
       return (
-        <select
-          value={v}
-          onChange={(e) => onChange(e.target.value)}
-          className={cls}
-        >
-          {entry.values.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
-          ))}
-        </select>
+        <Select value={v} onValueChange={(next) => onChange(next)}>
+          <SelectTrigger className="h-7 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {entry.values.map((opt) => (
+              <SelectItem key={opt} value={opt}>
+                {opt}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       );
     }
   }

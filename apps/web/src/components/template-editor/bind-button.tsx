@@ -7,6 +7,18 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 import { useEditorConfig } from "./editor-config";
 import { useEditor } from "./store";
 import type {
@@ -67,21 +79,24 @@ function BindableInner(props: ValueBindable | PaintBindable) {
     <div className="flex min-w-0 flex-1 items-center gap-1">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <button
+          <Button
             type="button"
-            title={
+            variant="ghost"
+            size="icon-xs"
+            aria-label={
               bound && boundName
                 ? `Bound to {${boundName}}`
                 : "Bind to a variable"
             }
-            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded transition-colors ${
+            className={cn(
+              "size-5",
               bound
-                ? "text-indigo-500 hover:bg-indigo-50"
-                : "text-zinc-300 hover:bg-zinc-100 hover:text-zinc-700"
-            }`}
+                ? "text-indigo-500 hover:bg-indigo-50 hover:text-indigo-600"
+                : "text-zinc-300 hover:bg-zinc-100 hover:text-zinc-700",
+            )}
           >
             <Link2 className="h-3 w-3" />
-          </button>
+          </Button>
         </PopoverTrigger>
         <PopoverContent
           side="bottom"
@@ -111,13 +126,7 @@ function BindableInner(props: ValueBindable | PaintBindable) {
   );
 }
 
-function BoundPill({
-  name,
-  onClick,
-}: {
-  name: string;
-  onClick: () => void;
-}) {
+function BoundPill({ name, onClick }: { name: string; onClick: () => void }) {
   return (
     <button
       type="button"
@@ -266,48 +275,53 @@ function ListBody({
               onCommit={onSetDefault}
             />
           </div>
-          <button
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
             onClick={onUnbind}
-            title="Unbind variable"
             aria-label="Unbind variable"
-            className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-indigo-400 hover:bg-rose-50 hover:text-rose-600"
+            className="text-indigo-400 hover:bg-rose-50 hover:text-rose-600"
           >
             <Link2Off className="h-3.5 w-3.5" />
-          </button>
+          </Button>
         </div>
       ) : null}
 
-      <div className="max-h-[240px] overflow-y-auto p-1">
-        {compatible.length === 0 ? (
-          <div className="px-2 py-3 text-center text-[11px] text-zinc-400">
-            {totalParams > 0
-              ? `No ${paramKind} variables`
-              : "No variables yet"}
-          </div>
-        ) : (
-          compatible.map(([n, e]) => {
-            const preview = defaultPreview(e);
-            return (
-              <VarRow
-                key={n}
-                name={n}
-                previewText={preview.text}
-                previewSwatch={preview.swatch}
-                selected={n === boundName}
-                onClick={() => onPick(n)}
-                onDelete={() => onRemoveParam(n)}
-              />
-            );
-          })
-        )}
-        <button
-          onClick={onStartCreate}
-          className="mt-0.5 flex w-full items-center gap-2 rounded px-2 py-1 text-left text-[11px] text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700"
-        >
-          <Plus className="h-3 w-3 shrink-0" />
-          <span>New variable</span>
-        </button>
-      </div>
+      <ScrollArea className="max-h-[240px]">
+        <div className="p-1">
+          {compatible.length === 0 ? (
+            <div className="px-2 py-3 text-center text-[11px] text-zinc-400">
+              {totalParams > 0
+                ? `No ${paramKind} variables`
+                : "No variables yet"}
+            </div>
+          ) : (
+            compatible.map(([n, e]) => {
+              const preview = defaultPreview(e);
+              return (
+                <VarRow
+                  key={n}
+                  name={n}
+                  previewText={preview.text}
+                  previewSwatch={preview.swatch}
+                  selected={n === boundName}
+                  onClick={() => onPick(n)}
+                  onDelete={() => onRemoveParam(n)}
+                />
+              );
+            })
+          )}
+          <button
+            type="button"
+            onClick={onStartCreate}
+            className="mt-0.5 flex w-full items-center gap-2 rounded px-2 py-1 text-left text-[11px] text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700"
+          >
+            <Plus className="h-3 w-3 shrink-0" />
+            <span>New variable</span>
+          </button>
+        </div>
+      </ScrollArea>
     </>
   );
 }
@@ -329,24 +343,30 @@ function VarRow({
 }) {
   return (
     <div
-      className={`group relative flex w-full items-center gap-2 rounded px-2 py-1 text-[11px] ${
-        selected ? "bg-indigo-50" : "hover:bg-zinc-50"
-      }`}
+      className={cn(
+        "group relative flex w-full items-center gap-2 rounded px-2 py-1 text-[11px]",
+        selected ? "bg-indigo-50" : "hover:bg-zinc-50",
+      )}
     >
       {selected ? (
         <span className="absolute bottom-1 left-0 top-1 w-0.5 rounded-r bg-indigo-500" />
       ) : null}
       <button
+        type="button"
         onClick={onClick}
         className="flex min-w-0 flex-1 items-center gap-2 text-left"
       >
         <Hash
-          className={`h-3 w-3 shrink-0 ${selected ? "text-indigo-500" : "text-indigo-400"}`}
+          className={cn(
+            "h-3 w-3 shrink-0",
+            selected ? "text-indigo-500" : "text-indigo-400",
+          )}
         />
         <span
-          className={`min-w-0 flex-1 truncate font-mono ${
-            selected ? "text-indigo-700" : "text-zinc-700"
-          }`}
+          className={cn(
+            "min-w-0 flex-1 truncate font-mono",
+            selected ? "text-indigo-700" : "text-zinc-700",
+          )}
         >
           {name}
         </span>
@@ -366,6 +386,7 @@ function VarRow({
       </button>
       {onDelete ? (
         <button
+          type="button"
           onClick={onDelete}
           title="Delete variable"
           className="-ml-2 flex h-4 w-0 shrink-0 items-center justify-center overflow-hidden rounded text-zinc-300 transition-all duration-150 hover:bg-rose-50 hover:text-rose-600 group-hover:ml-0 group-hover:w-4 focus-visible:ml-0 focus-visible:w-4"
@@ -388,11 +409,9 @@ function DefaultEditor({
     const cur = entry.default === true;
     return (
       <label className="flex h-6 items-center gap-2 px-1 text-[11px] text-zinc-700">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={cur}
-          onChange={(e) => onCommit(e.target.checked)}
-          className="accent-indigo-500"
+          onCheckedChange={(v) => onCommit(v === true)}
         />
         <span>{cur ? "true" : "false"}</span>
       </label>
@@ -401,17 +420,21 @@ function DefaultEditor({
   if (entry.kind === "enum") {
     const cur = String(entry.default ?? entry.values[0]);
     return (
-      <select
-        value={cur}
-        onChange={(e) => onCommit(e.target.value)}
-        className="h-6 w-full rounded border border-indigo-200 bg-white px-1.5 text-[11px] outline-none focus:border-indigo-400"
-      >
-        {entry.values.map((v) => (
-          <option key={v} value={v}>
-            {v}
-          </option>
-        ))}
-      </select>
+      <Select value={cur} onValueChange={(v) => onCommit(v)}>
+        <SelectTrigger
+          size="sm"
+          className="h-6 w-full border-indigo-200 px-1.5 text-[11px]"
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {entry.values.map((v) => (
+            <SelectItem key={v} value={v} className="text-[11px]">
+              {v}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     );
   }
   return (
@@ -434,7 +457,7 @@ function CommitInput({
 }) {
   const [v, setV] = useState(initial);
   return (
-    <input
+    <Input
       value={v}
       onChange={(e) => {
         const next = e.target.value;
@@ -442,7 +465,7 @@ function CommitInput({
         onCommit(parseRaw(kind, next));
       }}
       spellCheck={false}
-      className="h-6 w-full rounded border border-indigo-200 bg-white px-1.5 font-mono text-[11px] text-zinc-900 outline-none focus:border-indigo-400"
+      className="h-6 border-indigo-200 px-1.5 font-mono text-[11px]"
     />
   );
 }
@@ -492,38 +515,44 @@ function CreateVariableForm({
         <span className="text-[11px] font-semibold text-zinc-700">
           New variable
         </span>
-        <button
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
           onClick={onCancel}
-          className="flex h-5 w-5 items-center justify-center rounded text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+          aria-label="Cancel"
+          className="size-5 text-zinc-400 hover:text-zinc-700"
         >
           <X className="h-3 w-3" />
-        </button>
+        </Button>
       </div>
       <FormField label="Name">
-        <input
+        <Input
           autoFocus
           value={name}
           onChange={(e) => setName(e.target.value)}
           spellCheck={false}
-          className="h-6 w-full rounded border border-zinc-200 bg-zinc-50 px-1.5 font-mono text-[11px] text-zinc-900 outline-none focus:border-indigo-400 focus:bg-white"
+          className="h-6 px-1.5 font-mono text-[11px]"
         />
       </FormField>
       <FormField label="Default">
-        <input
+        <Input
           value={raw}
           onChange={(e) => setRaw(e.target.value)}
           placeholder={paramKind === "enum" ? "a, b, c" : ""}
           spellCheck={false}
-          className="h-6 w-full rounded border border-zinc-200 bg-zinc-50 px-1.5 font-mono text-[11px] text-zinc-900 outline-none focus:border-indigo-400 focus:bg-white"
+          className="h-6 px-1.5 font-mono text-[11px]"
         />
       </FormField>
-      <button
+      <Button
+        type="button"
         onClick={() => onCreate(name, raw)}
         disabled={!valid}
-        className="h-7 w-full rounded bg-zinc-900 text-[11px] font-medium text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
+        size="sm"
+        className="w-full text-[11px]"
       >
         Create
-      </button>
+      </Button>
     </div>
   );
 }

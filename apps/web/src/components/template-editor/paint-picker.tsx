@@ -13,6 +13,8 @@ import { createPortal } from "react-dom";
 import { ColorPicker } from "./color-picker";
 import type { ColorStop, Paint } from "./types";
 import { isFlatPaint, paintToCss, resolveValue } from "./types";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const POPOVER_WIDTH = 280;
 const POPOVER_HEIGHT = 360;
@@ -109,17 +111,19 @@ export function PaintInput({
   if (compact) {
     return (
       <>
-        <button
+        <Button
           ref={triggerRef}
-          title={label}
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label={label ?? "Paint"}
           onClick={() => setOpen((o) => !o)}
-          className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-zinc-100"
         >
           <span
             className="block h-5 w-5 rounded-full border border-zinc-300"
             style={swatchStyle(value)}
           />
-        </button>
+        </Button>
         {open ? (
           <Popover
             triggerRef={triggerRef}
@@ -136,6 +140,7 @@ export function PaintInput({
     <div className="flex w-full items-center gap-2">
       <button
         ref={triggerRef}
+        type="button"
         onClick={() => setOpen((o) => !o)}
         className="h-7 w-7 shrink-0 rounded border border-zinc-200 p-0"
         style={swatchStyle(value)}
@@ -239,26 +244,23 @@ function Popover({
       className="rounded-lg border border-zinc-200 bg-white p-2 shadow-xl"
       onPointerDown={(e) => e.stopPropagation()}
     >
-      <div className="mb-2 flex items-center gap-1 rounded-md bg-zinc-100 p-0.5">
-        <TabBtn
-          active={value.kind === "flat"}
-          onClick={() => setKind("flat")}
-        >
-          Solid
-        </TabBtn>
-        <TabBtn
-          active={value.kind === "linear"}
-          onClick={() => setKind("linear")}
-        >
-          Linear
-        </TabBtn>
-        <TabBtn
-          active={value.kind === "radial"}
-          onClick={() => setKind("radial")}
-        >
-          Radial
-        </TabBtn>
-      </div>
+      <Tabs
+        value={value.kind}
+        onValueChange={(k) => setKind(k as Paint["kind"])}
+        className="mb-2"
+      >
+        <TabsList className="w-full">
+          <TabsTrigger value="flat" className="text-[11px]">
+            Solid
+          </TabsTrigger>
+          <TabsTrigger value="linear" className="text-[11px]">
+            Linear
+          </TabsTrigger>
+          <TabsTrigger value="radial" className="text-[11px]">
+            Radial
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {value.kind === "flat" ? (
         <FlatBody value={value} onChange={onChange} />
@@ -269,27 +271,6 @@ function Popover({
       )}
     </div>,
     document.body,
-  );
-}
-
-function TabBtn({
-  children,
-  active,
-  onClick,
-}: {
-  children: React.ReactNode;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex-1 rounded px-2 py-1 text-[11px] font-medium ${
-        active ? "bg-white text-zinc-800 shadow-sm" : "text-zinc-500 hover:text-zinc-700"
-      }`}
-    >
-      {children}
-    </button>
   );
 }
 
@@ -463,13 +444,16 @@ function StopsEditor({
     <div>
       <div className="mb-1 flex items-center justify-between">
         <Caption>Stops</Caption>
-        <button
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
           onClick={add}
-          title="Add stop"
-          className="flex h-6 w-6 items-center justify-center rounded text-zinc-500 hover:bg-zinc-100"
+          aria-label="Add stop"
+          className="text-zinc-500"
         >
           <Plus className="h-3.5 w-3.5" />
-        </button>
+        </Button>
       </div>
       <div className="space-y-1">
         {stops.map((stop, i) => (
@@ -493,14 +477,17 @@ function StopsEditor({
             <span className="w-9 text-right font-mono text-[10px] text-zinc-500">
               {Math.round(stop.position * 100)}%
             </span>
-            <button
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
               onClick={() => remove(i)}
               disabled={stops.length <= 2}
-              className="flex h-6 w-6 items-center justify-center rounded text-zinc-400 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-30"
-              title="Remove stop"
+              aria-label="Remove stop"
+              className="text-zinc-400 hover:bg-rose-50 hover:text-rose-600"
             >
               <Trash2 className="h-3 w-3" />
-            </button>
+            </Button>
           </div>
         ))}
       </div>

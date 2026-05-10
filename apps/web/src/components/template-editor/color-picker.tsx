@@ -9,6 +9,9 @@ import {
   type RefObject,
 } from "react";
 import { createPortal } from "react-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 const PRESETS = [
   "transparent",
@@ -89,17 +92,19 @@ export function ColorPicker({
   if (compact) {
     return (
       <>
-        <button
+        <Button
           ref={triggerRef}
-          title={label}
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label={label ?? "Color"}
           onClick={() => setOpen((o) => !o)}
-          className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-zinc-100"
         >
           <span
             className="block h-5 w-5 rounded-full border border-zinc-300"
             style={checkerStyle(value)}
           />
-        </button>
+        </Button>
         {open ? (
           <Popover
             triggerRef={triggerRef}
@@ -116,17 +121,18 @@ export function ColorPicker({
     <div className="flex w-full items-center gap-2">
       <button
         ref={triggerRef}
+        type="button"
         onClick={() => setOpen((o) => !o)}
         className="h-7 w-7 shrink-0 rounded border border-zinc-200 p-0"
         style={checkerStyle(value)}
         aria-label={label ?? "Color"}
       />
-      <input
+      <Input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         spellCheck={false}
-        className="h-7 w-full rounded-md border border-zinc-200 bg-white px-2 font-mono text-xs uppercase text-zinc-800 outline-none focus:border-indigo-400"
+        className="h-7 font-mono text-xs uppercase"
       />
       {open ? (
         <Popover
@@ -246,13 +252,15 @@ function Popover({
           return (
             <button
               key={c}
+              type="button"
               onClick={() => onChange(colorOut)}
               title={isTransparent ? "Transparent" : c}
-              className={`h-6 w-6 rounded border ${
+              className={cn(
+                "h-6 w-6 rounded border",
                 active
                   ? "border-indigo-500 ring-2 ring-indigo-200"
-                  : "border-zinc-200"
-              }`}
+                  : "border-zinc-200",
+              )}
               style={isTransparent ? transparentStyle() : checkerStyle(c)}
             />
           );
@@ -290,7 +298,7 @@ function Popover({
           className="block h-7 w-7 shrink-0 rounded border border-zinc-200"
           style={checkerStyle(value)}
         />
-        <input
+        <Input
           type="text"
           value={hex}
           onChange={(e) => setHex(e.target.value)}
@@ -302,7 +310,7 @@ function Popover({
             }
           }}
           spellCheck={false}
-          className="h-7 w-full rounded-md border border-zinc-200 bg-white px-2 font-mono text-xs uppercase text-zinc-800 outline-none focus:border-indigo-400"
+          className="h-7 font-mono text-xs uppercase"
         />
       </div>
     </div>,
