@@ -6,6 +6,8 @@
 
   --animate-accordion-down: accordion-down 0.18s ease-out;
   --animate-accordion-up: accordion-up 0.18s ease-out;
+  --animate-popover-in: popover-in 0.14s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-popover-out: popover-out 0.1s ease-in;
 }
 
 @keyframes accordion-down {
@@ -23,5 +25,27 @@
   }
   to {
     height: 0;
+  }
+}
+
+@keyframes popover-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes popover-out {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
   }
 }
