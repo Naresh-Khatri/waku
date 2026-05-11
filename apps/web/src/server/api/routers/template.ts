@@ -359,7 +359,9 @@ export const templateRouter = createTRPCRouter({
       thumbnailUrl: r.thumbnailKey
         ? `${storage.getReadUrl(r.thumbnailKey)}?v=${r.updatedAt.getTime()}`
         : null,
-      documentJson: r.documentJson,
+      // Catalogue cards prefer thumbnails — only ship the full document when
+      // there's nothing else to render. Trims hot-path payload significantly.
+      documentJson: r.thumbnailKey ? null : r.documentJson,
       category: r.categoryId
         ? { id: r.categoryId, slug: r.categorySlug!, name: r.categoryName! }
         : null,

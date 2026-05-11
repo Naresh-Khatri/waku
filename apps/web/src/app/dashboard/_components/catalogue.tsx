@@ -13,7 +13,7 @@ type StockItem = {
   description: string | null;
   tags: string[];
   thumbnailUrl: string | null;
-  documentJson: TemplateDocument;
+  documentJson: TemplateDocument | null;
   category: { id: string; slug: string; name: string } | null;
 };
 
@@ -67,11 +67,12 @@ export function Catalogue() {
                 <TemplateCard
                   key={item.id}
                   href={`/t/${item.slug}`}
+                  prefetch={false}
                   name={item.name}
                   description={item.description}
                   tags={item.tags}
                   thumbnailUrl={item.thumbnailUrl}
-                  document={item.documentJson}
+                  document={item.documentJson ?? undefined}
                 />
               ))}
             </div>
