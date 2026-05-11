@@ -1,3 +1,4 @@
+import { adminRouter } from "@/server/api/routers/admin";
 import { assetRouter } from "@/server/api/routers/asset";
 import { chatRouter } from "@/server/api/routers/chat";
 import { creditsRouter } from "@/server/api/routers/credits";
@@ -11,6 +12,7 @@ import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
  * All routers added in /api/routers should be manually added here.
  */
 export const appRouter = createTRPCRouter({
+  admin: adminRouter,
   asset: assetRouter,
   chat: chatRouter,
   credits: creditsRouter,

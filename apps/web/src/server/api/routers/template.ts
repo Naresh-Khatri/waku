@@ -1,10 +1,17 @@
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, gte, sql } from "drizzle-orm";
-import { renderLog, template, templateVersion } from "@waku/db";
+import { and, asc, desc, eq, gte, isNotNull, sql } from "drizzle-orm";
+import {
+  renderLog,
+  stockTemplate,
+  template,
+  templateCategory,
+  templateVersion,
+} from "@waku/db";
 import { z } from "zod";
 
 import { TemplateDocumentZ } from "@/components/template-editor/schema";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { storage } from "@/server/storage";
 
 const slugSchema = z
   .string()
@@ -35,6 +42,47 @@ export const templateRouter = createTRPCRouter({
       .from(template)
       .where(eq(template.userId, ctx.session.user.id))
       .orderBy(desc(template.updatedAt));
+  }),
+
+  // Catalogue feed: published stock templates with thumbnail URLs and category.
+  listStock: protectedProcedure.query(async ({ ctx }) => {
+    const rows = await ctx.db
+      .select({
+        id: stockTemplate.id,
+        slug: stockTemplate.slug,
+        name: stockTemplate.name,
+        description: stockTemplate.description,
+        tags: stockTemplate.tags,
+        thumbnailKey: stockTemplate.thumbnailKey,
+        documentJson: stockTemplate.documentJson,
+        categoryId: stockTemplate.categoryId,
+        categorySlug: templateCategory.slug,
+        categoryName: templateCategory.name,
+        categorySortOrder: templateCategory.sortOrder,
+      })
+      .from(stockTemplate)
+      .leftJoin(
+        templateCategory,
+        eq(templateCategory.id, stockTemplate.categoryId),
+      )
+      .where(isNotNull(stockTemplate.publishedAt))
+      .orderBy(
+        asc(templateCategory.sortOrder),
+        asc(templateCategory.name),
+        desc(stockTemplate.updatedAt),
+      );
+    return rows.map((r) => ({
+      id: r.id,
+      slug: r.slug,
+      name: r.name,
+      description: r.description,
+      tags: r.tags,
+      thumbnailUrl: r.thumbnailKey ? storage.getReadUrl(r.thumbnailKey) : null,
+      documentJson: r.documentJson,
+      category: r.categoryId
+        ? { id: r.categoryId, slug: r.categorySlug!, name: r.categoryName! }
+        : null,
+    }));
   }),
 
   usage: protectedProcedure.query(async ({ ctx }) => {
