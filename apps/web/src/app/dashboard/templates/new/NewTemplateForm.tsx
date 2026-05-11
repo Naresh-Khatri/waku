@@ -21,7 +21,7 @@ export default function NewTemplateForm() {
 
   const create = api.template.create.useMutation({
     onSuccess: ({ template }) => {
-      router.push(`/dashboard/templates/${template.slug}/edit`);
+      router.push(`/dashboard/templates/${template.slug}`);
     },
     onError: (err) => setError(err.message),
   });

@@ -35,7 +35,7 @@ export function Catalogue() {
   const create = api.template.create.useMutation({
     onSuccess: async ({ template }) => {
       await utils.template.list.invalidate();
-      router.push(`/dashboard/templates/${template.slug}/edit`);
+      router.push(`/dashboard/templates/${template.slug}`);
     },
     onError: (err) => {
       setError(err.message);

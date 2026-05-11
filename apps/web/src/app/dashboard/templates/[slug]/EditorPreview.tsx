@@ -1,8 +1,8 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { Editor } from "@/components/template-editor/editor";
@@ -10,6 +10,12 @@ import { PreviewPanel } from "@/components/template-editor/preview-panel";
 import { useEditor } from "@/components/template-editor/store";
 import type { TemplateDocument } from "@/components/template-editor/types";
 import { paramsFromSearch } from "@/components/template-editor/url-params";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { env } from "@/env";
 import { api } from "@/trpc/react";
 
@@ -62,6 +68,7 @@ function EditorTopBar({
   versionId,
   liveUrl,
 }: Props & { liveUrl: string }) {
+  const router = useRouter();
   const dirty = useEditor((s) => s.dirty);
   const getDocument = useEditor((s) => s.getDocument);
   const markClean = useEditor((s) => s.markClean);
@@ -76,6 +83,10 @@ function EditorTopBar({
       markClean();
     },
     onError: (err) => setSaveError(err.message),
+  });
+
+  const del = api.template.delete.useMutation({
+    onSuccess: () => router.push("/dashboard"),
   });
 
   const saveTimerRef = useRef<number | null>(null);
@@ -124,9 +135,9 @@ function EditorTopBar({
   return (
     <header className="flex h-12 items-center gap-3 border-b border-zinc-200 bg-white px-3">
       <Link
-        href={`/dashboard/templates/${templateSlug}`}
+        href="/dashboard"
         className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
-        title="Back to template"
+        title="Back to dashboard"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         <span className="hidden sm:inline">Back</span>
@@ -173,6 +184,28 @@ function EditorTopBar({
           templateSlug={templateSlug}
           renderBase={RENDER_BASE}
         />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => {
+                if (
+                  confirm(`Delete "${templateName}"? This cannot be undone.`)
+                ) {
+                  del.mutate({ templateId });
+                }
+              }}
+              disabled={del.isPending}
+              aria-label="Delete template"
+              className="text-zinc-500 hover:bg-rose-50 hover:text-rose-600"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Delete template</TooltipContent>
+        </Tooltip>
       </div>
     </header>
   );

@@ -1,12 +1,13 @@
 import { notFound } from "next/navigation";
 
+import type { TemplateDocument } from "@/components/template-editor/types";
 import { getSession } from "@/server/better-auth/server";
 import { ensureProfile } from "@/server/profile";
 import { api } from "@/trpc/server";
 
-import TemplateClient from "./TemplateClient";
+import EditorPreview from "./EditorPreview";
 
-export default async function TemplateDetailPage({
+export default async function EditTemplatePage({
   params,
 }: {
   params: Promise<{ slug: string }>;
@@ -16,10 +17,25 @@ export default async function TemplateDetailPage({
   if (!session?.user) notFound();
   const { handle } = await ensureProfile(session.user);
 
+  let tpl;
   try {
-    const tpl = await api.template.get({ slug });
-    return <TemplateClient handle={handle} template={tpl} />;
+    tpl = await api.template.get({ slug });
   } catch {
     notFound();
   }
+  const head = tpl.versions.find((v) => v.version === 1);
+  if (!head) notFound();
+  const version = await api.template.getVersion({ versionId: head.id });
+
+  return (
+    <EditorPreview
+      document={version.documentJson as TemplateDocument}
+      templateId={tpl.id}
+      templateName={tpl.name}
+      templateSlug={tpl.slug}
+      handle={handle}
+      version={version.version}
+      versionId={version.id}
+    />
+  );
 }

@@ -29,7 +29,10 @@ export function DashboardShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isEditor = pathname?.includes("/edit") ?? false;
+  const isEditor =
+    pathname?.startsWith("/dashboard/templates/") &&
+    !pathname.endsWith("/new") &&
+    pathname !== "/dashboard/templates";
 
   if (isEditor) {
     return <main className="px-0 py-0">{children}</main>;
