@@ -21,6 +21,7 @@ const SUGGESTIONS = [
 
 type ProposeDesignPart = {
   type: string;
+  toolCallId: string;
   state:
     | "input-streaming"
     | "input-available"
@@ -232,7 +233,11 @@ export function ChatComposer() {
                 ) : (
                   <div className="flex flex-col gap-5 px-4 py-6">
                     {messages.map((m) => (
-                      <MessageThread key={m.id} message={m} />
+                      <MessageThread
+                        key={m.id}
+                        message={m}
+                        conversationId={activeId}
+                      />
                     ))}
                     {showTyping ? <Typing /> : null}
                     {error ? (
@@ -410,7 +415,13 @@ function ChatHeader({
   );
 }
 
-function MessageThread({ message }: { message: UIMessage }) {
+function MessageThread({
+  message,
+  conversationId,
+}: {
+  message: UIMessage;
+  conversationId: string | null;
+}) {
   return (
     <div className="flex flex-col gap-3">
       {message.parts.map((part, i) => {
@@ -423,6 +434,8 @@ function MessageThread({ message }: { message: UIMessage }) {
             <DesignProposal
               key={i}
               part={part as unknown as ProposeDesignPart}
+              conversationId={conversationId}
+              messageId={message.id}
             />
           );
         }
@@ -457,25 +470,28 @@ function MessageBubble({
   );
 }
 
-const slugify = (s: string) =>
-  s
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 56) || "design";
-
 // Clicking the rendered design forks the AI's proposal into a user-owned
 // template and drops the user into the editor — no explicit "fork" affordance,
-// since the click itself is the edit intent.
-function DesignProposal({ part }: { part: ProposeDesignPart }) {
+// since the click itself is the edit intent. The server re-reads the design
+// from the persisted chat message so the client can't smuggle in arbitrary json.
+function DesignProposal({
+  part,
+  conversationId,
+  messageId,
+}: {
+  part: ProposeDesignPart;
+  conversationId: string | null;
+  messageId: string;
+}) {
   const router = useRouter();
   const utils = api.useUtils();
   const [forking, setForking] = useState(false);
   const [forkError, setForkError] = useState<string | null>(null);
 
-  const create = api.template.create.useMutation({
+  const fork = api.template.forkFromAi.useMutation({
     onSuccess: async ({ template }) => {
       await utils.template.list.invalidate();
+      await utils.template.listMine.invalidate();
       router.push(`/dashboard/templates/${template.slug}`);
     },
     onError: (err) => {
@@ -505,16 +521,17 @@ function DesignProposal({ part }: { part: ProposeDesignPart }) {
 
   if (part.state !== "output-available" || !part.output) return null;
   const { name, document } = part.output;
+  // Persistence happens on stream finish — before that we can't fork from db.
+  const persisted = Boolean(conversationId);
 
   const onOpen = () => {
-    if (forking) return;
+    if (forking || !conversationId) return;
     setForkError(null);
     setForking(true);
-    const stamp = Date.now().toString(36).slice(-4);
-    create.mutate({
-      slug: `${slugify(name)}-${stamp}`,
-      name,
-      documentJson: document,
+    fork.mutate({
+      conversationId,
+      messageId,
+      toolCallId: part.toolCallId,
     });
   };
 
@@ -523,13 +540,17 @@ function DesignProposal({ part }: { part: ProposeDesignPart }) {
       <button
         type="button"
         onClick={onOpen}
-        disabled={forking}
+        disabled={forking || !persisted}
         className="group block w-full overflow-hidden rounded-md border border-[#1f2937] text-left transition hover:border-[#7c5cff] focus:outline-none focus-visible:border-[#7c5cff] disabled:opacity-60"
         aria-label={`Open "${name}" in editor`}
       >
         <TemplatePreview document={document} />
         <div className="border-t border-[#1f2937] bg-[#0b0f1a] px-3 py-1.5 text-[11px] text-[#9ca3af] group-hover:text-[#e5e7eb]">
-          {forking ? "Opening editor…" : "Click to open in editor →"}
+          {forking
+            ? "Opening editor…"
+            : !persisted
+              ? "Saving chat…"
+              : "Click to open in editor →"}
         </div>
       </button>
       {forkError ? (

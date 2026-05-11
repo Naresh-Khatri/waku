@@ -1,6 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import { and, asc, desc, eq, gte, isNotNull, lt, sql } from "drizzle-orm";
 import {
+  chatConversation,
+  chatMessage,
   renderLog,
   stockTemplate,
   template,
@@ -188,6 +190,124 @@ export const templateRouter = createTRPCRouter({
             version: 1,
             documentJson: stockRow.documentJson,
             publishedAt: now,
+          })
+          .returning();
+        if (!version) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+        const [tplWithPointer] = await tx
+          .update(template)
+          .set({ publishedVersionId: version.id })
+          .where(eq(template.id, tpl.id))
+          .returning();
+
+        return { template: tplWithPointer ?? tpl, version };
+      });
+    }),
+
+  // Server-side fork: copies an AI-proposed design from a persisted chat message
+  // into a user-owned template. Trust comes from re-reading the message from db
+  // (scoped to the caller's conversation) rather than client-supplied json.
+  forkFromAi: protectedProcedure
+    .input(
+      z.object({
+        conversationId: z.string().uuid(),
+        messageId: z.string().min(1),
+        toolCallId: z.string().min(1),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+
+      const convo = await ctx.db.query.chatConversation.findFirst({
+        where: and(
+          eq(chatConversation.id, input.conversationId),
+          eq(chatConversation.userId, userId),
+        ),
+        columns: { id: true },
+      });
+      if (!convo) throw new TRPCError({ code: "NOT_FOUND" });
+
+      const msg = await ctx.db.query.chatMessage.findFirst({
+        where: and(
+          eq(chatMessage.id, input.messageId),
+          eq(chatMessage.conversationId, convo.id),
+        ),
+        columns: { parts: true },
+      });
+      if (!msg) throw new TRPCError({ code: "NOT_FOUND" });
+
+      const proposal = (msg.parts as unknown[]).find((p): p is {
+        type: string;
+        toolCallId: string;
+        state: string;
+        output?: { name?: unknown; document?: unknown };
+      } => {
+        if (!p || typeof p !== "object") return false;
+        const o = p as Record<string, unknown>;
+        return (
+          o.type === "tool-propose_design" &&
+          o.state === "output-available" &&
+          o.toolCallId === input.toolCallId
+        );
+      });
+      if (!proposal?.output) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "Design is not ready yet",
+        });
+      }
+
+      const parsed = TemplateDocumentZ.safeParse(proposal.output.document);
+      if (!parsed.success) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Stored design failed validation",
+        });
+      }
+      const document = parsed.data;
+      const rawName =
+        typeof proposal.output.name === "string" && proposal.output.name.trim()
+          ? proposal.output.name.trim().slice(0, 120)
+          : "Design";
+
+      const base =
+        rawName
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+          .slice(0, 56) || "design";
+
+      return ctx.db.transaction(async (tx) => {
+        const existing = await tx
+          .select({ slug: template.slug })
+          .from(template)
+          .where(
+            and(
+              eq(template.userId, userId),
+              sql`(${template.slug} = ${base} OR ${template.slug} LIKE ${base + "-%"})`,
+            ),
+          );
+        const taken = new Set(existing.map((r) => r.slug));
+        let chosen = base;
+        let n = 2;
+        while (taken.has(chosen)) {
+          chosen = `${base}-${n}`;
+          n += 1;
+        }
+
+        const [tpl] = await tx
+          .insert(template)
+          .values({ userId, slug: chosen, name: rawName })
+          .returning();
+        if (!tpl) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+        const [version] = await tx
+          .insert(templateVersion)
+          .values({
+            templateId: tpl.id,
+            version: 1,
+            documentJson: document,
+            publishedAt: new Date(),
           })
           .returning();
         if (!version) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
