@@ -11,6 +11,7 @@ import {
   Save,
   Sliders,
   Trash2,
+  Upload,
   X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -130,10 +131,10 @@ export function PreviewPanel({
 
   // Only surface params that are actually wired into a node or the artboard —
   // an unbound schema entry has no visible effect, so editing it is just noise.
-  const boundParams = useMemo(() => collectBoundParams(nodes, artboard), [
-    nodes,
-    artboard,
-  ]);
+  const boundParams = useMemo(
+    () => collectBoundParams(nodes, artboard),
+    [nodes, artboard],
+  );
   const entries = useMemo(
     () =>
       Object.entries(paramsSchema)
@@ -186,19 +187,25 @@ export function PreviewPanel({
       </AnimatePresence>
       <AnimatePresence initial={false}>
         {!expanded ? (
-          <motion.button
-            key="trigger"
-            layoutId="preview-panel"
-            transition={TRANSITION}
-            onClick={() => setExpanded(true)}
-            className="flex h-8 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 shadow-sm hover:bg-zinc-50"
-            title="Show preview"
-          >
-            <Sliders className="h-3.5 w-3.5 text-zinc-500" />
-            <span className="font-semibold uppercase tracking-wide text-zinc-500">
-              Preview
-            </span>
-          </motion.button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <motion.div
+                key="trigger"
+                layoutId="preview-panel"
+                transition={TRANSITION}
+                onClick={() => setExpanded(true)}
+                title="Show preview"
+              >
+                <Button variant={"default"}>
+                  <Upload />
+                  <span>Export</span>
+                </Button>
+              </motion.div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Export to a static image</p>
+            </TooltipContent>
+          </Tooltip>
         ) : (
           <motion.div
             key="panel"
@@ -861,10 +868,7 @@ function ParamControl({
       const v = typeof value === "boolean" ? value : (entry.default ?? false);
       return (
         <label className="flex h-7 items-center gap-2">
-          <Checkbox
-            checked={v}
-            onCheckedChange={(c) => onChange(c === true)}
-          />
+          <Checkbox checked={v} onCheckedChange={(c) => onChange(c === true)} />
           <span className="text-[11px] text-zinc-500">
             {v ? "true" : "false"}
           </span>
