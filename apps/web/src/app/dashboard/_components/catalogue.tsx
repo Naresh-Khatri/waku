@@ -1,12 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type MouseEvent } from "react";
 
+import { TemplateCard } from "@/components/templates/template-card";
 import type { TemplateDocument } from "@/components/template-editor/types";
 import { api } from "@/trpc/react";
-
-import { TemplatePreview } from "./template-preview";
 
 type StockItem = {
   id: string;
@@ -44,7 +43,11 @@ export function Catalogue() {
     },
   });
 
-  const onFork = (item: StockItem) => {
+  const onFork = (
+    e: MouseEvent<HTMLAnchorElement>,
+    item: StockItem,
+  ) => {
+    e.preventDefault();
     if (create.isPending) return;
     setError(null);
     setPendingId(item.id);
@@ -106,77 +109,32 @@ export function Catalogue() {
               {group.name}
             </h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {group.items.map((item) => (
-                <CatalogueCard
-                  key={item.id}
-                  item={item}
-                  pending={pendingId === item.id && create.isPending}
-                  disabled={create.isPending}
-                  onFork={() => onFork(item)}
-                />
-              ))}
+              {group.items.map((item) => {
+                const pending = pendingId === item.id && create.isPending;
+                return (
+                  <TemplateCard
+                    key={item.id}
+                    href={`/dashboard/templates/new?from=${item.slug}`}
+                    name={item.name}
+                    description={item.description}
+                    tags={item.tags}
+                    thumbnailUrl={item.thumbnailUrl}
+                    document={item.documentJson}
+                    onClick={(e) => onFork(e, item)}
+                    overlay={
+                      pending ? (
+                        <span className="rounded-full bg-black/70 px-3 py-1 text-xs font-medium text-white">
+                          Forking…
+                        </span>
+                      ) : null
+                    }
+                  />
+                );
+              })}
             </div>
           </section>
         ))
       )}
-    </div>
-  );
-}
-
-function CatalogueCard({
-  item,
-  pending,
-  disabled,
-  onFork,
-}: {
-  item: StockItem;
-  pending: boolean;
-  disabled: boolean;
-  onFork: () => void;
-}) {
-  return (
-    <div className="flex flex-col overflow-hidden rounded-xl border border-[#1f2937] bg-[#0b0f1a] transition hover:border-[#374151]">
-      <div className="border-b border-[#1f2937]">
-        {item.thumbnailUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={item.thumbnailUrl}
-            alt={item.name}
-            className="aspect-[40/21] w-full object-cover"
-            loading="lazy"
-          />
-        ) : (
-          <TemplatePreview document={item.documentJson} />
-        )}
-      </div>
-      <div className="flex flex-1 flex-col gap-3 p-4">
-        <div>
-          <h3 className="text-base font-medium text-[#e5e7eb]">{item.name}</h3>
-          {item.description ? (
-            <p className="mt-1 text-xs text-[#9ca3af]">{item.description}</p>
-          ) : null}
-        </div>
-        {item.tags.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5">
-            {item.tags.map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full bg-[#1f2937] px-2 py-0.5 text-[10px] text-[#9ca3af]"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        ) : null}
-        <button
-          type="button"
-          onClick={onFork}
-          disabled={disabled}
-          className="mt-1 rounded-md bg-[#7c5cff] px-3 py-1.5 text-sm font-medium text-white transition hover:bg-[#6b4be0] disabled:opacity-40"
-        >
-          {pending ? "Forking…" : "Fork & edit"}
-        </button>
-      </div>
     </div>
   );
 }
