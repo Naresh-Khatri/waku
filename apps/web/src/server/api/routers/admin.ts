@@ -127,7 +127,9 @@ export const adminRouter = createTRPCRouter({
       .orderBy(desc(stockTemplate.updatedAt));
     return rows.map((r) => ({
       ...r,
-      thumbnailUrl: r.thumbnailKey ? storage.getReadUrl(r.thumbnailKey) : null,
+      thumbnailUrl: r.thumbnailKey
+        ? `${storage.getReadUrl(r.thumbnailKey)}?v=${r.updatedAt.getTime()}`
+        : null,
     }));
   }),
 
@@ -180,6 +182,9 @@ export const adminRouter = createTRPCRouter({
     }),
 
   // Head-only: updates document and metadata in place. No snapshots.
+  // When the document changes, the thumbnail is re-rendered so the catalogue
+  // always reflects the latest edits. A thumbnail render failure does not
+  // fail the save — the document write is the source of truth.
   stockUpdate: adminProcedure
     .input(
       z.object({
@@ -205,6 +210,24 @@ export const adminRouter = createTRPCRouter({
         .where(eq(stockTemplate.id, id))
         .returning();
       if (!row) throw new TRPCError({ code: "NOT_FOUND" });
+
+      if (input.documentJson !== undefined) {
+        try {
+          const key = await renderThumbnail(row.id, row.slug);
+          const [refreshed] = await ctx.db
+            .update(stockTemplate)
+            .set({ thumbnailKey: key, updatedAt: new Date() })
+            .where(eq(stockTemplate.id, row.id))
+            .returning();
+          if (refreshed) return refreshed;
+        } catch (err) {
+          console.warn(
+            `[admin.stockUpdate] thumbnail refresh failed for ${row.slug}:`,
+            err instanceof Error ? err.message : err,
+          );
+        }
+      }
+
       return row;
     }),
 

@@ -55,6 +55,7 @@ export const templateRouter = createTRPCRouter({
         tags: stockTemplate.tags,
         thumbnailKey: stockTemplate.thumbnailKey,
         documentJson: stockTemplate.documentJson,
+        updatedAt: stockTemplate.updatedAt,
         categoryId: stockTemplate.categoryId,
         categorySlug: templateCategory.slug,
         categoryName: templateCategory.name,
@@ -77,7 +78,9 @@ export const templateRouter = createTRPCRouter({
       name: r.name,
       description: r.description,
       tags: r.tags,
-      thumbnailUrl: r.thumbnailKey ? storage.getReadUrl(r.thumbnailKey) : null,
+      thumbnailUrl: r.thumbnailKey
+        ? `${storage.getReadUrl(r.thumbnailKey)}?v=${r.updatedAt.getTime()}`
+        : null,
       documentJson: r.documentJson,
       category: r.categoryId
         ? { id: r.categoryId, slug: r.categorySlug!, name: r.categoryName! }
