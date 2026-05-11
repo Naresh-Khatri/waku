@@ -11,6 +11,10 @@ import {
 } from "drizzle-orm/pg-core";
 import type { TemplateDocument } from "@waku/renderer/document";
 
+// Curated, admin-owned starter templates surfaced in the catalogue. Distinct
+// from `template` (user-owned, versioned, renderable). Head-only — no
+// snapshots — because they're seeds users fork from.
+
 import { account, session, user } from "./auth-schema";
 
 export type TemplateDocumentRow = TemplateDocument;
@@ -229,3 +233,56 @@ export const templateVersionRelations = relations(
     }),
   }),
 );
+
+export const templateCategory = pgTable("template_category", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const stockTemplate = pgTable(
+  "stock_template",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    slug: text("slug").notNull().unique(),
+    name: text("name").notNull(),
+    description: text("description"),
+    categoryId: uuid("category_id").references(
+      () => templateCategory.id,
+      { onDelete: "set null" },
+    ),
+    tags: jsonb("tags").$type<string[]>().notNull().default([]),
+    documentJson: jsonb("document_json").$type<TemplateDocumentRow>().notNull(),
+    thumbnailKey: text("thumbnail_key"),
+    publishedAt: timestamp("published_at"),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("stock_template_category_idx").on(t.categoryId),
+    index("stock_template_published_idx").on(t.publishedAt),
+  ],
+);
+
+export const templateCategoryRelations = relations(
+  templateCategory,
+  ({ many }) => ({
+    stockTemplates: many(stockTemplate),
+  }),
+);
+
+export const stockTemplateRelations = relations(stockTemplate, ({ one }) => ({
+  category: one(templateCategory, {
+    fields: [stockTemplate.categoryId],
+    references: [templateCategory.id],
+  }),
+  creator: one(user, {
+    fields: [stockTemplate.createdBy],
+    references: [user.id],
+  }),
+}));
