@@ -1,7 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useMemo, useState, type MouseEvent } from "react";
+import { useMemo } from "react";
 
 import { TemplateCard } from "@/components/templates/template-card";
 import type { TemplateDocument } from "@/components/template-editor/types";
@@ -18,46 +17,8 @@ type StockItem = {
   category: { id: string; slug: string; name: string } | null;
 };
 
-const slugify = (s: string) =>
-  s
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 56) || "untitled";
-
 export function Catalogue() {
-  const router = useRouter();
-  const utils = api.useUtils();
   const stockQuery = api.template.listStock.useQuery();
-  const [pendingId, setPendingId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const create = api.template.create.useMutation({
-    onSuccess: async ({ template }) => {
-      await utils.template.list.invalidate();
-      router.push(`/dashboard/templates/${template.slug}`);
-    },
-    onError: (err) => {
-      setError(err.message);
-      setPendingId(null);
-    },
-  });
-
-  const onFork = (
-    e: MouseEvent<HTMLAnchorElement>,
-    item: StockItem,
-  ) => {
-    e.preventDefault();
-    if (create.isPending) return;
-    setError(null);
-    setPendingId(item.id);
-    const stamp = Date.now().toString(36).slice(-4);
-    create.mutate({
-      slug: `${slugify(item.name)}-${stamp}`,
-      name: item.name,
-      documentJson: item.documentJson,
-    });
-  };
 
   const grouped = useMemo(() => {
     const data: StockItem[] = stockQuery.data ?? [];
@@ -78,19 +39,12 @@ export function Catalogue() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h2 className="text-xl font-semibold text-[#e5e7eb]">
-          Designs catalogue
-        </h2>
+        <h2 className="text-xl font-semibold text-[#e5e7eb]">Templates</h2>
         <p className="mt-1 text-sm text-[#9ca3af]">
-          Fork a starter into your designs and customize it in the editor.
+          Open a template to preview, share, or edit. Your own copy is forked
+          the moment you start editing.
         </p>
       </div>
-
-      {error ? (
-        <div className="rounded-md border border-[#7f1d1d] bg-[#1f0a0a] px-3 py-2 text-sm text-[#fca5a5]">
-          {error}
-        </div>
-      ) : null}
 
       {stockQuery.isLoading ? (
         <div className="text-sm text-[#9ca3af]">Loading…</div>
@@ -109,28 +63,17 @@ export function Catalogue() {
               {group.name}
             </h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {group.items.map((item) => {
-                const pending = pendingId === item.id && create.isPending;
-                return (
-                  <TemplateCard
-                    key={item.id}
-                    href={`/dashboard/templates/new?from=${item.slug}`}
-                    name={item.name}
-                    description={item.description}
-                    tags={item.tags}
-                    thumbnailUrl={item.thumbnailUrl}
-                    document={item.documentJson}
-                    onClick={(e) => onFork(e, item)}
-                    overlay={
-                      pending ? (
-                        <span className="rounded-full bg-black/70 px-3 py-1 text-xs font-medium text-white">
-                          Forking…
-                        </span>
-                      ) : null
-                    }
-                  />
-                );
-              })}
+              {group.items.map((item) => (
+                <TemplateCard
+                  key={item.id}
+                  href={`/t/${item.slug}`}
+                  name={item.name}
+                  description={item.description}
+                  tags={item.tags}
+                  thumbnailUrl={item.thumbnailUrl}
+                  document={item.documentJson}
+                />
+              ))}
             </div>
           </section>
         ))
