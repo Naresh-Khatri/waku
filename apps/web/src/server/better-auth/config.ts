@@ -9,6 +9,16 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
   }),
+  user: {
+    additionalFields: {
+      // Surfaced on session.user — set manually in the DB. Never user-writable.
+      isAdmin: {
+        type: "boolean",
+        input: false,
+        defaultValue: false,
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
   },

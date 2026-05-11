@@ -132,3 +132,14 @@ export const protectedProcedure = t.procedure
       },
     });
   });
+
+/**
+ * Admin procedure — requires session + user.isAdmin === true. The flag is
+ * carried on the Better Auth session via `additionalFields` in the auth config.
+ */
+export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (!ctx.session.user.isAdmin) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "admin only" });
+  }
+  return next({ ctx });
+});
