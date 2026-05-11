@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, desc, eq, gte, isNotNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNotNull, lt, sql } from "drizzle-orm";
 import {
   renderLog,
   stockTemplate,
@@ -10,7 +10,11 @@ import {
 import { z } from "zod";
 
 import { TemplateDocumentZ } from "@/components/template-editor/schema";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  publicProcedure,
+} from "@/server/api/trpc";
 import { storage } from "@/server/storage";
 
 const slugSchema = z
@@ -43,6 +47,160 @@ export const templateRouter = createTRPCRouter({
       .where(eq(template.userId, ctx.session.user.id))
       .orderBy(desc(template.updatedAt));
   }),
+
+  // Recent-first user designs with cursor pagination. Used by the dashboard
+  // "My designs" strip (small limit) and the full /dashboard/designs page.
+  listMine: protectedProcedure
+    .input(
+      z
+        .object({
+          limit: z.number().int().min(1).max(50).default(12),
+          cursor: z.string().datetime().optional(),
+        })
+        .optional(),
+    )
+    .query(async ({ ctx, input }) => {
+      const limit = input?.limit ?? 12;
+      const cursor = input?.cursor ? new Date(input.cursor) : null;
+
+      const rows = await ctx.db
+        .select({
+          id: template.id,
+          slug: template.slug,
+          name: template.name,
+          publishedVersionId: template.publishedVersionId,
+          updatedAt: template.updatedAt,
+        })
+        .from(template)
+        .where(
+          cursor
+            ? and(
+                eq(template.userId, ctx.session.user.id),
+                lt(template.updatedAt, cursor),
+              )
+            : eq(template.userId, ctx.session.user.id),
+        )
+        .orderBy(desc(template.updatedAt))
+        .limit(limit + 1);
+
+      const hasMore = rows.length > limit;
+      const items = hasMore ? rows.slice(0, limit) : rows;
+      const last = items[items.length - 1];
+      return {
+        items,
+        nextCursor: hasMore && last ? last.updatedAt.toISOString() : null,
+      };
+    }),
+
+  // Public single-stock lookup powering /t/[slug] for guests and members.
+  getPublicStock: publicProcedure
+    .input(z.object({ slug: slugSchema }))
+    .query(async ({ ctx, input }) => {
+      const rows = await ctx.db
+        .select({
+          id: stockTemplate.id,
+          slug: stockTemplate.slug,
+          name: stockTemplate.name,
+          description: stockTemplate.description,
+          tags: stockTemplate.tags,
+          thumbnailKey: stockTemplate.thumbnailKey,
+          documentJson: stockTemplate.documentJson,
+          updatedAt: stockTemplate.updatedAt,
+          categoryId: stockTemplate.categoryId,
+          categorySlug: templateCategory.slug,
+          categoryName: templateCategory.name,
+        })
+        .from(stockTemplate)
+        .leftJoin(
+          templateCategory,
+          eq(templateCategory.id, stockTemplate.categoryId),
+        )
+        .where(
+          and(
+            eq(stockTemplate.slug, input.slug),
+            isNotNull(stockTemplate.publishedAt),
+          ),
+        )
+        .limit(1);
+      const r = rows[0];
+      if (!r) throw new TRPCError({ code: "NOT_FOUND" });
+      return {
+        id: r.id,
+        slug: r.slug,
+        name: r.name,
+        description: r.description,
+        tags: r.tags,
+        thumbnailUrl: r.thumbnailKey
+          ? `${storage.getReadUrl(r.thumbnailKey)}?v=${r.updatedAt.getTime()}`
+          : null,
+        documentJson: r.documentJson,
+        category: r.categoryId
+          ? { id: r.categoryId, slug: r.categorySlug!, name: r.categoryName! }
+          : null,
+      };
+    }),
+
+  // Server-side fork: copies a published stock template's document into a new
+  // user-owned row. Picks the first free slug from base, base-2, base-3, ...
+  // so re-forking the same stock template doesn't fight the unique constraint.
+  forkFromStock: protectedProcedure
+    .input(z.object({ stockSlug: slugSchema }))
+    .mutation(async ({ ctx, input }) => {
+      const stockRow = await ctx.db.query.stockTemplate.findFirst({
+        where: and(
+          eq(stockTemplate.slug, input.stockSlug),
+          isNotNull(stockTemplate.publishedAt),
+        ),
+      });
+      if (!stockRow) throw new TRPCError({ code: "NOT_FOUND" });
+
+      return ctx.db.transaction(async (tx) => {
+        const userId = ctx.session.user.id;
+        const base = stockRow.slug;
+        const existing = await tx
+          .select({ slug: template.slug })
+          .from(template)
+          .where(
+            and(
+              eq(template.userId, userId),
+              sql`(${template.slug} = ${base} OR ${template.slug} LIKE ${base + "-%"})`,
+            ),
+          );
+        const taken = new Set(existing.map((r) => r.slug));
+        let chosen = base;
+        let n = 2;
+        while (taken.has(chosen)) {
+          chosen = `${base}-${n}`;
+          n += 1;
+        }
+
+        const [tpl] = await tx
+          .insert(template)
+          .values({ userId, slug: chosen, name: stockRow.name })
+          .returning();
+        if (!tpl) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+        const now = new Date();
+        const [version] = await tx
+          .insert(templateVersion)
+          .values({
+            templateId: tpl.id,
+            version: 1,
+            documentJson: stockRow.documentJson,
+            publishedAt: now,
+          })
+          .returning();
+        if (!version) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+        const [tplWithPointer] = await tx
+          .update(template)
+          .set({ publishedVersionId: version.id })
+          .where(eq(template.id, tpl.id))
+          .returning();
+
+        return { template: tplWithPointer ?? tpl, version };
+      });
+    }),
 
   // Catalogue feed: published stock templates with thumbnail URLs and category.
   listStock: protectedProcedure.query(async ({ ctx }) => {
