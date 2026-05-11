@@ -31,11 +31,18 @@ export function DashboardShell({
   const pathname = usePathname();
   const isEditor =
     pathname?.startsWith("/dashboard/templates/") &&
-    !pathname.endsWith("/new") &&
     pathname !== "/dashboard/templates";
+  // Index and /designs already surface My Designs + catalogue + chat composer,
+  // so the sidebar would just duplicate them.
+  const hideSidebar =
+    isEditor ||
+    pathname === "/dashboard" ||
+    pathname === "/dashboard/designs";
 
-  if (isEditor) {
-    return <main className="px-0 py-0">{children}</main>;
+  if (hideSidebar) {
+    return (
+      <main className={isEditor ? "px-0 py-0" : "px-8 py-8"}>{children}</main>
+    );
   }
 
   return (
@@ -65,16 +72,7 @@ function Sidebar({
 
   return (
     <aside className="flex w-64 shrink-0 flex-col border-r border-[#1f2937] bg-[#070b14]">
-      <div className="px-4 py-4">
-        <Link
-          href="/dashboard/templates/new"
-          className="flex w-full items-center justify-center gap-2 rounded-md bg-[#7c5cff] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#6b4be0]"
-        >
-          <span className="text-base leading-none">+</span> New template
-        </Link>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-2">
+      <div className="flex-1 overflow-y-auto px-2 pt-4">
         <div className="px-2 pb-2 text-[10px] font-medium uppercase tracking-wider text-[#6b7280]">
           Your designs
         </div>
