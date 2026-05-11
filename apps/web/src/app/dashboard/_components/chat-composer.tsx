@@ -146,6 +146,9 @@ export function ChatComposer() {
   const collapse = () => {
     setExpanded(false);
     inputRef.current?.blur();
+    // Drop the ?chat= deep-link once the panel is closed — sharing the
+    // dashboard URL shouldn't carry a stale chat reference.
+    syncUrl(null);
   };
 
   const busy = status === "submitted" || status === "streaming";

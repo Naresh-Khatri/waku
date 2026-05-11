@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ArrowLeft, MoreHorizontal, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -12,10 +12,11 @@ import type { TemplateDocument } from "@/components/template-editor/types";
 import { paramsFromSearch } from "@/components/template-editor/url-params";
 import { Button } from "@/components/ui/button";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { env } from "@/env";
 import { api } from "@/trpc/react";
 
@@ -184,28 +185,36 @@ function EditorTopBar({
           templateSlug={templateSlug}
           renderBase={RENDER_BASE}
         />
-        <Tooltip>
-          <TooltipTrigger asChild>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <Button
               type="button"
               variant="ghost"
               size="icon-sm"
-              onClick={() => {
+              aria-label="Template menu"
+              className="text-zinc-500"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              disabled={del.isPending}
+              onSelect={(e) => {
+                e.preventDefault();
                 if (
                   confirm(`Delete "${templateName}"? This cannot be undone.`)
                 ) {
                   del.mutate({ templateId });
                 }
               }}
-              disabled={del.isPending}
-              aria-label="Delete template"
-              className="text-zinc-500 hover:bg-rose-50 hover:text-rose-600"
+              variant="destructive"
             >
               <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Delete template</TooltipContent>
-        </Tooltip>
+              Delete template
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );
