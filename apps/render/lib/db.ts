@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm";
 import {
   createDb,
   renderLog,
+  stockTemplate,
   template,
   templateVersion,
   userProfile,
@@ -116,6 +117,30 @@ export const loadDraftById = async (
     version: row.version,
     document: row.document,
   };
+};
+
+export type LoadedStockTemplate = {
+  id: string;
+  slug: string;
+  document: TemplateDocumentRow;
+};
+
+// Used by /r/stock/:slug — admin-curated, head-only documents.
+export const loadStockTemplate = async (
+  slug: string,
+): Promise<LoadedStockTemplate | null> => {
+  const db = getDb();
+  const rows = await db
+    .select({
+      id: stockTemplate.id,
+      slug: stockTemplate.slug,
+      document: stockTemplate.documentJson,
+    })
+    .from(stockTemplate)
+    .where(eq(stockTemplate.slug, slug))
+    .limit(1);
+  const row = rows[0];
+  return row ?? null;
 };
 
 export const resolvePublishedVersion = async (
