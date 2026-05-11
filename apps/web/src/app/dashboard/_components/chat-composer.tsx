@@ -3,6 +3,7 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { ChevronDown, Sparkles, X } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -155,78 +156,102 @@ export function ChatComposer() {
 
   return (
     <>
-      {expanded ? (
-        <button
-          type="button"
-          aria-label="Collapse chat"
-          onClick={collapse}
-          className="fixed inset-0 z-30 cursor-default bg-black/60 backdrop-blur-sm"
-        />
-      ) : null}
-
-      <div
-        className={`fixed inset-x-0 bottom-0 z-40 mx-auto flex w-full max-w-3xl flex-col ${
-          expanded ? "h-[min(640px,calc(100vh-80px))]" : ""
-        } px-4 pb-6`}
-      >
+      <AnimatePresence>
         {expanded ? (
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-2xl border border-b-0 border-[#1f2937] bg-[#0b0f1a]">
-            <ChatHeader
-              activeId={activeId}
-              onNewChat={newChat}
-              onSelectChat={selectChat}
-              onCollapse={collapse}
-            />
-            <div className="flex-1 overflow-y-auto">
-              {hydrating ? (
-                <div className="flex h-full items-center justify-center text-sm text-[#6b7280]">
-                  Loading chat…
-                </div>
-              ) : empty ? (
-                <div className="flex h-full flex-col items-center justify-center gap-6 px-6 text-center">
-                  <div>
-                    <h2 className="text-2xl font-semibold text-[#e5e7eb]">
-                      What should we design today?
-                    </h2>
-                    <p className="mt-2 text-sm text-[#9ca3af]">
-                      Describe the OG image you want — I&apos;ll sketch starting
-                      points you can edit.
-                    </p>
-                  </div>
-                  <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
-                    {SUGGESTIONS.map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => send(s)}
-                        disabled={busy}
-                        className="rounded-lg border border-[#1f2937] bg-[#0b0f1a] px-3 py-2.5 text-left text-sm text-[#9ca3af] transition hover:border-[#7c5cff] hover:text-[#e5e7eb] disabled:opacity-50"
-                      >
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-5 px-4 py-6">
-                  {messages.map((m) => (
-                    <MessageThread key={m.id} message={m} />
-                  ))}
-                  {showTyping ? <Typing /> : null}
-                  {error ? (
-                    <div className="rounded-md border border-[#7f1d1d] bg-[#1f0a0a] px-3 py-2 text-sm text-[#fca5a5]">
-                      {error.message || "Something went wrong"}
-                    </div>
-                  ) : null}
-                </div>
-              )}
-            </div>
-          </div>
+          <motion.button
+            key="backdrop"
+            type="button"
+            aria-label="Collapse chat"
+            onClick={collapse}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="fixed inset-0 z-30 cursor-default bg-black/60 backdrop-blur-sm"
+          />
         ) : null}
+      </AnimatePresence>
 
-        <form
+      <motion.div
+        layout
+        transition={PANEL_SPRING}
+        className="fixed inset-x-0 bottom-0 z-40 mx-auto flex w-full max-w-3xl flex-col px-4 pb-6"
+      >
+        <AnimatePresence initial={false}>
+          {expanded ? (
+            <motion.div
+              key="panel"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 560, opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={PANEL_SPRING}
+              style={{ maxHeight: "calc(100vh - 96px)" }}
+              className="flex min-h-0 flex-col overflow-hidden rounded-t-2xl border border-b-0 border-[#1f2937] bg-[#0b0f1a]"
+            >
+              <ChatHeader
+                activeId={activeId}
+                onNewChat={newChat}
+                onSelectChat={selectChat}
+                onCollapse={collapse}
+              />
+              <div className="flex-1 overflow-y-auto">
+                {hydrating ? (
+                  <div className="flex h-full items-center justify-center text-sm text-[#6b7280]">
+                    Loading chat…
+                  </div>
+                ) : empty ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.12, duration: 0.22 }}
+                    className="flex h-full flex-col items-center justify-center gap-6 px-6 text-center"
+                  >
+                    <div>
+                      <h2 className="text-2xl font-semibold text-[#e5e7eb]">
+                        What should we design today?
+                      </h2>
+                      <p className="mt-2 text-sm text-[#9ca3af]">
+                        Describe the OG image you want — I&apos;ll sketch
+                        starting points you can edit.
+                      </p>
+                    </div>
+                    <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
+                      {SUGGESTIONS.map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => send(s)}
+                          disabled={busy}
+                          className="rounded-lg border border-[#1f2937] bg-[#0b0f1a] px-3 py-2.5 text-left text-sm text-[#9ca3af] transition hover:border-[#7c5cff] hover:text-[#e5e7eb] disabled:opacity-50"
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                ) : (
+                  <div className="flex flex-col gap-5 px-4 py-6">
+                    {messages.map((m) => (
+                      <MessageThread key={m.id} message={m} />
+                    ))}
+                    {showTyping ? <Typing /> : null}
+                    {error ? (
+                      <div className="rounded-md border border-[#7f1d1d] bg-[#1f0a0a] px-3 py-2 text-sm text-[#fca5a5]">
+                        {error.message || "Something went wrong"}
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+
+        <motion.form
+          layout
+          transition={PANEL_SPRING}
           onSubmit={onSubmit}
-          className={`flex items-end gap-2 border border-[#1f2937] bg-[#0b0f1a]/95 p-2 shadow-lg backdrop-blur transition-all focus-within:border-[#7c5cff] ${
+          className={`flex items-end gap-2 border border-[#1f2937] bg-[#0b0f1a]/95 p-2 shadow-lg backdrop-blur focus-within:border-[#7c5cff] ${
             expanded ? "rounded-b-2xl border-t-0" : "rounded-2xl"
           }`}
         >
@@ -268,11 +293,18 @@ export function ChatComposer() {
               Send
             </button>
           )}
-        </form>
-      </div>
+        </motion.form>
+      </motion.div>
     </>
   );
 }
+
+const PANEL_SPRING = {
+  type: "spring" as const,
+  stiffness: 320,
+  damping: 32,
+  mass: 0.6,
+};
 
 function ChatHeader({
   activeId,
