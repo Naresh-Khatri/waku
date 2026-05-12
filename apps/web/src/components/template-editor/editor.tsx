@@ -22,6 +22,8 @@ export function Editor({
   const select = useEditor((s) => s.select);
   const removeNode = useEditor((s) => s.removeNode);
   const duplicate = useEditor((s) => s.duplicate);
+  const copyNode = useEditor((s) => s.copyNode);
+  const paste = useEditor((s) => s.paste);
   const setZoom = useEditor((s) => s.setZoom);
   const undo = useEditor((s) => s.undo);
   const redo = useEditor((s) => s.redo);
@@ -68,9 +70,21 @@ export function Editor({
       }
 
       if (inField) return;
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "v") {
+        e.preventDefault();
+        paste();
+        return;
+      }
       if (!selectedId) return;
       if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
+        removeNode(selectedId);
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "c") {
+        e.preventDefault();
+        copyNode(selectedId);
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "x") {
+        e.preventDefault();
+        copyNode(selectedId);
         removeNode(selectedId);
       } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "d") {
         e.preventDefault();
@@ -81,7 +95,17 @@ export function Editor({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selectedId, removeNode, duplicate, select, setZoom, undo, redo]);
+  }, [
+    selectedId,
+    removeNode,
+    duplicate,
+    copyNode,
+    paste,
+    select,
+    setZoom,
+    undo,
+    redo,
+  ]);
 
   return (
     <EditorConfigProvider

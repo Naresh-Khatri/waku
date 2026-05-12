@@ -225,12 +225,16 @@ interface EditorState {
 
   dirty: boolean;
 
+  clipboard: EditorNode | null;
+
   setArtboard: (patch: Partial<Artboard>) => void;
   addNode: (type: NodeType) => void;
   removeNode: (id: string) => void;
   updateNode: (id: string, patch: Partial<EditorNode>) => void;
   reorder: (sourceId: string, targetId: string) => void;
   duplicate: (id: string) => void;
+  copyNode: (id: string) => void;
+  paste: () => void;
   select: (id: string | null) => void;
   raise: (id: string) => void;
   lower: (id: string) => void;
@@ -339,6 +343,8 @@ export const useEditor = create<EditorState>((set, get) => ({
 
   dirty: false,
 
+  clipboard: null,
+
   setArtboard: (patch) =>
     set((s) => ({
       ...withHistory(s, `artboard-${Object.keys(patch).sort().join(",")}`),
@@ -406,6 +412,30 @@ export const useEditor = create<EditorState>((set, get) => ({
       return {
         ...withHistory(s, `duplicate-${id}-${copy.id}`),
         nodes: next,
+        selectedId: copy.id,
+      };
+    }),
+
+  copyNode: (id) => {
+    const node = get().nodes.find((n) => n.id === id);
+    if (!node) return;
+    set({ clipboard: node });
+  },
+
+  paste: () =>
+    set((s) => {
+      if (!s.clipboard) return s;
+      const orig = s.clipboard;
+      const copy: EditorNode = {
+        ...orig,
+        id: newId(),
+        name: `${orig.name} copy`,
+        x: orig.x + 24,
+        y: orig.y + 24,
+      };
+      return {
+        ...withHistory(s, `paste-${copy.id}`),
+        nodes: [...s.nodes, copy],
         selectedId: copy.id,
       };
     }),
