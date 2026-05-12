@@ -160,7 +160,11 @@ export const PLATFORMS: { id: Platform; label: string }[] = [
   { id: "bluesky", label: "Bluesky" }, // ~30M
 ];
 
-export function useRenderedImage(url: string | null) {
+// `renderRev` is a monotonically-increasing token the editor shell bumps after
+// every successful autosave. Including it in the deps (and as a cache-bust
+// query param) forces a refetch when the doc has been re-rendered server-side
+// even if the URL would otherwise be identical.
+export function useRenderedImage(url: string | null, renderRev?: number) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<RenderStatus>({ kind: "idle" });
   const lastRevoke = useRef<string | null>(null);
@@ -173,7 +177,13 @@ export function useRenderedImage(url: string | null) {
     const t0 = performance.now();
     setStatus({ kind: "loading" });
 
-    fetch(withPreviewQuality(debounced), {
+    const base = withPreviewQuality(debounced);
+    const fetchUrl =
+      renderRev !== undefined
+        ? `${base}${base.includes("?") ? "&" : "?"}_rev=${renderRev}`
+        : base;
+
+    fetch(fetchUrl, {
       signal: ac.signal,
       cache: "no-store",
     })
@@ -212,7 +222,7 @@ export function useRenderedImage(url: string | null) {
       cancelled = true;
       ac.abort();
     };
-  }, [debounced]);
+  }, [debounced, renderRev]);
 
   useEffect(
     () => () => {
@@ -450,6 +460,7 @@ function OgImage({
   className?: string;
   rounded?: boolean;
 }) {
+  const loading = ctx.status.kind === "loading";
   return (
     <motion.div
       layoutId="og-preview-image"
@@ -472,10 +483,49 @@ function OgImage({
         </div>
       ) : (
         <div className="absolute inset-0 flex items-center justify-center text-[10px] text-zinc-400">
-          {ctx.status.kind === "loading" ? "rendering…" : "no preview"}
+          {loading ? "rendering…" : "no preview"}
         </div>
       )}
+      {loading ? <GeneratingGlow /> : null}
     </motion.div>
+  );
+}
+
+function GeneratingGlow() {
+  return (
+    <>
+      <motion.div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        animate={{ opacity: [0.35, 0.7, 0.35] }}
+        transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+        style={{
+          background:
+            "radial-gradient(60% 60% at 20% 30%, rgba(124,92,255,0.45), transparent 70%), radial-gradient(60% 60% at 80% 70%, rgba(236,72,153,0.4), transparent 70%), radial-gradient(40% 40% at 50% 90%, rgba(34,211,238,0.35), transparent 70%)",
+        }}
+      />
+      <motion.div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.45) 50%, transparent 65%)",
+        }}
+        initial={{ x: "-120%" }}
+        animate={{ x: "120%" }}
+        transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+      />
+      <motion.div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        animate={{ opacity: [0.55, 1, 0.55] }}
+        transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+        style={{
+          boxShadow:
+            "inset 0 0 0 1px rgba(124,92,255,0.6), inset 0 0 22px rgba(124,92,255,0.35), inset 0 0 60px rgba(236,72,153,0.18)",
+        }}
+      />
+    </>
   );
 }
 

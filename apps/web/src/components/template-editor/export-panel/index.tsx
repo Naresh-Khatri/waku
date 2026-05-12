@@ -27,6 +27,9 @@ type Props = {
   handle: string;
   templateSlug: string;
   renderBase: string;
+  // Bumped by the shell after each successful autosave; cache-busts the OG
+  // fetch so post-save changes appear without manual refresh.
+  renderRev?: number;
 };
 
 export function ExportPanel({
@@ -35,6 +38,7 @@ export function ExportPanel({
   handle,
   templateSlug,
   renderBase,
+  renderRev,
 }: Props) {
   const paramsSchema = useEditor((s) => s.paramsSchema);
   const draftValues = useEditor((s) => s.draftValues);
@@ -111,7 +115,10 @@ export function ExportPanel({
   const appendQs = (base: string) =>
     qs.length === 0 ? base : `${base}${base.includes("?") ? "&" : "?"}${qs}`;
   const fullUrl = liveUrl ? appendQs(liveUrl) : null;
-  const { imageUrl, status } = useRenderedImage(liveUrl ? fullUrl : null);
+  const { imageUrl, status } = useRenderedImage(
+    liveUrl ? fullUrl : null,
+    renderRev,
+  );
   const buildSnapshotUrl = (version: number): string =>
     appendQs(`${renderBase}/r/${handle}/${templateSlug}/${version}`);
 

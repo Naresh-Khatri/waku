@@ -77,12 +77,15 @@ function EditorTopBar({
 
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [renderRev, setRenderRev] = useState(0);
+  const previewOpen = useEditor((s) => s.previewOpen);
 
   const updateDraft = api.template.updateDraft.useMutation({
     onSuccess: () => {
       setSavedAt(Date.now());
       setSaveError(null);
       markClean();
+      setRenderRev((r) => r + 1);
     },
     onError: (err) => setSaveError(err.message),
   });
@@ -112,6 +115,15 @@ function EditorTopBar({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dirty]);
+
+  // Flush the autosave debounce when the export panel opens so the OG render
+  // reflects the latest edits as quickly as possible.
+  useEffect(() => {
+    if (!previewOpen || !dirty) return;
+    if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    save();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewOpen]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -186,6 +198,7 @@ function EditorTopBar({
           handle={handle}
           templateSlug={templateSlug}
           renderBase={RENDER_BASE}
+          renderRev={renderRev}
         />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

@@ -289,7 +289,7 @@ export const resolveValue = <T>(
   return v;
 };
 
-const RESERVED_PARAMS = new Set(["format", "w", "q", "_sig", "_ts"]);
+const RESERVED_PARAMS = new Set(["format", "w", "q", "_sig", "_ts", "_rev"]);
 
 /**
  * Returns search-param keys that are neither declared in the schema nor in
