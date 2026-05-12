@@ -8,6 +8,7 @@ import { Inspector } from "./inspector";
 import { LayersPanel } from "./layers-panel";
 import { useEditor } from "./store";
 import { TopBar } from "./top-bar";
+import { useLazyFonts } from "./use-lazy-font";
 
 export function Editor({
   enableParams = false,
@@ -20,6 +21,15 @@ export function Editor({
 }) {
   const selectedId = useEditor((s) => s.selectedId);
   const select = useEditor((s) => s.select);
+  // Lazily fetch every font actually used by a text node in the doc. The font
+  // picker handles its own preview loading (see FontFamilySelect).
+  const usedFontsKey = useEditor((s) => {
+    const set = new Set<string>();
+    set.add("Inter");
+    for (const n of s.nodes) if (n.type === "text") set.add(n.fontFamily);
+    return [...set].sort().join("|");
+  });
+  useLazyFonts(usedFontsKey.split("|"));
   const removeNode = useEditor((s) => s.removeNode);
   const duplicate = useEditor((s) => s.duplicate);
   const copyNode = useEditor((s) => s.copyNode);

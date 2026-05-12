@@ -9,7 +9,7 @@ import sharp from "sharp";
 
 import type { TemplateDocument } from "./document";
 import { documentToSatori, resolveImages, type ImageLoader } from "./flat-tree";
-import { loadFonts } from "./fonts";
+import { collectFontVariants, loadFonts } from "./fonts";
 
 export type RenderFormat = "png" | "webp" | "jpeg";
 
@@ -60,7 +60,7 @@ export const render = async (
   if (opts.loadImage) {
     await resolveImages(tree, opts.loadImage);
   }
-  const fonts = await loadFonts();
+  const fonts = await loadFonts(collectFontVariants(doc));
 
   const svg = await satori(tree as never, {
     width: layoutW,

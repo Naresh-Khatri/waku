@@ -1,4 +1,5 @@
 import {
+  FONT_FAMILY_VALUES,
   paintToCss,
   paintToSvgPaint,
   resolveValue,
@@ -193,7 +194,7 @@ function imageNode(node: ImageNode, draft: Draft): SatoriElement {
   return img;
 }
 
-const ALLOWED_FONTS = new Set(["Inter"]);
+const ALLOWED_FONTS = new Set<string>(FONT_FAMILY_VALUES);
 
 function textNode(node: TextNode, draft: Draft): SatoriElement {
   const text = resolveValue(node.text, draft) ?? "";

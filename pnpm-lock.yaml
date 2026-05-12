@@ -127,6 +127,9 @@ importers:
       '@waku/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@waku/fonts':
+        specifier: workspace:*
+        version: link:../../packages/fonts
       '@waku/renderer':
         specifier: workspace:*
         version: link:../../packages/renderer
@@ -253,11 +256,23 @@ importers:
         specifier: ^5.8.2
         version: 5.9.3
 
+  packages/fonts:
+    devDependencies:
+      '@types/node':
+        specifier: ^20.14.10
+        version: 20.19.39
+      typescript:
+        specifier: ^5.8.2
+        version: 5.9.3
+
   packages/renderer:
     dependencies:
       '@resvg/resvg-js':
         specifier: ^2.6.2
         version: 2.6.2
+      '@waku/fonts':
+        specifier: workspace:*
+        version: link:../fonts
       satori:
         specifier: ^0.12.0
         version: 0.12.2

@@ -36,7 +36,7 @@ Any color string may also be a ParamRef: { "$param": "name", "default": "#..." }
 
 text:       text (string), fontSize (px), fontWeight (400|500|600|700|800),
             italic (bool), color (Paint), align ("left"|"center"|"right"),
-            fontFamily ("Inter" — only allowed value),
+            fontFamily (one of the values in the "# Fonts" section — use the exact string),
             letterSpacing (px, can be negative), lineHeight (multiplier, ~1.0–1.5),
             shadow (Shadow | null, optional)
 
@@ -58,6 +58,54 @@ line:       stroke (Paint), strokeWidth (px), arrow (bool).
             A line runs from (x, y) to (x + width, y + height); height can be 0 for a horizontal line.
 
 Shadow = { offsetX: number, offsetY: number, blur: number ≥ 0, color: string }
+
+# Fonts
+
+Use only these fontFamily values, spelled exactly. The number after each name lists the
+shipped weights — pick fontWeight from that list (italic is supported on every face).
+
+  Sans
+    "Inter"               400 / 600 / 700 / 800
+    "Space Grotesk"       400 / 600 / 700
+    "Roboto"              400 / 500 / 700
+    "Open Sans"           400 / 600 / 700
+    "Montserrat"          400 / 600 / 700
+    "Poppins"             400 / 600 / 700
+    "DM Sans"             400 / 600 / 700
+    "Manrope"             400 / 600 / 700
+    "Plus Jakarta Sans"   400 / 600 / 700
+    "Work Sans"           400 / 600 / 700
+
+  Serif
+    "Playfair Display"    400 / 600 / 700
+    "Merriweather"        400 / 700
+    "Lora"                400 / 600 / 700
+    "DM Serif Display"    400
+    "Cormorant Garamond"  400 / 600 / 700
+    "Libre Baskerville"   400 / 700
+
+  Display (high-impact headlines, single weight — set fontWeight: 400)
+    "Bebas Neue"          400
+    "Anton"               400
+    "Archivo Black"       400
+
+  Mono (code, data, terminal vibes)
+    "JetBrains Mono"      400 / 600 / 700
+    "Fira Code"           400 / 600 / 700
+    "IBM Plex Mono"       400 / 600 / 700
+    "Space Mono"          400 / 700
+
+  Handwriting / Script (use sparingly, for accents and notes)
+    "Caveat"              400 / 700
+    "Pacifico"            400
+
+Picking guidance:
+  - Body and UI copy: default to "Inter" unless the brief asks otherwise.
+  - Editorial / luxury headlines: Playfair Display, Cormorant Garamond, DM Serif Display.
+  - Modern / techy headlines: Space Grotesk, Plus Jakarta Sans, Manrope.
+  - Bold poster headlines: Bebas Neue, Anton, Archivo Black (always 400).
+  - Code or data labels: JetBrains Mono / IBM Plex Mono, often with positive letterSpacing.
+  - Pair a serif or display headline with a sans body — never two serifs or two displays.
 
 # Params (only if asked to parameterize)
 
@@ -105,14 +153,14 @@ export const AI_TEMPLATE_EXAMPLE_MINIMAL: TemplateDocument = {
       visible: true,
       locked: false,
       text: "Ship fast. Stay sharp.",
-      fontSize: 96,
+      fontSize: 104,
       fontWeight: 700,
       italic: false,
       color: { kind: "flat", color: "#ffffff" },
       align: "left",
-      fontFamily: "Inter",
+      fontFamily: "Playfair Display",
       letterSpacing: -2,
-      lineHeight: 1.1,
+      lineHeight: 1.05,
     },
     {
       id: "subtitle",
@@ -194,12 +242,12 @@ export const AI_TEMPLATE_EXAMPLE_GRADIENT: TemplateDocument = {
       visible: true,
       locked: false,
       text: "CHANGELOG / V2.1",
-      fontSize: 24,
+      fontSize: 22,
       fontWeight: 600,
       italic: false,
       color: { kind: "flat", color: "#a5b4fc" },
       align: "left",
-      fontFamily: "Inter",
+      fontFamily: "JetBrains Mono",
       letterSpacing: 4,
       lineHeight: 1.2,
     },

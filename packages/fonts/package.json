@@ -1,0 +1,19 @@
+{
+  "name": "@waku/fonts",
+  "version": "0.0.1",
+  "description": "Lazy font fetcher for browser previews and Satori SSR. Wraps Bunny Fonts.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    "./css": "./src/css.ts",
+    "./server": "./src/server.ts"
+  },
+  "files": ["src", "README.md"],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "typescript": "^5.8.2"
+  }
+}

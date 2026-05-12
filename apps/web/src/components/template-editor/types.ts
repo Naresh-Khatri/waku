@@ -4,6 +4,7 @@ export type {
   ColorStop,
   EditorNode,
   EllipseNode,
+  FontFamily,
   ImageNode,
   ImageShadow,
   Shadow,
@@ -22,6 +23,7 @@ export type {
   Value,
 } from "@waku/renderer/document";
 export {
+  FONT_FAMILY_VALUES,
   flatPaint,
   isFlatPaint,
   isParamRef,

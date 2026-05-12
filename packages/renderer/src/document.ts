@@ -165,6 +165,35 @@ export interface ImageNode extends BaseNode {
   shadow: Shadow | null;
 }
 
+export const FONT_FAMILY_VALUES = [
+  "Inter",
+  "Space Grotesk",
+  "Roboto",
+  "Open Sans",
+  "Montserrat",
+  "Poppins",
+  "DM Sans",
+  "Manrope",
+  "Plus Jakarta Sans",
+  "Work Sans",
+  "Playfair Display",
+  "Merriweather",
+  "Lora",
+  "DM Serif Display",
+  "Cormorant Garamond",
+  "Libre Baskerville",
+  "Bebas Neue",
+  "Anton",
+  "Archivo Black",
+  "JetBrains Mono",
+  "Fira Code",
+  "IBM Plex Mono",
+  "Space Mono",
+  "Caveat",
+  "Pacifico",
+] as const;
+export type FontFamily = (typeof FONT_FAMILY_VALUES)[number];
+
 export interface TextNode extends BaseNode {
   type: "text";
   text: Value<string>;
@@ -173,7 +202,7 @@ export interface TextNode extends BaseNode {
   italic: Value<boolean>;
   color: Paint;
   align: "left" | "center" | "right";
-  fontFamily: "Inter";
+  fontFamily: FontFamily;
   letterSpacing: Value<number>;
   lineHeight: Value<number>;
   shadow?: Shadow | null;

@@ -1,50 +1,62 @@
-import { readFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
-import { dirname, join, resolve as pathResolve } from "node:path";
+import { getFontBuffer, type FontStyle, type FontWeight } from "@waku/fonts/server";
+
+import type { TemplateDocument } from "./document";
 
 export type LoadedFont = {
   name: string;
   data: ArrayBuffer;
-  weight: 400 | 500 | 600 | 700 | 800 | 900;
-  style: "normal" | "italic";
+  weight: FontWeight;
+  style: FontStyle;
 };
 
-type FontSource = {
+export type FontVariant = {
   family: string;
-  weight: LoadedFont["weight"];
-  style: LoadedFont["style"];
-  /** Path relative to the renderer package's fonts/ directory. */
-  file: string;
+  weight: FontWeight;
+  style?: FontStyle;
 };
-
-const FONT_SOURCES: FontSource[] = [
-  { family: "Inter", weight: 400, style: "normal", file: "Inter-Regular.ttf" },
-  { family: "Inter", weight: 600, style: "normal", file: "Inter-SemiBold.ttf" },
-  { family: "Inter", weight: 700, style: "normal", file: "Inter-Bold.ttf" },
-  { family: "Inter", weight: 800, style: "normal", file: "Inter-ExtraBold.ttf" },
-];
 
 /**
- * Resolve `<package>/fonts/<file>`. The renderer ships TTFs under its own
- * `fonts/` directory. Robust to both source (`src/fonts.ts`) and built layouts.
+ * Fetch WOFF bytes for the variants Satori needs. Each variant is deduped and
+ * cached inside `@waku/fonts`, so this is cheap to call repeatedly with the
+ * same set.
  */
-const fontsDir = (() => {
-  const here = dirname(fileURLToPath(import.meta.url));
-  return pathResolve(here, "..", "fonts");
-})();
-
-let cached: Promise<LoadedFont[]> | null = null;
-
-export const loadFonts = (): Promise<LoadedFont[]> => {
-  if (cached) return cached;
-  cached = Promise.all(
-    FONT_SOURCES.map(async (s): Promise<LoadedFont> => {
-      const buf = await readFile(join(fontsDir, s.file));
-      const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
-      return { name: s.family, data: ab, weight: s.weight, style: s.style };
+export const loadFonts = (
+  variants: readonly FontVariant[],
+): Promise<LoadedFont[]> =>
+  Promise.all(
+    variants.map(async (v) => {
+      const style: FontStyle = v.style ?? "normal";
+      const { data } = await getFontBuffer({
+        family: v.family,
+        weight: v.weight,
+        style,
+      });
+      return { name: v.family, data, weight: v.weight, style };
     }),
   );
-  return cached;
-};
 
-export const FONT_FAMILIES = ["Inter"] as const;
+const FALLBACK: FontVariant = { family: "Inter", weight: 400, style: "normal" };
+
+/**
+ * Walk the document's text nodes to collect every (family, weight) pair
+ * actually referenced. Always includes Inter 400 as a fallback so Satori has
+ * a baseline face even for docs without text.
+ */
+export const collectFontVariants = (
+  doc: TemplateDocument,
+): FontVariant[] => {
+  const seen = new Set<string>();
+  const out: FontVariant[] = [];
+  const push = (v: FontVariant) => {
+    const k = `${v.family}|${v.weight}|${v.style ?? "normal"}`;
+    if (seen.has(k)) return;
+    seen.add(k);
+    out.push(v);
+  };
+  push(FALLBACK);
+  for (const node of doc.nodes) {
+    if (node.type !== "text") continue;
+    push({ family: node.fontFamily, weight: node.fontWeight, style: "normal" });
+  }
+  return out;
+};

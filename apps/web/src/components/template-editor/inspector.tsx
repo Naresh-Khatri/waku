@@ -4,8 +4,16 @@ import { AlignCenter, AlignLeft, AlignRight } from "lucide-react";
 import type { ChangeEvent } from "react";
 import { useState } from "react";
 import { useEditor } from "./store";
-import type { Artboard, EditorNode, Paint, Shadow, Value } from "./types";
-import { isFlatPaint, isParamRef } from "./types";
+import type {
+  Artboard,
+  EditorNode,
+  FontFamily,
+  Paint,
+  Shadow,
+  Value,
+} from "./types";
+import { FONT_FAMILY_VALUES, isFlatPaint, isParamRef } from "./types";
+import { useLazyFonts } from "./use-lazy-font";
 import { ColorPicker } from "./color-picker";
 import { PaintInput } from "./paint-picker";
 import { Bindable } from "./bind-button";
@@ -20,7 +28,10 @@ import { Slider } from "@/components/ui/slider";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -28,6 +39,59 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+
+type FontCategory = "Sans" | "Serif" | "Display" | "Mono" | "Handwriting";
+
+const FONT_FAMILY_CATEGORY: Record<FontFamily, FontCategory> = {
+  Inter: "Sans",
+  "Space Grotesk": "Sans",
+  Roboto: "Sans",
+  "Open Sans": "Sans",
+  Montserrat: "Sans",
+  Poppins: "Sans",
+  "DM Sans": "Sans",
+  Manrope: "Sans",
+  "Plus Jakarta Sans": "Sans",
+  "Work Sans": "Sans",
+  "Playfair Display": "Serif",
+  Merriweather: "Serif",
+  Lora: "Serif",
+  "DM Serif Display": "Serif",
+  "Cormorant Garamond": "Serif",
+  "Libre Baskerville": "Serif",
+  "Bebas Neue": "Display",
+  Anton: "Display",
+  "Archivo Black": "Display",
+  "JetBrains Mono": "Mono",
+  "Fira Code": "Mono",
+  "IBM Plex Mono": "Mono",
+  "Space Mono": "Mono",
+  Caveat: "Handwriting",
+  Pacifico: "Handwriting",
+};
+
+const CATEGORY_ORDER: Record<FontCategory, number> = {
+  Sans: 0,
+  Serif: 1,
+  Display: 2,
+  Mono: 3,
+  Handwriting: 4,
+};
+
+const FONT_FAMILY_GROUPS: { category: FontCategory; fonts: FontFamily[] }[] =
+  (() => {
+    const buckets = new Map<FontCategory, FontFamily[]>();
+    for (const f of FONT_FAMILY_VALUES) {
+      const c = FONT_FAMILY_CATEGORY[f];
+      const list = buckets.get(c) ?? [];
+      list.push(f);
+      buckets.set(c, list);
+    }
+    return (Object.keys(CATEGORY_ORDER) as FontCategory[])
+      .sort((a, b) => CATEGORY_ORDER[a] - CATEGORY_ORDER[b])
+      .filter((c) => buckets.has(c))
+      .map((category) => ({ category, fonts: buckets.get(category) ?? [] }));
+  })();
 
 export function Inspector() {
   const selectedId = useEditor((s) => s.selectedId);
@@ -304,6 +368,12 @@ function TypeSection({ node }: { node: EditorNode }) {
                   />
                 )}
               </Bindable>
+            </Row>
+            <Row label="Font">
+              <FontFamilySelect
+                value={node.fontFamily}
+                onChange={(v) => set({ fontFamily: v })}
+              />
             </Row>
             <Row label="Weight">
               <SelectInput
@@ -1010,6 +1080,52 @@ function RangeInput({
       <span className="w-10 text-right text-[11px] text-zinc-500">
         {Number.isInteger(step) ? Math.round(value) : value.toFixed(2)}
       </span>
+    </div>
+  );
+}
+
+function FontFamilySelect({
+  value,
+  onChange,
+}: {
+  value: FontFamily;
+  onChange: (v: FontFamily) => void;
+}) {
+  const [hasOpened, setHasOpened] = useState(false);
+  useLazyFonts(FONT_FAMILY_VALUES, { enabled: hasOpened });
+
+  return (
+    <div className="flex w-full items-center gap-1">
+      <Select
+        value={value}
+        onValueChange={(v) => onChange(v as FontFamily)}
+        onOpenChange={(o) => {
+          if (o) setHasOpened(true);
+        }}
+      >
+        <SelectTrigger size="sm" className="w-full text-xs">
+          <SelectValue>
+            <span style={{ fontFamily: `'${value}'` }}>{value}</span>
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent position="popper" className="max-h-72">
+          {FONT_FAMILY_GROUPS.map((g, i) => (
+            <SelectGroup key={g.category}>
+              {i > 0 ? <SelectSeparator /> : null}
+              <SelectLabel className="text-[10px] uppercase tracking-wide text-zinc-400">
+                {g.category}
+              </SelectLabel>
+              {g.fonts.map((f) => (
+                <SelectItem key={f} value={f} className="text-xs">
+                  <span style={{ fontFamily: `'${f}'`, fontSize: 13 }}>
+                    {f}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

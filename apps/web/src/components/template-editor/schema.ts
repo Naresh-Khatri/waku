@@ -3,6 +3,7 @@
 // rules automatically. Examples are validated by scripts/validate-ai-examples.ts.
 
 import { z } from "zod";
+import { FONT_FAMILY_VALUES } from "@waku/renderer/document";
 import type { TemplateDocument } from "./types";
 
 const ParamRefStringZ = z.object({
@@ -117,22 +118,24 @@ const ImageNodeZ = z.object({
   shadow: ShadowZ.nullable(),
 });
 
+const FontWeightZ = z.union([
+  z.literal(400),
+  z.literal(500),
+  z.literal(600),
+  z.literal(700),
+  z.literal(800),
+]);
+
 const TextNodeZ = z.object({
   ...BaseFields,
   type: z.literal("text"),
   text: ValueStringZ,
   fontSize: valueNumberZ(z.number().positive()),
-  fontWeight: z.union([
-    z.literal(400),
-    z.literal(500),
-    z.literal(600),
-    z.literal(700),
-    z.literal(800),
-  ]),
+  fontWeight: FontWeightZ,
   italic: ValueBooleanZ,
   color: PaintZ,
   align: z.enum(["left", "center", "right"]),
-  fontFamily: z.enum(["Inter"]),
+  fontFamily: z.enum(FONT_FAMILY_VALUES),
   letterSpacing: valueNumberZ(),
   lineHeight: valueNumberZ(z.number().positive()),
   shadow: ShadowZ.nullable().optional(),
