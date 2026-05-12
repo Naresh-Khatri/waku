@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { render, type RenderFormat } from "@waku/renderer";
-import { findUnknownParams, paramsFromSearch } from "@waku/renderer/document";
+import { paramsFromSearch, paramsWithDefaults } from "@waku/renderer/document";
 
 import { loadDraftById, recordRenderLog } from "@/lib/db";
 import {
@@ -94,21 +94,10 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     return errorResponse(404, "Draft not found", versionId, format);
   }
 
-  const unknown = findUnknownParams(
-    url.searchParams,
+  const draft = paramsWithDefaults(
+    paramsFromSearch(url.searchParams, tpl.document.paramsSchema),
     tpl.document.paramsSchema,
   );
-  if (unknown.length > 0) {
-    finishLog(400, "", "unknown_params");
-    return errorResponse(
-      400,
-      "Unknown params",
-      `Not in template schema: ${unknown.join(", ")}`,
-      format,
-    );
-  }
-
-  const draft = paramsFromSearch(url.searchParams, tpl.document.paramsSchema);
   const paramsHash = hashParams(draft);
 
   const widthParam = Number(url.searchParams.get("w"));

@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  findUnknownParams,
   paramsFromSearch,
   searchFromParams,
   type ParamsSchema,
@@ -48,18 +47,6 @@ describe("paramsFromSearch", () => {
   it("ignores reserved keys silently", () => {
     const sp = new URLSearchParams("format=png&_sig=abc&_ts=1&title=ok");
     expect(paramsFromSearch(sp, schema)).toEqual({ title: "ok" });
-  });
-});
-
-describe("findUnknownParams", () => {
-  it("returns keys not in schema and not reserved", () => {
-    const sp = new URLSearchParams("title=ok&xtra=y&format=png&_sig=z&foo=bar");
-    expect(findUnknownParams(sp, schema).sort()).toEqual(["foo", "xtra"]);
-  });
-
-  it("returns empty for clean input", () => {
-    const sp = new URLSearchParams("title=ok&size=2");
-    expect(findUnknownParams(sp, schema)).toEqual([]);
   });
 });
 

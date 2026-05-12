@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { render, type RenderFormat } from "@waku/renderer";
-import { findUnknownParams, paramsFromSearch } from "@waku/renderer/document";
+import { paramsFromSearch, paramsWithDefaults } from "@waku/renderer/document";
 import {
   loadTemplateVersion,
   recordRenderLog,
@@ -166,21 +166,14 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     );
   }
 
-  const unknown = findUnknownParams(
-    url.searchParams,
+  // Unknown query params are intentionally ignored — these URLs are shared
+  // widely and routinely accumulate trackers (utm_*, fbclid, gclid, _rev, …).
+  // `paramsFromSearch` only reads keys declared in the schema; defaults are
+  // then layered in so a bare URL still renders the template's intended copy.
+  const draft = paramsWithDefaults(
+    paramsFromSearch(url.searchParams, tpl.document.paramsSchema),
     tpl.document.paramsSchema,
   );
-  if (unknown.length > 0) {
-    finishLog(400, "", version, "unknown_params");
-    return errorResponse(
-      400,
-      "Unknown params",
-      `Not in template schema: ${unknown.join(", ")}`,
-      format,
-    );
-  }
-
-  const draft = paramsFromSearch(url.searchParams, tpl.document.paramsSchema);
   const paramsHash = hashParams(draft);
 
   const widthParam = Number(url.searchParams.get("w"));

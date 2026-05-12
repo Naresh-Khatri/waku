@@ -289,31 +289,7 @@ export const resolveValue = <T>(
   return v;
 };
 
-const RESERVED_PARAMS = new Set(["format", "w", "q", "_sig", "_ts", "_rev"]);
-
-/**
- * Returns search-param keys that are neither declared in the schema nor in
- * the reserved set. Use this to 400-reject typoed callers in strict-mode
- * routes.
- */
-export function findUnknownParams(
-  search: URLSearchParams | string | null | undefined,
-  schema: ParamsSchema,
-): string[] {
-  if (!search) return [];
-  const sp =
-    typeof search === "string" ? new URLSearchParams(search) : search;
-  const declared = new Set(Object.keys(schema));
-  const unknown: string[] = [];
-  const seen = new Set<string>();
-  for (const key of sp.keys()) {
-    if (seen.has(key)) continue;
-    seen.add(key);
-    if (RESERVED_PARAMS.has(key)) continue;
-    if (!declared.has(key)) unknown.push(key);
-  }
-  return unknown;
-}
+const RESERVED_PARAMS = new Set(["format", "w", "q", "_sig", "_ts"]);
 
 export function paramsFromSearch(
   search: URLSearchParams | string | null | undefined,
@@ -344,6 +320,29 @@ export function paramsFromSearch(
       case "enum":
         if (entry.values.includes(raw)) out[name] = raw;
         break;
+    }
+  }
+  return out;
+}
+
+/**
+ * Merges schema defaults into a draft for any param that's missing, null, or
+ * empty-string. Use after `paramsFromSearch` when serving public render URLs
+ * — without it, bound fields fall back to `ref.default` (rarely set) and
+ * render blank when the caller omits the query string.
+ */
+export function paramsWithDefaults(
+  values: Record<string, unknown>,
+  schema: ParamsSchema,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...values };
+  for (const [name, entry] of Object.entries(schema)) {
+    const v = out[name];
+    if (v !== undefined && v !== null && v !== "") continue;
+    if ("default" in entry && entry.default !== undefined) {
+      out[name] = entry.default;
+    } else if (entry.kind === "enum" && entry.values.length > 0) {
+      out[name] = entry.values[0];
     }
   }
   return out;

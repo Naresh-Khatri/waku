@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { render } from "@waku/renderer";
-import { findUnknownParams, paramsFromSearch } from "@waku/renderer/document";
+import { paramsFromSearch, paramsWithDefaults } from "@waku/renderer/document";
 
 import { loadStockTemplate } from "@/lib/db";
 import { renderErrorImage } from "@/lib/error-image";
@@ -62,17 +62,10 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     });
   }
 
-  const unknown = findUnknownParams(
-    url.searchParams,
+  const draft = paramsWithDefaults(
+    paramsFromSearch(url.searchParams, tpl.document.paramsSchema),
     tpl.document.paramsSchema,
   );
-  if (unknown.length > 0) {
-    return NextResponse.json(
-      { error: `unknown params: ${unknown.join(", ")}` },
-      { status: 400 },
-    );
-  }
-  const draft = paramsFromSearch(url.searchParams, tpl.document.paramsSchema);
   const paramsHash = hashParams(draft);
 
   try {
