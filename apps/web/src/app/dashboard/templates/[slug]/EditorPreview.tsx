@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { DownloadButton } from "@/components/template-editor/download-button";
 import { Editor } from "@/components/template-editor/editor";
 import { PreviewPanel } from "@/components/template-editor/preview-panel";
 import { useEditor } from "@/components/template-editor/store";
@@ -178,6 +179,7 @@ function EditorTopBar({
       ) : null}
 
       <div className="ml-auto flex items-center gap-2">
+        <DownloadButton filename={templateSlug} />
         <PreviewPanel
           liveUrl={liveUrl}
           templateId={templateId}
