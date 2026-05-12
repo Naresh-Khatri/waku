@@ -2,6 +2,38 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* Match the renderer's bundled Inter (packages/renderer/fonts) so the editor
+ * canvas displays the same glyphs the renderer produces. Without this the
+ * browser falls back to its default serif for `font-family: Inter`. */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/Inter-Regular.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/Inter-SemiBold.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/Inter-Bold.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("/fonts/Inter-ExtraBold.ttf") format("truetype");
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme {
