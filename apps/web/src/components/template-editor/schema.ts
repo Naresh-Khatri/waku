@@ -1,3 +1,7 @@
+// When tightening constraints here (min/max, regex, refinements), also update
+// ai-prompt.ts — the system prompt is hand-written and won't reflect Zod-only
+// rules automatically. Examples are validated by scripts/validate-ai-examples.ts.
+
 import { z } from "zod";
 import type { TemplateDocument } from "./types";
 

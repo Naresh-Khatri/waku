@@ -1,3 +1,6 @@
+// When changing node shapes, also update apps/web/src/components/template-editor/ai-prompt.ts
+// (the system prompt string + typed examples) so AI generation stays in sync.
+
 export type NodeType =
   | "image"
   | "text"
