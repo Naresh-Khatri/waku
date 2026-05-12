@@ -4,7 +4,9 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import { DownloadButton } from "@/components/template-editor/download-button";
 import { Editor } from "@/components/template-editor/editor";
+import { JsonIoButton } from "@/components/template-editor/json-io";
 import { useEditor } from "@/components/template-editor/store";
 import type { TemplateDocument } from "@/components/template-editor/types";
 import { api } from "@/trpc/react";
@@ -169,6 +171,8 @@ function AdminTopBar({ id, slug, name, published }: Props) {
       ) : null}
 
       <div className="ml-auto flex items-center gap-2">
+        <JsonIoButton />
+        <DownloadButton filename={slug} />
         {publishedState ? (
           <button
             type="button"
