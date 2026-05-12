@@ -321,6 +321,67 @@ function withHistory(s: EditorState, opKey: string): Partial<EditorState> {
   };
 }
 
+// Reads the raw value at a node/artboard field, unwrapping a flat-paint
+// shell for color fields. Returns undefined if the field is already bound
+// (no usable concrete value to snapshot) or the node is missing.
+function readBoundField(
+  s: { nodes: EditorNode[]; artboard: Artboard },
+  nodeId: string | "artboard",
+  field: string,
+  paint?: boolean,
+): unknown {
+  const source =
+    nodeId === "artboard"
+      ? (s.artboard as unknown as Record<string, unknown>)
+      : (s.nodes.find((n) => n.id === nodeId) as
+          | unknown as Record<string, unknown>
+          | undefined);
+  if (!source) return undefined;
+  const raw = source[field];
+  if (
+    paint &&
+    raw &&
+    typeof raw === "object" &&
+    (raw as { kind?: string }).kind === "flat"
+  ) {
+    const inner = (raw as { color: unknown }).color;
+    return isParamRef(inner as never) ? undefined : inner;
+  }
+  return isParamRef(raw as never) ? undefined : raw;
+}
+
+// Fills in a schema entry's `default` from a snapshot value when missing.
+// Type-narrows the snapshot to the entry's kind — silently drops mismatches
+// rather than corrupting the schema.
+function ensureEntryDefault(
+  entry: ParamSchemaEntry,
+  current: unknown,
+): ParamSchemaEntry {
+  if ("default" in entry && entry.default !== undefined) return entry;
+  if (current === undefined || current === null || current === "") return entry;
+  switch (entry.kind) {
+    case "string":
+    case "url":
+      return typeof current === "string" ? { ...entry, default: current } : entry;
+    case "color":
+      return typeof current === "string" && current.length > 0
+        ? { ...entry, default: current }
+        : entry;
+    case "number":
+      return typeof current === "number" && Number.isFinite(current)
+        ? { ...entry, default: current }
+        : entry;
+    case "boolean":
+      return typeof current === "boolean"
+        ? { ...entry, default: current }
+        : entry;
+    case "enum":
+      return typeof current === "string" && entry.values.includes(current)
+        ? { ...entry, default: current }
+        : entry;
+  }
+}
+
 function defaultForEntry(entry: ParamSchemaEntry): unknown {
   if ("default" in entry && entry.default !== undefined) return entry.default;
   switch (entry.kind) {
@@ -523,11 +584,21 @@ export const useEditor = create<EditorState>((set, get) => ({
 
   bindToParam: (nodeId, field, paramName, schemaEntry, paint) =>
     set((s) => {
+      // Snapshot the field's pre-bind value into both the schema default and
+      // the ref's own `default` — the schema feeds `paramsWithDefaults` (URL
+      // builder + server-side draft merge), the ref-level default is what
+      // `resolveValue` reads as a last resort. Belt + suspenders so bound
+      // fields never render blank purely because no draft value was provided.
+      const currentValue = readBoundField(s, nodeId, field, paint);
       const ref: ParamRef<string> = { $param: paramName };
+      if (typeof currentValue === "string" && currentValue.length > 0) {
+        ref.default = currentValue;
+      }
       const fieldValue = paint ? flatPaint(ref) : ref;
+      const finalEntry = ensureEntryDefault(schemaEntry, currentValue);
       const nextSchema: ParamsSchema = {
         ...s.paramsSchema,
-        [paramName]: schemaEntry,
+        [paramName]: finalEntry,
       };
       if (nodeId === "artboard") {
         return {
