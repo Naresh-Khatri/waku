@@ -2,7 +2,11 @@
 
 import {
   Bookmark,
+  Check,
+  Copy,
+  Download,
   Heart,
+  Link as LinkIcon,
   MessageCircle,
   MessagesSquare,
   MoreHorizontal,
@@ -107,6 +111,29 @@ function withPreviewQuality(url: string): string {
     return u.toString();
   } catch {
     return url;
+  }
+}
+
+function inferDownloadExt(url: string, contentType: string | null): string {
+  if (contentType) {
+    if (contentType.includes("png")) return "png";
+    if (contentType.includes("jpeg") || contentType.includes("jpg")) return "jpg";
+    if (contentType.includes("webp")) return "webp";
+    if (contentType.includes("svg")) return "svg";
+  }
+  try {
+    const fmt = new URL(url).searchParams.get("format");
+    if (fmt) return fmt;
+  } catch {}
+  return "png";
+}
+
+function hasQueryParams(url: string | null): boolean {
+  if (!url) return false;
+  try {
+    return new URL(url).searchParams.size > 0;
+  } catch {
+    return false;
   }
 }
 
@@ -279,6 +306,132 @@ export function StatusDot({ status }: { status: RenderStatus }) {
               : "bg-zinc-300"
       }`}
     />
+  );
+}
+
+export function OgPreviewActions({
+  url,
+  filename = "og-image",
+}: {
+  url: string | null;
+  filename?: string;
+}) {
+  const [copied, setCopied] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const hasParams = useMemo(() => hasQueryParams(url), [url]);
+
+  const copyUrl = async () => {
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1200);
+    } catch {
+      /* clipboard unavailable */
+    }
+  };
+
+  const download = async () => {
+    if (!url || downloading) return;
+    setDownloading(true);
+    setDownloadError(null);
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) {
+        const header = res.headers.get("x-waku-error");
+        throw new Error(header || res.statusText || "render failed");
+      }
+      const blob = await res.blob();
+      const ext = inferDownloadExt(url, res.headers.get("content-type"));
+      const obj = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = obj;
+      a.download = `${filename}.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(obj);
+    } catch (e) {
+      setDownloadError(e instanceof Error ? e.message : "download failed");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col">
+      <div
+        className={`flex border-t ${
+          copied
+            ? "border-emerald-300 bg-emerald-100"
+            : "border-emerald-200 bg-emerald-50"
+        }`}
+      >
+        <button
+          onClick={copyUrl}
+          disabled={!url}
+          title={url ?? undefined}
+          className={`group flex min-w-0 flex-1 items-center gap-2 px-2 py-2 text-[11px] transition-colors disabled:opacity-50 ${
+            copied ? "" : "hover:bg-emerald-100/60"
+          }`}
+        >
+          <span
+            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${
+              copied
+                ? "bg-emerald-200 text-emerald-800"
+                : "bg-emerald-100 text-emerald-700 group-hover:bg-emerald-200"
+            }`}
+          >
+            <LinkIcon className="h-3.5 w-3.5" />
+          </span>
+          <span
+            className={`min-w-0 flex-1 truncate text-left font-mono ${
+              copied ? "text-emerald-800" : "text-emerald-900"
+            }`}
+          >
+            {copied ? "Copied to clipboard" : (url ?? "no url")}
+          </span>
+          <span
+            className={`flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold text-white transition-colors ${
+              copied
+                ? "bg-emerald-600"
+                : "bg-emerald-700 group-hover:bg-emerald-800"
+            }`}
+          >
+            {copied ? (
+              <>
+                <Check className="h-3.5 w-3.5" /> Copied
+              </>
+            ) : (
+              <>
+                <Copy className="h-3.5 w-3.5" /> Copy
+              </>
+            )}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={download}
+          disabled={!url || downloading}
+          title={downloadError ?? "Download rendered image"}
+          className="flex shrink-0 items-center gap-1.5 border-l border-emerald-200 px-3 text-[11px] font-medium text-emerald-900 hover:bg-emerald-100/60 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Download className="h-3.5 w-3.5" />
+          {downloading ? "Downloading…" : "Download"}
+        </button>
+      </div>
+      {hasParams ? (
+        <div className="border-t border-zinc-200 bg-white px-2 py-1 text-[10px] italic text-zinc-500">
+          Download bakes current param values into the image — share the URL to keep them dynamic.
+        </div>
+      ) : null}
+      {downloadError ? (
+        <div className="border-t border-rose-200 bg-rose-50 px-2 py-1 text-[10px] text-rose-700">
+          {downloadError}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
