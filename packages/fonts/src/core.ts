@@ -51,6 +51,13 @@ function buildBunnyCss2Url(r: ResolvedRequest): string {
   return `https://fonts.bunny.net/css2?family=${familyEnc}:${axes}&${params.toString()}`;
 }
 
+export class BunnyVariantUnavailableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "BunnyVariantUnavailableError";
+  }
+}
+
 const cssTextCache = new Map<string, Promise<string>>();
 
 export function fetchBunnyCss(r: ResolvedRequest): Promise<string> {
@@ -70,7 +77,17 @@ export function fetchBunnyCss(r: ResolvedRequest): Promise<string> {
         `Bunny Fonts CSS fetch failed: ${url} (${res.status} ${res.statusText})`,
       );
     }
-    return res.text();
+    const text = await res.text();
+    // Bunny returns 200 with an "API Error" CSS comment (and no @font-face
+    // blocks) when the requested family/weight/style isn't in their catalog.
+    // Surface that as a thrown error so the failed promise auto-evicts from
+    // the cache and callers can fall back to a different variant.
+    if (!text.includes("@font-face")) {
+      throw new BunnyVariantUnavailableError(
+        `Bunny Fonts has no variant for this request: ${url}`,
+      );
+    }
+    return text;
   })();
   cssTextCache.set(url, pending);
   pending.catch(() => cssTextCache.delete(url));
