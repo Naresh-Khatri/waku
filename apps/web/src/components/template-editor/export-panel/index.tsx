@@ -13,7 +13,7 @@ import {
 import { api } from "@/trpc/react";
 import { useRenderedImage, type Platform } from "./og-preview";
 import { useEditor } from "../store";
-import { effectiveParams, isParamRef } from "../types";
+import { isParamRef, paramsWithDefaults } from "../types";
 import type { Artboard, EditorNode, TemplateDocument } from "../types";
 import { searchFromParams } from "../url-params";
 import { TRANSITION } from "./constants";
@@ -110,7 +110,7 @@ export function ExportPanel({
   // URL we build. The renderer reads only what's in the query string, so a
   // bare URL would silently drop bound-but-not-overridden params and render
   // their fallbacks — diverging from the canvas which uses effective values.
-  const effective = effectiveParams(paramsSchema, draftValues);
+  const effective = paramsWithDefaults(draftValues, paramsSchema);
   const qs = searchFromParams(effective, paramsSchema).toString();
   const appendQs = (base: string) =>
     qs.length === 0 ? base : `${base}${base.includes("?") ? "&" : "?"}${qs}`;

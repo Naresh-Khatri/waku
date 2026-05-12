@@ -12,7 +12,7 @@ import { useEditor } from "./store";
 import type { Guide, Zoom } from "./store";
 import { snapMove } from "./snap";
 import type { EditorNode } from "./types";
-import { effectiveParams, paintToCss, resolveValue } from "./types";
+import { paintToCss, paramsWithDefaults, resolveValue } from "./types";
 import { NodeContent } from "./node-view";
 import { FloatingToolbar } from "./floating-toolbar";
 import { ZoomBar } from "./zoom-bar";
@@ -63,7 +63,7 @@ export function Canvas() {
   const setZoom = useEditor((s) => s.setZoom);
   const draftValues = useEditor((s) => s.draftValues);
   const paramsSchema = useEditor((s) => s.paramsSchema);
-  const draft = effectiveParams(paramsSchema, draftValues);
+  const draft = paramsWithDefaults(draftValues, paramsSchema);
   const artboardBg = paintToCss(artboard.background, draft);
 
   const wrapperRef = useRef<HTMLDivElement>(null);

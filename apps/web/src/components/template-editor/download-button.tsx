@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useEditorConfig } from "./editor-config";
 import { useEditor } from "./store";
-import { effectiveParams } from "./types";
+import { paramsWithDefaults } from "./types";
 import { searchFromParams } from "./url-params";
 
 function inferExtension(url: string, contentType: string | null): string {
@@ -37,7 +37,7 @@ export function DownloadButton({ filename = "og-image" }: { filename?: string })
     setError(null);
     try {
       const qs = searchFromParams(
-        effectiveParams(paramsSchema, draftValues),
+        paramsWithDefaults(draftValues, paramsSchema),
         paramsSchema,
       ).toString();
       const url =
