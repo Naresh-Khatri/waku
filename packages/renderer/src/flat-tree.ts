@@ -8,6 +8,7 @@ import {
   type ImageNode,
   type LineNode,
   type Paint,
+  type PathNode,
   type RectangleNode,
   type Shadow,
   type StarNode,
@@ -135,6 +136,8 @@ function nodeToSatori(node: EditorNode, draft: Draft): SatoriElement {
       return wrap(starNode(node, draft));
     case "line":
       return wrap(lineNode(node, draft));
+    case "path":
+      return wrap(pathNode(node, draft));
   }
 }
 
@@ -196,22 +199,25 @@ function imageNode(node: ImageNode, draft: Draft): SatoriElement {
 
 const ALLOWED_FONTS = new Set<string>(FONT_FAMILY_VALUES);
 
+function paintColorStyle(paint: Paint, draft: Draft): Record<string, unknown> {
+  return paint.kind === "flat"
+    ? { color: paintToCss(paint, draft) }
+    : {
+        color: "transparent",
+        backgroundImage: paintToCss(paint, draft),
+        backgroundClip: "text",
+        WebkitBackgroundClip: "text",
+      };
+}
+
 function textNode(node: TextNode, draft: Draft): SatoriElement {
-  const text = resolveValue(node.text, draft) ?? "";
   const fontFamily = ALLOWED_FONTS.has(node.fontFamily) ? node.fontFamily : "Inter";
   const fontSize = Math.max(1, resolveValue(node.fontSize, draft) ?? 16);
   const italic = resolveValue(node.italic, draft) ?? false;
   const letterSpacing = resolveValue(node.letterSpacing, draft) ?? 0;
   const lineHeight = Math.max(0.1, resolveValue(node.lineHeight, draft) ?? 1.2);
-  const colorStyle: Record<string, unknown> =
-    node.color.kind === "flat"
-      ? { color: paintToCss(node.color, draft) }
-      : {
-          color: "transparent",
-          backgroundImage: paintToCss(node.color, draft),
-          backgroundClip: "text",
-          WebkitBackgroundClip: "text",
-        };
+  const colorStyle = paintColorStyle(node.color, draft);
+  const text = resolveValue(node.text, draft) ?? "";
   return el("div", {
     style: {
       width: node.width,
@@ -405,6 +411,29 @@ function starNode(node: StarNode, draft: Draft): SatoriElement {
   const stroke = paintToSvgPaint(node.stroke, `s-${node.id}`, draft);
   const body = `${defsBlock([fill, stroke])}<polygon points='${pts.join(" ")}' fill='${escapeAttr(fill.ref)}' stroke='${escapeAttr(stroke.ref)}' stroke-width='${sw}' />`;
   return svgImage(w, h, body);
+}
+
+function pathNode(node: PathNode, draft: Draft): SatoriElement {
+  const w = node.width;
+  const h = node.height;
+  const [vbW, vbH] = node.viewBox;
+  const d = resolveValue(node.d, draft) ?? "";
+  const sw = Math.max(0, resolveValue(node.strokeWidth, draft) ?? 0);
+  const fill = paintToSvgPaint(node.fill, `pf-${node.id}`, draft);
+  const stroke = paintToSvgPaint(node.stroke, `ps-${node.id}`, draft);
+  const filter = node.shadow
+    ? ` filter='${escapeAttr(
+        `drop-shadow(${node.shadow.offsetX}px ${node.shadow.offsetY}px ${node.shadow.blur}px ${resolveValue(node.shadow.color, draft) ?? "#00000040"})`,
+      )}'`
+    : "";
+  const body = `${defsBlock([fill, stroke])}<g${filter}><path d='${escapeAttr(d)}' fill='${escapeAttr(fill.ref)}' stroke='${escapeAttr(stroke.ref)}' stroke-width='${sw}' /></g>`;
+  // Build the SVG with a custom viewBox so the path coordinates are
+  // independent of the node's display size; preserveAspectRatio=none lets
+  // designers freely stretch the bbox without distorting the d-string author's
+  // intent (they declared the design box via viewBox).
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${vbW} ${vbH}' preserveAspectRatio='none' width='${w}' height='${h}'>${body}</svg>`;
+  const dataUri = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  return el("img", { src: dataUri, width: w, height: h, style: { width: w, height: h } });
 }
 
 function lineNode(node: LineNode, draft: Draft): SatoriElement {

@@ -1,6 +1,7 @@
 import type {
   EllipseNode,
   LineNode,
+  PathNode,
   RectangleNode,
   Shadow,
   StarNode,
@@ -146,6 +147,34 @@ export function StarSvg({ node, draft }: { node: StarNode; draft: Draft }) {
         stroke={sw > 0 ? stroke.ref : "none"}
         strokeWidth={sw}
         strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function PathSvg({ node, draft }: { node: PathNode; draft: Draft }) {
+  const sw = Math.max(0, resolveValue(node.strokeWidth, draft) ?? 0);
+  const d = resolveValue(node.d, draft) ?? "";
+  const [vbW, vbH] = node.viewBox;
+  const fill = svgPaint(node.fill, `path-fill-${node.id}`, draft);
+  const stroke = svgPaint(node.stroke, `path-stroke-${node.id}`, draft);
+  return (
+    <svg
+      width={node.width}
+      height={node.height}
+      viewBox={`0 0 ${vbW} ${vbH}`}
+      preserveAspectRatio="none"
+      className="block"
+      style={{ filter: dropShadow(node.shadow, draft) }}
+    >
+      <Defs defs={[fill.def, stroke.def]} />
+      <path
+        d={d}
+        fill={fill.ref}
+        stroke={sw > 0 ? stroke.ref : "none"}
+        strokeWidth={sw}
+        strokeLinejoin="round"
+        strokeLinecap="round"
       />
     </svg>
   );

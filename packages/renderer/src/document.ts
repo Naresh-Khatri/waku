@@ -8,7 +8,8 @@ export type NodeType =
   | "ellipse"
   | "triangle"
   | "star"
-  | "line";
+  | "line"
+  | "path";
 
 export type ParamRef<T = unknown> = {
   $param: string;
@@ -242,6 +243,18 @@ export interface LineNode extends BaseNode {
   arrow: Value<boolean>;
 }
 
+/**
+ * Arbitrary SVG path. The `d` string is drawn inside a `viewBox` box and
+ * scaled (non-uniformly) to fit `node.width × node.height`. Use viewBox to
+ * declare the coordinate space the path data was authored in.
+ */
+export interface PathNode extends BaseNode, ShapeFields {
+  type: "path";
+  d: Value<string>;
+  viewBox: [number, number];
+  shadow?: Shadow | null;
+}
+
 export type EditorNode =
   | ImageNode
   | TextNode
@@ -249,7 +262,8 @@ export type EditorNode =
   | EllipseNode
   | TriangleNode
   | StarNode
-  | LineNode;
+  | LineNode
+  | PathNode;
 
 export interface Artboard {
   width: number;

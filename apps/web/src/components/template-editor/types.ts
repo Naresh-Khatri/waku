@@ -11,6 +11,7 @@ export type {
   LineNode,
   NodeType,
   Paint,
+  PathNode,
   ParamKind,
   ParamRef,
   ParamSchemaEntry,
@@ -35,12 +36,18 @@ export {
 import type {
   EllipseNode,
   ParamsSchema,
+  PathNode,
   RectangleNode,
   StarNode,
   TriangleNode,
 } from "@waku/renderer/document";
 
-export type ShapeNode = RectangleNode | EllipseNode | TriangleNode | StarNode;
+export type ShapeNode =
+  | RectangleNode
+  | EllipseNode
+  | TriangleNode
+  | StarNode
+  | PathNode;
 
 export function effectiveParams(
   schema: ParamsSchema,

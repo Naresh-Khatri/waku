@@ -101,7 +101,8 @@ function TypeSpecificControls({ node }: { node: EditorNode }) {
     case "rectangle":
     case "ellipse":
     case "triangle":
-    case "star": {
+    case "star":
+    case "path": {
       const fillFallback =
         node.type === "rectangle"
           ? "#6366f1"
@@ -109,7 +110,9 @@ function TypeSpecificControls({ node }: { node: EditorNode }) {
             ? "#ec4899"
             : node.type === "triangle"
               ? "#10b981"
-              : "#f59e0b";
+              : node.type === "star"
+                ? "#f59e0b"
+                : "#ef4444";
       return (
         <>
           <BindablePaint

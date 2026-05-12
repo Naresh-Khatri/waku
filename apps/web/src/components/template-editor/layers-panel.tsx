@@ -20,6 +20,7 @@ import {
   Eye,
   EyeOff,
   GripVertical,
+  Heart,
   Image as ImageIcon,
   Lock,
   LockOpen,
@@ -44,6 +45,7 @@ const ICON: Record<NodeType, LucideIcon> = {
   triangle: Triangle,
   star: Star,
   line: Minus,
+  path: Heart,
 };
 
 export function LayersPanel() {

@@ -9,10 +9,19 @@ import type {
   EditorNode,
   FontFamily,
   Paint,
+  PathNode,
   Shadow,
+  TextNode,
   Value,
 } from "./types";
-import { FONT_FAMILY_VALUES, isFlatPaint, isParamRef } from "./types";
+import {
+  FONT_FAMILY_VALUES,
+  flatPaint,
+  isFlatPaint,
+  isParamRef,
+  resolveValue,
+} from "./types";
+import { PATH_PRESETS } from "./path-presets";
 import { useLazyFonts } from "./use-lazy-font";
 import { ColorPicker } from "./color-picker";
 import { PaintInput } from "./paint-picker";
@@ -37,7 +46,11 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 type FontCategory = "Sans" | "Serif" | "Display" | "Mono" | "Handwriting";
@@ -351,6 +364,7 @@ function TypeSection({ node }: { node: EditorNode }) {
                 />
               </Bindable>
             </Row>
+
             <Row label="Size">
               <Bindable
                 target={{ kind: "node", id: node.id }}
@@ -499,7 +513,10 @@ function TypeSection({ node }: { node: EditorNode }) {
                 value={node.fill}
                 fallback={{ kind: "flat", color: "#6366f1" }}
               >
-                <PaintField value={node.fill} onChange={(v) => set({ fill: v })} />
+                <PaintField
+                  value={node.fill}
+                  onChange={(v) => set({ fill: v })}
+                />
               </Bindable>
             </Row>
             <Row label="Stroke">
@@ -511,7 +528,10 @@ function TypeSection({ node }: { node: EditorNode }) {
                 value={node.stroke}
                 fallback={{ kind: "flat", color: "#000000" }}
               >
-                <PaintField value={node.stroke} onChange={(v) => set({ stroke: v })} />
+                <PaintField
+                  value={node.stroke}
+                  onChange={(v) => set({ stroke: v })}
+                />
               </Bindable>
             </Row>
             <Row label="Stroke width">
@@ -573,7 +593,10 @@ function TypeSection({ node }: { node: EditorNode }) {
                   color: node.type === "ellipse" ? "#ec4899" : "#10b981",
                 }}
               >
-                <PaintField value={node.fill} onChange={(v) => set({ fill: v })} />
+                <PaintField
+                  value={node.fill}
+                  onChange={(v) => set({ fill: v })}
+                />
               </Bindable>
             </Row>
             <Row label="Stroke">
@@ -585,7 +608,10 @@ function TypeSection({ node }: { node: EditorNode }) {
                 value={node.stroke}
                 fallback={{ kind: "flat", color: "#000000" }}
               >
-                <PaintField value={node.stroke} onChange={(v) => set({ stroke: v })} />
+                <PaintField
+                  value={node.stroke}
+                  onChange={(v) => set({ stroke: v })}
+                />
               </Bindable>
             </Row>
             <Row label="Stroke width">
@@ -627,7 +653,10 @@ function TypeSection({ node }: { node: EditorNode }) {
               value={node.fill}
               fallback={{ kind: "flat", color: "#f59e0b" }}
             >
-              <PaintField value={node.fill} onChange={(v) => set({ fill: v })} />
+              <PaintField
+                value={node.fill}
+                onChange={(v) => set({ fill: v })}
+              />
             </Bindable>
           </Row>
           <Row label="Stroke">
@@ -639,7 +668,10 @@ function TypeSection({ node }: { node: EditorNode }) {
               value={node.stroke}
               fallback={{ kind: "flat", color: "#000000" }}
             >
-              <PaintField value={node.stroke} onChange={(v) => set({ stroke: v })} />
+              <PaintField
+                value={node.stroke}
+                onChange={(v) => set({ stroke: v })}
+              />
             </Bindable>
           </Row>
           <Row label="Stroke width">
@@ -696,6 +728,102 @@ function TypeSection({ node }: { node: EditorNode }) {
         </Section>
       );
 
+    case "path":
+      return (
+        <>
+          <Section title="Path">
+            <Row label="Preset">
+              <PathPresetPicker
+                onPick={(p) =>
+                  set({
+                    d: p.d,
+                    viewBox: p.viewBox,
+                  } as Partial<PathNode>)
+                }
+              />
+            </Row>
+            <Row label="Data">
+              <Bindable
+                target={{ kind: "node", id: node.id }}
+                field="d"
+                paramKind="string"
+                value={node.d}
+                fallback=""
+              >
+                <TextAreaField value={node.d} onChange={(v) => set({ d: v })} />
+              </Bindable>
+            </Row>
+            <PairRow>
+              <NumberInput
+                label="vbW"
+                value={node.viewBox[0]}
+                onChange={(v) =>
+                  set({ viewBox: [Math.max(1, v), node.viewBox[1]] })
+                }
+              />
+              <NumberInput
+                label="vbH"
+                value={node.viewBox[1]}
+                onChange={(v) =>
+                  set({ viewBox: [node.viewBox[0], Math.max(1, v)] })
+                }
+              />
+            </PairRow>
+            <Row label="Fill">
+              <Bindable
+                paint
+                target={{ kind: "node", id: node.id }}
+                field="fill"
+                paramKind="color"
+                value={node.fill}
+                fallback={{ kind: "flat", color: "#ef4444" }}
+              >
+                <PaintField
+                  value={node.fill}
+                  onChange={(v) => set({ fill: v })}
+                />
+              </Bindable>
+            </Row>
+            <Row label="Stroke">
+              <Bindable
+                paint
+                target={{ kind: "node", id: node.id }}
+                field="stroke"
+                paramKind="color"
+                value={node.stroke}
+                fallback={{ kind: "flat", color: "#000000" }}
+              >
+                <PaintField
+                  value={node.stroke}
+                  onChange={(v) => set({ stroke: v })}
+                />
+              </Bindable>
+            </Row>
+            <Row label="Stroke width">
+              <Bindable
+                target={{ kind: "node", id: node.id }}
+                field="strokeWidth"
+                paramKind="number"
+                value={node.strokeWidth}
+                fallback={0}
+              >
+                <NumberValueField
+                  min={0}
+                  max={32}
+                  step={1}
+                  value={node.strokeWidth}
+                  onChange={(v) => set({ strokeWidth: v })}
+                />
+              </Bindable>
+            </Row>
+          </Section>
+          <ShadowSection
+            shadow={node.shadow ?? null}
+            onChange={(s) => set({ shadow: s })}
+          />
+        </>
+      );
+
     case "line":
       return (
         <Section title="Line">
@@ -708,7 +836,10 @@ function TypeSection({ node }: { node: EditorNode }) {
               value={node.stroke}
               fallback={{ kind: "flat", color: "#111111" }}
             >
-              <PaintField value={node.stroke} onChange={(v) => set({ stroke: v })} />
+              <PaintField
+                value={node.stroke}
+                onChange={(v) => set({ stroke: v })}
+              />
             </Bindable>
           </Row>
           <Row label="Width">
@@ -881,12 +1012,18 @@ function Section({
         {title}
       </div>
       <div className="space-y-2">{children}</div>
-      <Separator className="mt-3 -mx-3 w-auto" />
+      <Separator className="-mx-3 mt-3 w-auto" />
     </div>
   );
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function Row({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex items-center gap-2">
       <span className="w-20 shrink-0 text-[11px] text-zinc-500">{label}</span>
@@ -1158,6 +1295,43 @@ function SelectInput({
           ))}
         </SelectContent>
       </Select>
+    </div>
+  );
+}
+
+function PathPresetPicker({
+  onPick,
+}: {
+  onPick: (p: (typeof PATH_PRESETS)[number]) => void;
+}) {
+  return (
+    <div className="grid w-full grid-cols-6 gap-1">
+      {PATH_PRESETS.map((p) => (
+        <Tooltip key={p.id}>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={() => onPick(p)}
+              className="flex h-8 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+              aria-label={p.label}
+            >
+              <svg
+                viewBox={`0 0 ${p.viewBox[0]} ${p.viewBox[1]}`}
+                preserveAspectRatio="xMidYMid meet"
+                className="h-4 w-4"
+              >
+                <path
+                  d={p.d}
+                  fill="currentColor"
+                  stroke="currentColor"
+                  strokeWidth={0}
+                />
+              </svg>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{p.label}</TooltipContent>
+        </Tooltip>
+      ))}
     </div>
   );
 }

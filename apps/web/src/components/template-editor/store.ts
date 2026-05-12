@@ -12,6 +12,7 @@ import type {
   Value,
 } from "./types";
 import { flatPaint, isParamRef } from "./types";
+import { DEFAULT_PATH_PRESET } from "./path-presets";
 
 const newId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -26,6 +27,7 @@ const TYPE_LABEL: Record<NodeType, string> = {
   triangle: "Triangle",
   star: "Star",
   line: "Line",
+  path: "Path",
 };
 
 const SAMPLE_IMAGE =
@@ -180,6 +182,28 @@ export function createNode(
         strokeWidth: 4,
         arrow: false,
       };
+    case "path": {
+      const p = DEFAULT_PATH_PRESET;
+      return {
+        id,
+        type,
+        name,
+        parentId: null,
+        x: cx - p.width / 2,
+        y: cy - p.height / 2,
+        width: p.width,
+        height: p.height,
+        rotation: 0,
+        opacity: 1,
+        visible: true,
+        locked: false,
+        fill: flatPaint("#ef4444"),
+        stroke: flatPaint("#000000"),
+        strokeWidth: 0,
+        d: p.d,
+        viewBox: p.viewBox,
+      };
+    }
   }
 }
 
@@ -322,6 +346,7 @@ const ZERO_COUNT: Record<NodeType, number> = {
   triangle: 0,
   star: 0,
   line: 0,
+  path: 0,
 };
 
 export const useEditor = create<EditorState>((set, get) => ({

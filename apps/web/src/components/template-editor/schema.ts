@@ -184,6 +184,15 @@ const LineNodeZ = z.object({
   arrow: ValueBooleanZ,
 });
 
+const PathNodeZ = z.object({
+  ...BaseFields,
+  ...ShapeFields,
+  type: z.literal("path"),
+  d: ValueStringZ,
+  viewBox: z.tuple([z.number().positive(), z.number().positive()]),
+  shadow: ShadowZ.nullable().optional(),
+});
+
 export const EditorNodeZ = z.discriminatedUnion("type", [
   ImageNodeZ,
   TextNodeZ,
@@ -192,6 +201,7 @@ export const EditorNodeZ = z.discriminatedUnion("type", [
   TriangleNodeZ,
   StarNodeZ,
   LineNodeZ,
+  PathNodeZ,
 ]);
 
 const ArtboardZ = z.object({

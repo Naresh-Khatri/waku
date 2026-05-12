@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import type { EditorNode, Shadow } from "./types";
+import type { EditorNode, Paint, Shadow } from "./types";
 import { isFlatPaint, paintToCss, resolveValue } from "./types";
 
 function shadowCss(
@@ -11,9 +11,26 @@ function shadowCss(
   const color = resolveValue(shadow.color, draft) ?? "#00000040";
   return `${shadow.offsetX}px ${shadow.offsetY}px ${shadow.blur}px ${color}`;
 }
+
+function paintColorStyle(
+  paint: Paint,
+  draft: Record<string, unknown>,
+): CSSProperties {
+  const css = paintToCss(paint, draft);
+  return isFlatPaint(paint)
+    ? { color: css }
+    : {
+        color: "transparent",
+        backgroundImage: css,
+        backgroundClip: "text",
+        WebkitBackgroundClip: "text",
+      };
+}
+
 import {
   EllipseSvg,
   LineSvg,
+  PathSvg,
   RectangleSvg,
   StarSvg,
   TriangleSvg,
@@ -95,7 +112,6 @@ export function NodeContent({
       return img;
     }
     case "text": {
-      const text = resolveValue(node.text, draft) ?? "";
       const fontSize = Math.max(1, resolveValue(node.fontSize, draft) ?? 16);
       const italic = resolveValue(node.italic, draft) ?? false;
       const letterSpacing = resolveValue(node.letterSpacing, draft) ?? 0;
@@ -103,45 +119,32 @@ export function NodeContent({
         0.1,
         resolveValue(node.lineHeight, draft) ?? 1.2,
       );
-      const colorCss = paintToCss(node.color, draft);
-      const isFlat = isFlatPaint(node.color);
-      const colorStyle: CSSProperties = isFlat
-        ? { color: colorCss }
-        : {
-            color: "transparent",
-            backgroundImage: colorCss,
-            backgroundClip: "text",
-            WebkitBackgroundClip: "text",
-          };
+      const baseColorStyle = paintColorStyle(node.color, draft);
+      const containerStyle: CSSProperties = {
+        fontFamily: node.fontFamily,
+        fontSize,
+        fontWeight: node.fontWeight,
+        fontStyle: italic ? "italic" : "normal",
+        ...baseColorStyle,
+        textAlign: node.align,
+        letterSpacing,
+        lineHeight,
+        display: "flex",
+        alignItems: "center",
+        justifyContent:
+          node.align === "center"
+            ? "center"
+            : node.align === "right"
+              ? "flex-end"
+              : "flex-start",
+        whiteSpace: "pre-wrap",
+        wordBreak: "break-word",
+        pointerEvents: "none",
+        ...(node.shadow ? { textShadow: shadowCss(node.shadow, draft) } : {}),
+      };
       return (
-        <div
-          className="h-full w-full"
-          style={{
-            fontFamily: node.fontFamily,
-            fontSize,
-            fontWeight: node.fontWeight,
-            fontStyle: italic ? "italic" : "normal",
-            ...colorStyle,
-            textAlign: node.align,
-            letterSpacing,
-            lineHeight,
-            display: "flex",
-            alignItems: "center",
-            justifyContent:
-              node.align === "center"
-                ? "center"
-                : node.align === "right"
-                  ? "flex-end"
-                  : "flex-start",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-            pointerEvents: "none",
-            ...(node.shadow
-              ? { textShadow: shadowCss(node.shadow, draft) }
-              : {}),
-          }}
-        >
-          {text}
+        <div className="h-full w-full" style={containerStyle}>
+          {resolveValue(node.text, draft) ?? ""}
         </div>
       );
     }
@@ -155,5 +158,7 @@ export function NodeContent({
       return <StarSvg node={node} draft={draft} />;
     case "line":
       return <LineSvg node={node} draft={draft} />;
+    case "path":
+      return <PathSvg node={node} draft={draft} />;
   }
 }

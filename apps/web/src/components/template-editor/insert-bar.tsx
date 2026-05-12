@@ -2,6 +2,7 @@
 
 import {
   Circle,
+  Heart,
   Image as ImageIcon,
   Minus,
   Redo2,
@@ -30,6 +31,7 @@ const ITEMS: { type: NodeType; icon: LucideIcon; label: string }[] = [
   { type: "triangle", icon: Triangle, label: "Triangle" },
   { type: "star", icon: Star, label: "Star" },
   { type: "line", icon: Minus, label: "Line" },
+  { type: "path", icon: Heart, label: "Path" },
 ];
 
 export function InsertBar() {

@@ -21,7 +21,7 @@ Any color string may also be a ParamRef: { "$param": "name", "default": "#..." }
 
 # Every node has these base fields
   id:        unique short string (e.g. "n1", "title", "bg")
-  type:      "image" | "text" | "rectangle" | "ellipse" | "triangle" | "star" | "line"
+  type:      "image" | "text" | "rectangle" | "ellipse" | "triangle" | "star" | "line" | "path"
   name:      short human label shown in the layers panel
   parentId:  null
   x, y:      top-left of the node's bbox in artboard coords
@@ -56,6 +56,12 @@ star:       fill, stroke, strokeWidth,
 
 line:       stroke (Paint), strokeWidth (px), arrow (bool).
             A line runs from (x, y) to (x + width, y + height); height can be 0 for a horizontal line.
+
+path:       fill (Paint), stroke (Paint), strokeWidth (px),
+            d (SVG path data string, e.g. "M12 2L22 22H2z" for a triangle),
+            viewBox ([w, h] — the intrinsic coordinate box the d-string was authored in),
+            shadow (Shadow | null, optional).
+            The d-string is rendered inside viewBox and stretched to the node's width × height.
 
 Shadow = { offsetX: number, offsetY: number, blur: number ≥ 0, color: string }
 
@@ -270,7 +276,7 @@ export const AI_TEMPLATE_EXAMPLE_GRADIENT: TemplateDocument = {
       italic: false,
       color: { kind: "flat", color: "#ffffff" },
       align: "left",
-      fontFamily: "Inter",
+      fontFamily: "Space Grotesk",
       letterSpacing: -2,
       lineHeight: 1.05,
     },
@@ -363,15 +369,15 @@ export const AI_TEMPLATE_EXAMPLE_PARAMETERIZED: TemplateDocument = {
       visible: true,
       locked: false,
       text: { $param: "title", default: "Your headline here" },
-      fontSize: 72,
-      fontWeight: 700,
+      fontSize: 80,
+      fontWeight: 400,
       italic: false,
       color: {
         kind: "flat",
         color: { $param: "brand", default: "#111111" },
       },
       align: "left",
-      fontFamily: "Inter",
+      fontFamily: "DM Serif Display",
       letterSpacing: -1.5,
       lineHeight: 1.1,
     },
