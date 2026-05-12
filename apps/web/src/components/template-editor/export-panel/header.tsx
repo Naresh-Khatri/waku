@@ -7,7 +7,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { StatusDot, type RenderStatus } from "../og-preview";
+import { StatusDot, type RenderStatus } from "./og-preview";
 
 export type Tab = "preview" | "history";
 

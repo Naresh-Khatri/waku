@@ -3,7 +3,7 @@ import {
   OgSocialPreview,
   type Platform,
   type RenderStatus,
-} from "../../og-preview";
+} from "../og-preview";
 import type { ParamSchemaEntry } from "../../types";
 import { ParamRow } from "./param-row";
 import { PlatformPicker } from "./platform-picker";

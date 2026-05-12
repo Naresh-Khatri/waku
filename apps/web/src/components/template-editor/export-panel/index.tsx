@@ -11,7 +11,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/trpc/react";
-import { useRenderedImage, type Platform } from "../og-preview";
+import { useRenderedImage, type Platform } from "./og-preview";
 import { useEditor } from "../store";
 import { effectiveParams, isParamRef } from "../types";
 import type { Artboard, EditorNode, TemplateDocument } from "../types";

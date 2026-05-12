@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 
-import { PLATFORMS, PlatformIcon, type Platform } from "../../og-preview";
+import { PLATFORMS, PlatformIcon, type Platform } from "../og-preview";
 import { TRANSITION } from "../constants";
 
 export function PlatformPicker({
