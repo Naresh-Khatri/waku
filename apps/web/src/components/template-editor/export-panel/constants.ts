@@ -1,0 +1,5 @@
+export const TRANSITION = {
+  type: "spring" as const,
+  stiffness: 320,
+  damping: 32,
+};

@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { DownloadButton } from "@/components/template-editor/download-button";
 import { Editor } from "@/components/template-editor/editor";
-import { PreviewPanel } from "@/components/template-editor/preview-panel";
+import { ExportPanel } from "@/components/template-editor/export-panel";
 import { useEditor } from "@/components/template-editor/store";
 import type { TemplateDocument } from "@/components/template-editor/types";
 import { paramsFromSearch } from "@/components/template-editor/url-params";
@@ -180,7 +180,7 @@ function EditorTopBar({
 
       <div className="ml-auto flex items-center gap-2">
         <DownloadButton filename={templateSlug} />
-        <PreviewPanel
+        <ExportPanel
           liveUrl={liveUrl}
           templateId={templateId}
           handle={handle}
