@@ -41,8 +41,8 @@ export function Catalogue() {
       <div>
         <h2 className="text-xl font-semibold text-[#e5e7eb]">Templates</h2>
         <p className="mt-1 text-sm text-[#9ca3af]">
-          Open a template to preview, share, or edit. Your own copy is forked
-          the moment you start editing.
+          Open a template to jump straight into editing. Your own copy is forked
+          automatically.
         </p>
       </div>
 
@@ -59,14 +59,14 @@ export function Catalogue() {
       ) : (
         grouped.map((group) => (
           <section key={group.slug} className="flex flex-col gap-3">
-            <h3 className="text-sm font-medium tracking-wide text-[#9ca3af] uppercase">
+            <h3 className="text-sm font-medium uppercase tracking-wide text-[#9ca3af]">
               {group.name}
             </h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {group.items.map((item) => (
                 <TemplateCard
                   key={item.id}
-                  href={`/t/${item.slug}`}
+                  href={`/t/${item.slug}?fork=1`}
                   prefetch={false}
                   name={item.name}
                   description={item.description}

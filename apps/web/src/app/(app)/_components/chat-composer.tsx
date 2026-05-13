@@ -495,7 +495,7 @@ function DesignProposal({
     onSuccess: async ({ template }) => {
       await utils.template.list.invalidate();
       await utils.template.listMine.invalidate();
-      router.push(`/dashboard/templates/${template.slug}`);
+      router.push(`/templates/${template.slug}`);
     },
     onError: (err) => {
       setForkError(err.message);

@@ -51,7 +51,7 @@ export const templateRouter = createTRPCRouter({
   }),
 
   // Recent-first user designs with cursor pagination. Used by the dashboard
-  // "My designs" strip (small limit) and the full /dashboard/designs page.
+  // "My designs" strip (small limit) and the full /designs page.
   listMine: protectedProcedure
     .input(
       z
@@ -323,7 +323,7 @@ export const templateRouter = createTRPCRouter({
     }),
 
   // Catalogue feed: published stock templates with thumbnail URLs and category.
-  listStock: protectedProcedure.query(async ({ ctx }) => {
+  listStock: publicProcedure.query(async ({ ctx }) => {
     const rows = await ctx.db
       .select({
         id: stockTemplate.id,

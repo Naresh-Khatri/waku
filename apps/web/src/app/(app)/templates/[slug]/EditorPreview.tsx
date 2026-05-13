@@ -91,7 +91,7 @@ function EditorTopBar({
   });
 
   const del = api.template.delete.useMutation({
-    onSuccess: () => router.push("/dashboard/designs"),
+    onSuccess: () => router.push("/designs"),
   });
 
   const saveTimerRef = useRef<number | null>(null);
@@ -149,7 +149,7 @@ function EditorTopBar({
   return (
     <header className="flex h-12 items-center gap-3 border-b border-zinc-200 bg-white px-3">
       <Link
-        href="/dashboard/designs"
+        href="/designs"
         className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
         title="Back to dashboard"
       >

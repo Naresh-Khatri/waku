@@ -4,7 +4,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { useState, type MouseEvent, type ReactNode } from "react";
 
-import { TemplatePreview } from "@/app/dashboard/_components/template-preview";
+import { TemplatePreview } from "@/app/(app)/_components/template-preview";
 import type { TemplateDocument } from "@/components/template-editor/types";
 import { cn } from "@/lib/utils";
 

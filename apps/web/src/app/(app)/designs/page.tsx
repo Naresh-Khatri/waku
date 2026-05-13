@@ -13,7 +13,7 @@ export default function DesignsPage() {
           </p>
         </div>
         <Link
-          href="/dashboard"
+          href="/"
           className="text-sm text-[#9ca3af] hover:text-[#e5e7eb]"
         >
           ← Back to dashboard

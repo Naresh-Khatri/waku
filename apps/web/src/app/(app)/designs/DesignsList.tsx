@@ -42,7 +42,7 @@ export function DesignsList() {
         {items.map((t) => (
           <li key={t.id}>
             <Link
-              href={`/dashboard/templates/${t.slug}`}
+              href={`/templates/${t.slug}`}
               className="flex flex-col gap-2 rounded-xl border border-[#1f2937] bg-[#0b0f1a] p-4 transition hover:border-[#7c5cff]"
             >
               <div className="flex items-start justify-between gap-2">

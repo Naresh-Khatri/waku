@@ -1,41 +1,45 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
+import { AuthButton } from "@/components/auth-button";
 import { getSession } from "@/server/better-auth/server";
 import { ensureProfile } from "@/server/profile";
 import { api } from "@/trpc/server";
 
 import { DashboardShell } from "./_components/dashboard-shell";
 
-export default async function DashboardLayout({
+export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const session = await getSession();
-  if (!session?.user) redirect("/");
-  const { handle } = await ensureProfile(session.user);
 
-  const [templates, usage] = await Promise.all([
-    api.template.list(),
-    api.template.usage(),
-  ]);
+  const profile = session?.user ? await ensureProfile(session.user) : null;
+
+  const [templates, usage] = session?.user
+    ? await Promise.all([api.template.list(), api.template.usage()])
+    : [[], { renders: 0, errors: 0, p95Ms: null as number | null }];
 
   return (
     <div className="min-h-screen bg-[#030712] text-[#e5e7eb]">
       <header className="border-b border-[#1f2937] px-6 py-4">
         <div className="flex items-center justify-between">
-          <Link href="/dashboard" className="text-lg font-semibold">
+          <Link href="/" className="text-lg font-semibold">
             Waku
           </Link>
           <div className="flex items-center gap-4 text-sm text-[#9ca3af]">
-            <span className="font-mono">@{handle}</span>
-            <Link
-              href="/dashboard/credits"
-              className="rounded-full border border-[#1f2937] px-3 py-1 text-xs hover:border-[#7c5cff]"
-            >
-              credits
-            </Link>
+            {profile ? (
+              <>
+                <span className="font-mono">@{profile.handle}</span>
+                <Link
+                  href="/credits"
+                  className="rounded-full border border-[#1f2937] px-3 py-1 text-xs hover:border-[#7c5cff]"
+                >
+                  credits
+                </Link>
+              </>
+            ) : null}
+            <AuthButton />
           </div>
         </div>
       </header>

@@ -33,7 +33,7 @@ export default async function PublicTemplatePage({
   const wantsFork = sp.fork === "1";
   if (wantsFork && session?.user) {
     const { template } = await api.template.forkFromStock({ stockSlug: slug });
-    redirect(`/dashboard/templates/${template.slug}`);
+    redirect(`/templates/${template.slug}`);
   }
 
   const renderParams = stripReservedParams(sp);
@@ -57,7 +57,7 @@ export default async function PublicTemplatePage({
           </Link>
           <div className="text-sm text-[#9ca3af]">
             {session?.user ? (
-              <Link href="/dashboard" className="hover:text-[#e5e7eb]">
+              <Link href="/" className="hover:text-[#e5e7eb]">
                 Dashboard
               </Link>
             ) : (
@@ -129,7 +129,7 @@ function EditButton({
             const { template } = await api.template.forkFromStock({
               stockSlug,
             });
-            redirect(`/dashboard/templates/${template.slug}`);
+            redirect(`/templates/${template.slug}`);
           }}
           className="rounded-md bg-[#7c5cff] px-3 py-1.5 text-sm font-medium text-white transition hover:bg-[#6b4be0]"
         >

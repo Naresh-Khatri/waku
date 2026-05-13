@@ -30,14 +30,11 @@ export function DashboardShell({
 }) {
   const pathname = usePathname();
   const isEditor =
-    pathname?.startsWith("/dashboard/templates/") &&
-    pathname !== "/dashboard/templates";
+    pathname?.startsWith("/templates/") && pathname !== "/templates";
   // Index and /designs already surface My Designs + catalogue + chat composer,
   // so the sidebar would just duplicate them.
   const hideSidebar =
-    isEditor ||
-    pathname === "/dashboard" ||
-    pathname === "/dashboard/designs";
+    isEditor || pathname === "/" || pathname === "/designs";
 
   if (hideSidebar) {
     return (
@@ -83,7 +80,7 @@ function Sidebar({
         ) : (
           <ul className="flex flex-col gap-0.5">
             {list.map((t) => {
-              const href = `/dashboard/templates/${t.slug}`;
+              const href = `/templates/${t.slug}`;
               const active = pathname?.startsWith(href);
               return (
                 <li key={t.id}>

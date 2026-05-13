@@ -18,7 +18,7 @@ export function MyDesignsStrip() {
       <div className="flex items-end justify-between">
         <h2 className="text-xl font-semibold text-[#e5e7eb]">Your designs</h2>
         <Link
-          href="/dashboard/designs"
+          href="/designs"
           className="text-sm text-[#9ca3af] hover:text-[#e5e7eb]"
         >
           View all →
@@ -28,7 +28,7 @@ export function MyDesignsStrip() {
         {items.map((t) => (
           <li key={t.id}>
             <Link
-              href={`/dashboard/templates/${t.slug}`}
+              href={`/templates/${t.slug}`}
               className="flex flex-col gap-1.5 rounded-xl border border-[#1f2937] bg-[#0b0f1a] p-4 transition hover:border-[#7c5cff]"
             >
               <div className="flex items-start justify-between gap-2">
