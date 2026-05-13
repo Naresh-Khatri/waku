@@ -41,6 +41,10 @@ export const template = pgTable(
     slug: text("slug").notNull(),
     name: text("name").notNull(),
     publishedVersionId: uuid("published_version_id"),
+    thumbnailKey: text("thumbnail_key"),
+    // Last successful thumbnail render. Used to throttle re-renders during
+    // autosave so we don't hit the render service on every keystroke.
+    thumbnailUpdatedAt: timestamp("thumbnail_updated_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

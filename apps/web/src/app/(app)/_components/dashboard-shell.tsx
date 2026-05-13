@@ -11,6 +11,7 @@ type Template = {
   name: string;
   publishedVersionId: string | null;
   updatedAt: Date | string;
+  thumbnailUrl: string | null;
 };
 
 type Usage = {
@@ -86,23 +87,35 @@ function Sidebar({
                 <li key={t.id}>
                   <Link
                     href={href}
-                    className={`flex flex-col gap-0.5 rounded-md px-2 py-2 transition ${
-                      active
-                        ? "bg-[#1f2937]"
-                        : "hover:bg-[#111827]"
+                    className={`flex flex-col gap-2 rounded-md p-2 transition ${
+                      active ? "bg-[#1f2937]" : "hover:bg-[#111827]"
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-sm text-[#e5e7eb]">
-                        {t.name}
-                      </span>
-                      {t.publishedVersionId ? (
-                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#6ee7b7]" />
+                    <div className="aspect-[40/21] w-full overflow-hidden rounded-md border border-[#1f2937] bg-[#0b0f1a]">
+                      {t.thumbnailUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={t.thumbnailUrl}
+                          alt=""
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                          draggable={false}
+                        />
                       ) : null}
                     </div>
-                    <span className="truncate font-mono text-[10px] text-[#6b7280]">
-                      {t.slug}
-                    </span>
+                    <div className="flex flex-col gap-0.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate text-sm text-[#e5e7eb]">
+                          {t.name}
+                        </span>
+                        {t.publishedVersionId ? (
+                          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#6ee7b7]" />
+                        ) : null}
+                      </div>
+                      <span className="truncate font-mono text-[10px] text-[#6b7280]">
+                        {t.slug}
+                      </span>
+                    </div>
                   </Link>
                 </li>
               );

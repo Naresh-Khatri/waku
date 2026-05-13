@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-
+import { TemplateCard } from "@/components/templates/template-card";
 import { api } from "@/trpc/react";
 
 const PAGE_SIZE = 24;
@@ -38,34 +37,17 @@ export function DesignsList() {
 
   return (
     <>
-      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((t) => (
-          <li key={t.id}>
-            <Link
-              href={`/templates/${t.slug}`}
-              className="flex flex-col gap-2 rounded-xl border border-[#1f2937] bg-[#0b0f1a] p-4 transition hover:border-[#7c5cff]"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <span className="line-clamp-2 text-sm font-semibold text-[#e5e7eb]">
-                  {t.name}
-                </span>
-                {t.publishedVersionId ? (
-                  <span
-                    className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#6ee7b7]"
-                    title="Published"
-                  />
-                ) : null}
-              </div>
-              <span className="truncate font-mono text-[10px] text-[#6b7280]">
-                {t.slug}
-              </span>
-              <span className="text-[11px] text-[#6b7280]">
-                Updated {formatRelative(t.updatedAt)}
-              </span>
-            </Link>
-          </li>
+          <TemplateCard
+            key={t.id}
+            href={`/templates/${t.slug}`}
+            name={t.name}
+            description={`Updated ${formatRelative(t.updatedAt)}`}
+            thumbnailUrl={t.thumbnailUrl}
+          />
         ))}
-      </ul>
+      </div>
       {query.hasNextPage ? (
         <button
           type="button"

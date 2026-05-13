@@ -17,7 +17,48 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "@/server/api/trpc";
+import type { Db } from "@waku/db";
 import { storage } from "@/server/storage";
+import { renderUserThumbnail } from "@/server/thumbnails";
+
+// Re-renders the cached thumbnail and stamps thumbnailKey on the template row.
+// Awaited so callers can return the refreshed row, but errors are swallowed —
+// the document write is the source of truth and a stale/missing thumbnail just
+// shows the placeholder until the next save.
+const refreshThumbnail = async (
+  db: Db,
+  templateId: string,
+  versionId: string,
+): Promise<string | null> => {
+  const key = await renderUserThumbnail({ templateId, versionId });
+  if (!key) return null;
+  try {
+    await db
+      .update(template)
+      .set({ thumbnailKey: key, thumbnailUpdatedAt: new Date() })
+      .where(eq(template.id, templateId));
+    return key;
+  } catch (err) {
+    console.warn(
+      `[template] thumbnail key write failed for ${templateId}:`,
+      err instanceof Error ? err.message : err,
+    );
+    return null;
+  }
+};
+
+// Autosave fires repeatedly while the user edits. Only re-render the thumbnail
+// when the cached one is missing or older than this window — the dashboard
+// will be at most THUMBNAIL_DEBOUNCE_MS stale per template, which is fine.
+const THUMBNAIL_DEBOUNCE_MS = 15_000;
+
+const shouldRefreshThumbnail = (row: {
+  thumbnailKey: string | null;
+  thumbnailUpdatedAt: Date | null;
+}): boolean => {
+  if (!row.thumbnailKey || !row.thumbnailUpdatedAt) return true;
+  return Date.now() - row.thumbnailUpdatedAt.getTime() >= THUMBNAIL_DEBOUNCE_MS;
+};
 
 const slugSchema = z
   .string()
@@ -31,12 +72,14 @@ const draftInputSchema = z.object({
 
 export const templateRouter = createTRPCRouter({
   list: protectedProcedure.query(async ({ ctx }) => {
-    return ctx.db
+    const rows = await ctx.db
       .select({
         id: template.id,
         slug: template.slug,
         name: template.name,
         publishedVersionId: template.publishedVersionId,
+        thumbnailKey: template.thumbnailKey,
+        thumbnailUpdatedAt: template.thumbnailUpdatedAt,
         createdAt: template.createdAt,
         updatedAt: template.updatedAt,
         latestVersion: sql<number>`(
@@ -48,6 +91,12 @@ export const templateRouter = createTRPCRouter({
       .from(template)
       .where(eq(template.userId, ctx.session.user.id))
       .orderBy(desc(template.updatedAt));
+    return rows.map((r) => ({
+      ...r,
+      thumbnailUrl: r.thumbnailKey
+        ? `${storage.getReadUrl(r.thumbnailKey)}?v=${(r.thumbnailUpdatedAt ?? r.updatedAt).getTime()}`
+        : null,
+    }));
   }),
 
   // Recent-first user designs with cursor pagination. Used by the dashboard
@@ -71,6 +120,8 @@ export const templateRouter = createTRPCRouter({
           slug: template.slug,
           name: template.name,
           publishedVersionId: template.publishedVersionId,
+          thumbnailKey: template.thumbnailKey,
+          thumbnailUpdatedAt: template.thumbnailUpdatedAt,
           updatedAt: template.updatedAt,
         })
         .from(template)
@@ -86,7 +137,13 @@ export const templateRouter = createTRPCRouter({
         .limit(limit + 1);
 
       const hasMore = rows.length > limit;
-      const items = hasMore ? rows.slice(0, limit) : rows;
+      const sliced = hasMore ? rows.slice(0, limit) : rows;
+      const items = sliced.map((r) => ({
+        ...r,
+        thumbnailUrl: r.thumbnailKey
+          ? `${storage.getReadUrl(r.thumbnailKey)}?v=${(r.thumbnailUpdatedAt ?? r.updatedAt).getTime()}`
+          : null,
+      }));
       const last = items[items.length - 1];
       return {
         items,
@@ -156,7 +213,7 @@ export const templateRouter = createTRPCRouter({
       });
       if (!stockRow) throw new TRPCError({ code: "NOT_FOUND" });
 
-      return ctx.db.transaction(async (tx) => {
+      const result = await ctx.db.transaction(async (tx) => {
         const userId = ctx.session.user.id;
         const base = stockRow.slug;
         const existing = await tx
@@ -202,6 +259,11 @@ export const templateRouter = createTRPCRouter({
 
         return { template: tplWithPointer ?? tpl, version };
       });
+
+      // Render service runs in a separate process with its own DB connection,
+      // so the new version must be committed before it can be looked up.
+      await refreshThumbnail(ctx.db, result.template.id, result.version.id);
+      return result;
     }),
 
   // Server-side fork: copies an AI-proposed design from a persisted chat message
@@ -277,7 +339,7 @@ export const templateRouter = createTRPCRouter({
           .replace(/^-+|-+$/g, "")
           .slice(0, 56) || "design";
 
-      return ctx.db.transaction(async (tx) => {
+      const result = await ctx.db.transaction(async (tx) => {
         const existing = await tx
           .select({ slug: template.slug })
           .from(template)
@@ -320,6 +382,9 @@ export const templateRouter = createTRPCRouter({
 
         return { template: tplWithPointer ?? tpl, version };
       });
+
+      await refreshThumbnail(ctx.db, result.template.id, result.version.id);
+      return result;
     }),
 
   // Catalogue feed: published stock templates with thumbnail URLs and category.
@@ -461,7 +526,7 @@ export const templateRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      return ctx.db.transaction(async (tx) => {
+      const result = await ctx.db.transaction(async (tx) => {
         const existing = await tx.query.template.findFirst({
           where: and(
             eq(template.userId, ctx.session.user.id),
@@ -506,12 +571,15 @@ export const templateRouter = createTRPCRouter({
 
         return { template: tplWithPointer ?? tpl, version };
       });
+
+      await refreshThumbnail(ctx.db, result.template.id, result.version.id);
+      return result;
     }),
 
   updateDraft: protectedProcedure
     .input(z.object({ versionId: z.string().uuid() }).merge(draftInputSchema))
     .mutation(async ({ ctx, input }) => {
-      return ctx.db.transaction(async (tx) => {
+      const result = await ctx.db.transaction(async (tx) => {
         const rows = await tx
           .select({
             version: templateVersion,
@@ -552,8 +620,26 @@ export const templateRouter = createTRPCRouter({
             updatedAt: now,
           })
           .where(eq(template.id, row.template.id));
-        return updated;
+        return {
+          updated,
+          templateId: row.template.id,
+          versionId: row.version.id,
+          thumbnailKey: row.template.thumbnailKey,
+          thumbnailUpdatedAt: row.template.thumbnailUpdatedAt,
+        };
       });
+
+      // Outside the transaction so a slow render service doesn't hold a write
+      // lock on the row. Debounced — autosave hits this on every keystroke.
+      if (
+        shouldRefreshThumbnail({
+          thumbnailKey: result.thumbnailKey,
+          thumbnailUpdatedAt: result.thumbnailUpdatedAt,
+        })
+      ) {
+        await refreshThumbnail(ctx.db, result.templateId, result.versionId);
+      }
+      return result.updated;
     }),
 
   listSnapshots: protectedProcedure
@@ -640,7 +726,7 @@ export const templateRouter = createTRPCRouter({
   restoreSnapshot: protectedProcedure
     .input(z.object({ versionId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      return ctx.db.transaction(async (tx) => {
+      const result = await ctx.db.transaction(async (tx) => {
         const rows = await tx
           .select({ version: templateVersion, template: template })
           .from(templateVersion)
@@ -676,8 +762,13 @@ export const templateRouter = createTRPCRouter({
           .update(template)
           .set({ updatedAt: now })
           .where(eq(template.id, row.template.id));
-        return updated;
+        return { updated, templateId: row.template.id };
       });
+
+      if (result.updated) {
+        await refreshThumbnail(ctx.db, result.templateId, result.updated.id);
+      }
+      return result.updated;
     }),
 
   renameSnapshot: protectedProcedure
