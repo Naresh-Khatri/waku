@@ -21,6 +21,13 @@ export const DesignInputZ = z.object({
     .describe(
       'short label for the visual direction ("Bold on dark", "Off-canvas pop", "Brutalist headline") — not the user\'s topic. Max 60 chars.',
     ),
+  basedOnStock: z
+    .string()
+    .min(1)
+    .max(120)
+    .describe(
+      "slug of the stock template this design is adapted from. Must match a slug you previously loaded via read_stock_template.",
+    ),
   document: z
     .record(z.string(), z.any())
     .describe(
@@ -64,14 +71,12 @@ function fillNodeDefaults(doc: Record<string, unknown>): Record<string, unknown>
 
 export const proposeDesignTool = tool({
   description:
-    "Propose one complete design as a full TemplateDocument. Call 2–3 times per user request with visually distinct variations.",
+    "Propose one complete design as a full TemplateDocument, adapted from a stock template you've already loaded via read_stock_template. Call 3 times per user request, each based on a different stock template.",
   inputSchema: DesignInputZ,
   execute: async (input) => {
     const hydrated = fillNodeDefaults(input.document);
     const parsed = TemplateDocumentZ.safeParse(hydrated);
     if (!parsed.success) {
-      // Surface the validation error to the model so it can retry. The AI SDK
-      // forwards thrown errors back as a tool error part the LLM can see.
       const issue = parsed.error.issues[0];
       const path = issue?.path.join(".") || "(root)";
       throw new Error(
@@ -80,6 +85,7 @@ export const proposeDesignTool = tool({
     }
     return {
       name: input.name.trim().slice(0, 120) || "Design",
+      basedOnStock: input.basedOnStock,
       document: parsed.data,
     };
   },
@@ -87,5 +93,6 @@ export const proposeDesignTool = tool({
 
 export type ProposeDesignOutput = {
   name: string;
+  basedOnStock: string;
   document: TemplateDocument;
 };

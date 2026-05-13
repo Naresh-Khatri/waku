@@ -14,24 +14,24 @@ import { TemplatePreview } from "./template-preview";
 
 const SUGGESTIONS: { label: string; prompt: string }[] = [
   {
-    label: "SaaS launch with gradient bleed",
+    label: "Launching a developer tool",
     prompt:
-      'SaaS launch — "Reduce your AWS bill by 60% in one weekend". Dark navy background with a magenta-to-cyan diagonal gradient bleed on the right third. Massive Space Grotesk headline (weight 800, tight letter-spacing). A small JetBrains Mono kicker above ("CASE STUDY · 04") in muted lavender. A single rotated cyan triangle in the lower-left as a "play" mark. Subtitle in Inter 500. Feel: confident, technical, modern.',
+      "We're launching a CLI that cuts AWS bills by 60% in a weekend. Need an OG image that feels confident and technical — dark, modern, headline-led.",
   },
   {
-    label: "Editorial longform opener",
+    label: "Long-form essay opener",
     prompt:
-      'Editorial longform — "The Last Honest Restaurant Critic". Warm cream background (#f6f0e6). Massive Playfair Display italic headline ~120px in deep oxblood, hung on a 4-column grid (text in the right three columns). Left column: a thin vertical rule, a small Cormorant Garamond byline rotated 90°, and an issue-number badge in Caveat. Lora subtitle in muted brown. New Yorker / Eater vibe — quiet, no shapes for shape\'s sake.',
+      'Cover image for an essay titled "The Last Honest Restaurant Critic". Editorial vibe — warm paper feel, serif headline, calm and quiet.',
   },
   {
-    label: "Brutalist meme poster",
+    label: "Zine-style meme poster",
     prompt:
-      'Brutalist meme poster — "TOUCH GRASS". Solid neon-yellow background (#fff200). Anton headline at 240px filling the canvas edge-to-edge, pure black, slightly negative letter-spacing. A thick 12px black underline rectangle below the second word. Stamp-style Archivo Black caption in the bottom-left ("WAKU MFG. CO · EST. 2026"). A single hot-pink ellipse off-canvas bleed bottom-right. No gradients, no shadows. Zine / sticker energy.',
+      'Meme poster that just shouts "TOUCH GRASS". Loud, brutalist, sticker energy. High contrast, no gradients.',
   },
   {
-    label: "Parameterized blog template",
+    label: "Podcast episode cover",
     prompt:
-      "Parameterized blog OG. Artboard split 60/40: left 60% is article content on #0b0f1a, right 40% is a cover image node (fit:cover). Title param (string, maxLen 80) in DM Serif Display 88px white. Author param under it in Inter 500 muted gray. Brand-color param drives a 6px accent rectangle between title and author AND the angle of a thin radial blob behind the headline. Image param feeds the right pane. Every editable field bound to paramsSchema.",
+      'Podcast cover for episode 42 — "Why your startup\'s second hire matters more than the first". Show the episode number prominently and the host name.',
   },
 ];
 
@@ -43,8 +43,10 @@ type ProposeDesignPart = {
     | "input-available"
     | "output-available"
     | "output-error";
-  input?: { name?: string } | undefined;
-  output?: { name: string; document: TemplateDocument } | undefined;
+  input?: { name?: string; basedOnStock?: string } | undefined;
+  output?:
+    | { name: string; basedOnStock?: string; document: TemplateDocument }
+    | undefined;
   errorText?: string | undefined;
 };
 
@@ -262,7 +264,7 @@ export function ChatComposer() {
                     {showTyping ? <Typing /> : null}
                     {error ? (
                       <div className="rounded-md border border-[#7f1d1d] bg-[#1f0a0a] px-3 py-2 text-sm text-[#fca5a5]">
-                        {error.message || "Something went wrong"}
+                        Something went wrong. Please try again.
                       </div>
                     ) : null}
                   </div>
@@ -540,7 +542,7 @@ function DesignProposal({
   }
 
   if (part.state !== "output-available" || !part.output) return null;
-  const { name, document } = part.output;
+  const { name, document, basedOnStock } = part.output;
   // Persistence happens on stream finish — before that we can't fork from db.
   const persisted = Boolean(conversationId);
 
@@ -556,7 +558,7 @@ function DesignProposal({
   };
 
   return (
-    <ProposalShell label={name}>
+    <ProposalShell label={name} sublabel={basedOnStock ? `based on ${basedOnStock}` : null}>
       <button
         type="button"
         onClick={onOpen}
@@ -584,15 +586,22 @@ function DesignProposal({
 
 function ProposalShell({
   label,
+  sublabel,
   children,
 }: {
   label: string;
+  sublabel?: string | null;
   children: React.ReactNode;
 }) {
   return (
     <div className="w-sm flex justify-start">
       <div className="flex w-full flex-col gap-2 rounded-2xl rounded-bl-sm border border-[#1f2937] bg-[#0b0f1a] p-3">
-        <div className="px-1 text-xs font-medium text-[#9ca3af]">{label}</div>
+        <div className="flex items-baseline justify-between gap-2 px-1">
+          <div className="text-xs font-medium text-[#9ca3af]">{label}</div>
+          {sublabel ? (
+            <div className="truncate text-[10px] text-[#6b7280]">{sublabel}</div>
+          ) : null}
+        </div>
         {children}
       </div>
     </div>
