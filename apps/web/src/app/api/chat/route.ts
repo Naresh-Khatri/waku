@@ -8,72 +8,68 @@ import {
 import { and, eq } from "drizzle-orm";
 import { chatConversation, chatMessage } from "@waku/db";
 
+import {
+  AI_TEMPLATE_EXAMPLES,
+  AI_TEMPLATE_SYSTEM_PROMPT,
+} from "@/components/template-editor/ai-prompt";
+import type { TemplateDocument } from "@/components/template-editor/types";
 import { env } from "@/env";
 import { proposeDesignTool } from "@/server/ai/design-tool";
 import { getSession } from "@/server/better-auth/server";
 import { db } from "@/server/db";
 
-const SYSTEM_PROMPT = `You design Open Graph images (1200×630). Call \`propose_design\` 2–3 times. Each call MUST commit to a fundamentally different visual idea — different palette, different composition, different scale of headline, different role for shapes. NEVER ship 3 minor recolors of the same layout.
-
-Schema:
-- artboard: { width: 1200, height: 630, background: "#rrggbb" }
-- nodes[]: each has type, id, x, y, width, height.
-  - type="text": + text, fontSize, fontWeight (400–800), color, align ("left"|"center"|"right")
-  - type="rectangle": + fill. optional cornerRadius
-  - type="ellipse": + fill
-
-Hard rules:
-- DON'T add a full-bleed rectangle in the same color as artboard.background. Use the bg field for that.
-- DON'T drop random shapes for "decoration" — every shape must serve a purpose (accent, card, underline, badge, off-canvas bleed).
-- Text contrast: ≥4.5:1 against whatever sits directly behind it.
-- Bounding box must fit the text: width ≥ 0.55 × text.length × fontSize, height ≥ fontSize × 1.2.
-- Headlines: 72–140px, weight 700 or 800. Eyebrows/captions: 20–32px, weight 500–600.
-- Use 4–8 nodes. Empty designs are bad. So are random orphan squares.
-- The \`name\` field describes the VISUAL DIRECTION ("Bold on dark", "Off-canvas pop", "Brutalist headline") — not the user's topic.
-
-Three worked examples for prompt "OG for a Postgres performance blog post" — note how different they look from each other:
-
-EXAMPLE 1 — Bold on dark with off-canvas accent:
-{
-  "name": "Off-canvas pop",
-  "artboard": { "width": 1200, "height": 630, "background": "#0f172a" },
-  "nodes": [
-    { "type": "ellipse", "id": "blob", "x": -200, "y": -200, "width": 600, "height": 600, "fill": "#7c5cff" },
-    { "type": "rectangle", "id": "underline", "x": 80, "y": 480, "width": 140, "height": 6, "fill": "#a78bfa" },
-    { "type": "text", "id": "eyebrow", "x": 80, "y": 200, "width": 600, "height": 32, "text": "POSTGRES PERFORMANCE", "fontSize": 22, "fontWeight": 600, "color": "#a78bfa", "align": "left" },
-    { "type": "text", "id": "head", "x": 80, "y": 250, "width": 1040, "height": 220, "text": "Faster queries in 5 minutes", "fontSize": 104, "fontWeight": 800, "color": "#ffffff", "align": "left" },
-    { "type": "text", "id": "sub", "x": 80, "y": 520, "width": 800, "height": 40, "text": "Index tuning that actually moves the needle.", "fontSize": 26, "fontWeight": 500, "color": "#94a3b8", "align": "left" }
-  ]
+/**
+ * Drop fields whose value equals the editor's implicit default. The example
+ * literals stay strict TemplateDocuments (validator script keeps working) but
+ * the JSON the LLM sees is ~40% smaller — less TPM, same information.
+ */
+function stripExampleDefaults(doc: TemplateDocument): unknown {
+  const stripNode = (n: TemplateDocument["nodes"][number]) => {
+    const out: Record<string, unknown> = { ...n };
+    if (out.parentId === null || out.parentId === undefined) delete out.parentId;
+    if (out.rotation === 0) delete out.rotation;
+    if (out.opacity === 1) delete out.opacity;
+    if (out.visible === true) delete out.visible;
+    if (out.locked === false) delete out.locked;
+    // shadow is required-nullable on image, optional everywhere else.
+    if (n.type !== "image" && out.shadow === null) delete out.shadow;
+    return out;
+  };
+  return {
+    artboard: doc.artboard,
+    nodes: doc.nodes.map(stripNode),
+    paramsSchema: doc.paramsSchema,
+  };
 }
 
-EXAMPLE 2 — Editorial split with colored sidebar:
-{
-  "name": "Editorial split",
-  "artboard": { "width": 1200, "height": 630, "background": "#f8fafc" },
-  "nodes": [
-    { "type": "rectangle", "id": "side", "x": 0, "y": 0, "width": 360, "height": 630, "fill": "#0f172a" },
-    { "type": "ellipse", "id": "dot", "x": 240, "y": 80, "width": 56, "height": 56, "fill": "#f97316" },
-    { "type": "text", "id": "issue", "x": 60, "y": 540, "width": 240, "height": 28, "text": "ISSUE 014", "fontSize": 20, "fontWeight": 600, "color": "#94a3b8", "align": "left" },
-    { "type": "text", "id": "head", "x": 420, "y": 180, "width": 720, "height": 280, "text": "Index tuning, demystified.", "fontSize": 88, "fontWeight": 700, "color": "#0f172a", "align": "left" },
-    { "type": "text", "id": "byline", "x": 420, "y": 500, "width": 720, "height": 32, "text": "By @waku-blog · 8 min read", "fontSize": 24, "fontWeight": 500, "color": "#475569", "align": "left" }
-  ]
-}
+const WORKED_EXAMPLES = AI_TEMPLATE_EXAMPLES.map(
+  (doc, i) =>
+    `Example ${i + 1} (defaults like parentId:null, rotation:0, opacity:1, visible:true, locked:false omitted):\n${JSON.stringify(stripExampleDefaults(doc), null, 2)}`,
+).join("\n\n");
 
-EXAMPLE 3 — Brutalist solid color with massive headline:
-{
-  "name": "Brutalist headline",
-  "artboard": { "width": 1200, "height": 630, "background": "#facc15" },
-  "nodes": [
-    { "type": "rectangle", "id": "tag", "x": 80, "y": 80, "width": 220, "height": 48, "fill": "#0a0a0a", "cornerRadius": 24 },
-    { "type": "text", "id": "tagText", "x": 80, "y": 88, "width": 220, "height": 32, "text": "POSTGRES", "fontSize": 18, "fontWeight": 700, "color": "#facc15", "align": "center" },
-    { "type": "text", "id": "head", "x": 80, "y": 180, "width": 1040, "height": 360, "text": "QUERIES THAT FLY.", "fontSize": 168, "fontWeight": 800, "color": "#0a0a0a", "align": "left" },
-    { "type": "text", "id": "sub", "x": 80, "y": 540, "width": 800, "height": 32, "text": "A field guide to making Postgres scream.", "fontSize": 22, "fontWeight": 500, "color": "#0a0a0a", "align": "left" }
-  ]
-}
+const SYSTEM_PROMPT = `You design Open Graph images (default 1200×630) for an editor chat. Call \`propose_design\` 2–3 times per user message. Each call MUST commit to a fundamentally different visual idea — different palette, different composition, different scale of headline, different role for shapes. NEVER ship minor recolors of the same layout.
 
-Notice: completely different palettes (dark/light/yellow), different compositions (centered-ish/split-screen/asymmetric), different scales (104/88/168px headlines), different shape roles (off-canvas blob/full-height sidebar/badge pill).
+The tool takes two arguments:
+  - name: short label describing the VISUAL DIRECTION ("Bold on dark", "Off-canvas pop", "Brutalist headline") — not the user's topic.
+  - document: a full TemplateDocument matching the shape below.
 
-Apply this same level of variation to whatever topic the user asks about.
+${AI_TEMPLATE_SYSTEM_PROMPT}
+
+# Worked examples (full TemplateDocument JSON)
+
+${WORKED_EXAMPLES}
+
+# Variation directives (chat mode)
+
+- Hard rules:
+  - DO NOT add a full-bleed rectangle in the same color as artboard.background. Put the color on artboard.background.
+  - Every shape must serve a purpose (accent, card, underline, badge, off-canvas bleed). No orphan decoration squares.
+  - Text contrast: ≥4.5:1 against whatever sits directly behind it.
+  - Bounding box must fit the text: width ≥ 0.55 × text.length × fontSize, height ≥ fontSize × lineHeight.
+  - Headlines: 72–140px, weight 700+. Eyebrows/captions: 20–32px, weight 500–600.
+  - Use 4–8 nodes per design.
+- Across the 2–3 proposals, vary palette (dark/light/saturated), composition (centered / split / asymmetric), headline scale, and the role shapes play. Use gradients, off-canvas bleeds, sidebars, badges, paths, etc. — not just rectangles and ellipses.
+- Use the font catalogue intentionally (display fonts for posters, serifs for editorial, mono for code/data, sans for body).
 
 After the tool calls, write ONE line (under 25 words) on what makes the variations different. Don't restate the user's prompt.
 
@@ -150,10 +146,18 @@ export async function POST(req: Request) {
       .onConflictDoNothing({ target: chatMessage.id });
   }
 
+  // Send only the latest user turn to the model. Each design call is
+  // effectively a fresh request — the system prompt already steers style and
+  // variation, and re-shipping prior tool outputs (full TemplateDocument JSON)
+  // would blow past Groq's TPM cap within a couple of turns. UI history is
+  // preserved via DB persistence above.
+  const lastUser = [...messages].reverse().find((m) => m.role === "user");
+  const llmMessages = lastUser ? [lastUser] : messages;
+
   const result = streamText({
     model: groq(env.GROQ_MODEL),
     system: SYSTEM_PROMPT,
-    messages: await convertToModelMessages(messages),
+    messages: await convertToModelMessages(llmMessages),
     tools: { propose_design: proposeDesignTool },
     stopWhen: stepCountIs(6),
   });

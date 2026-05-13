@@ -12,11 +12,27 @@ import { api } from "@/trpc/react";
 
 import { TemplatePreview } from "./template-preview";
 
-const SUGGESTIONS = [
-  "An OG image for a blog post about Postgres performance",
-  "A product launch card with a bold headline and gradient",
-  "A quote card on a warm pastel background",
-  "A minimal opener for my podcast episode",
+const SUGGESTIONS: { label: string; prompt: string }[] = [
+  {
+    label: "SaaS launch with gradient bleed",
+    prompt:
+      'SaaS launch — "Reduce your AWS bill by 60% in one weekend". Dark navy background with a magenta-to-cyan diagonal gradient bleed on the right third. Massive Space Grotesk headline (weight 800, tight letter-spacing). A small JetBrains Mono kicker above ("CASE STUDY · 04") in muted lavender. A single rotated cyan triangle in the lower-left as a "play" mark. Subtitle in Inter 500. Feel: confident, technical, modern.',
+  },
+  {
+    label: "Editorial longform opener",
+    prompt:
+      'Editorial longform — "The Last Honest Restaurant Critic". Warm cream background (#f6f0e6). Massive Playfair Display italic headline ~120px in deep oxblood, hung on a 4-column grid (text in the right three columns). Left column: a thin vertical rule, a small Cormorant Garamond byline rotated 90°, and an issue-number badge in Caveat. Lora subtitle in muted brown. New Yorker / Eater vibe — quiet, no shapes for shape\'s sake.',
+  },
+  {
+    label: "Brutalist meme poster",
+    prompt:
+      'Brutalist meme poster — "TOUCH GRASS". Solid neon-yellow background (#fff200). Anton headline at 240px filling the canvas edge-to-edge, pure black, slightly negative letter-spacing. A thick 12px black underline rectangle below the second word. Stamp-style Archivo Black caption in the bottom-left ("WAKU MFG. CO · EST. 2026"). A single hot-pink ellipse off-canvas bleed bottom-right. No gradients, no shadows. Zine / sticker energy.',
+  },
+  {
+    label: "Parameterized blog template",
+    prompt:
+      "Parameterized blog OG. Artboard split 60/40: left 60% is article content on #0b0f1a, right 40% is a cover image node (fit:cover). Title param (string, maxLen 80) in DM Serif Display 88px white. Author param under it in Inter 500 muted gray. Brand-color param drives a 6px accent rectangle between title and author AND the angle of a thin radial blob behind the headline. Image param feeds the right pane. Every editable field bound to paramsSchema.",
+  },
 ];
 
 type ProposeDesignPart = {
@@ -222,13 +238,14 @@ export function ChatComposer() {
                     <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
                       {SUGGESTIONS.map((s) => (
                         <button
-                          key={s}
+                          key={s.label}
                           type="button"
-                          onClick={() => send(s)}
+                          onClick={() => send(s.prompt)}
                           disabled={busy}
                           className="rounded-lg border border-[#1f2937] bg-[#0b0f1a] px-3 py-2.5 text-left text-sm text-[#9ca3af] transition hover:border-[#7c5cff] hover:text-[#e5e7eb] disabled:opacity-50"
+                          title={s.prompt}
                         >
-                          {s}
+                          {s.label}
                         </button>
                       ))}
                     </div>

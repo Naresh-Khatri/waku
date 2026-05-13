@@ -67,46 +67,16 @@ Shadow = { offsetX: number, offsetY: number, blur: number ≥ 0, color: string }
 
 # Fonts
 
-Use only these fontFamily values, spelled exactly. The number after each name lists the
-shipped weights — pick fontWeight from that list (italic is supported on every face).
+Use only these fontFamily values, spelled exactly. fontWeight is one of 400/500/600/700/800. Italic is supported on every face. Display fonts are single-weight — always set fontWeight: 400 for them.
 
-  Sans
-    "Inter"               400 / 600 / 700 / 800
-    "Space Grotesk"       400 / 600 / 700
-    "Roboto"              400 / 500 / 700
-    "Open Sans"           400 / 600 / 700
-    "Montserrat"          400 / 600 / 700
-    "Poppins"             400 / 600 / 700
-    "DM Sans"             400 / 600 / 700
-    "Manrope"             400 / 600 / 700
-    "Plus Jakarta Sans"   400 / 600 / 700
-    "Work Sans"           400 / 600 / 700
-
-  Serif
-    "Playfair Display"    400 / 600 / 700
-    "Merriweather"        400 / 700
-    "Lora"                400 / 600 / 700
-    "DM Serif Display"    400
-    "Cormorant Garamond"  400 / 600 / 700
-    "Libre Baskerville"   400 / 700
-
-  Display (high-impact headlines, single weight — set fontWeight: 400)
-    "Bebas Neue"          400
-    "Anton"               400
-    "Archivo Black"       400
-
-  Mono (code, data, terminal vibes)
-    "JetBrains Mono"      400 / 600 / 700
-    "Fira Code"           400 / 600 / 700
-    "IBM Plex Mono"       400 / 600 / 700
-    "Space Mono"          400 / 700
-
-  Handwriting / Script (use sparingly, for accents and notes)
-    "Caveat"              400 / 700
-    "Pacifico"            400
+  Sans: "Inter", "Space Grotesk", "Roboto", "Open Sans", "Montserrat", "Poppins", "DM Sans", "Manrope", "Plus Jakarta Sans", "Work Sans"
+  Serif: "Playfair Display", "Merriweather", "Lora", "DM Serif Display", "Cormorant Garamond", "Libre Baskerville"
+  Display (fontWeight: 400 only): "Bebas Neue", "Anton", "Archivo Black"
+  Mono: "JetBrains Mono", "Fira Code", "IBM Plex Mono", "Space Mono"
+  Script (use sparingly): "Caveat", "Pacifico"
 
 Picking guidance:
-  - Body and UI copy: default to "Inter" unless the brief asks otherwise.
+  - Body and UI copy: default to "Inter".
   - Editorial / luxury headlines: Playfair Display, Cormorant Garamond, DM Serif Display.
   - Modern / techy headlines: Space Grotesk, Plus Jakarta Sans, Manrope.
   - Bold poster headlines: Bebas Neue, Anton, Archivo Black (always 400).
