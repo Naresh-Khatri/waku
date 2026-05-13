@@ -98,6 +98,31 @@ const FONT_FACE_RE = /@font-face\s*\{([^}]+)\}/g;
 const WEIGHT_RE = /font-weight:\s*(\d+)/;
 const STYLE_RE = /font-style:\s*([a-z]+)/i;
 const WOFF2_SRC_RE = /url\(\s*['"]?([^'")]+\.woff2[^'")]*)['"]?\s*\)\s+format\(['"]?woff2['"]?\)/;
+const UNICODE_RANGE_RE = /unicode-range:\s*([^;]+);/i;
+
+/**
+ * True if the unicode-range string covers Basic Latin (U+0041, capital "A").
+ * Bunny splits each face into per-subset blocks (latin, greek, cyrillic, …)
+ * and lists them in catalogue order — for several families (Inter,
+ * JetBrains Mono) `/* greek *​/` comes first, so picking the first matching
+ * weight/style would hand Satori a font with zero Latin glyphs.
+ */
+function rangeCoversBasicLatin(range: string): boolean {
+  const target = 0x41;
+  for (const part of range.split(",")) {
+    const t = part.trim().replace(/^U\+/i, "");
+    if (!t) continue;
+    const [loStr, hiStr] = t.split("-");
+    const lo = parseInt((loStr ?? "").replace(/\?/g, "0"), 16);
+    const hi = hiStr
+      ? parseInt(hiStr.replace(/\?/g, "F"), 16)
+      : parseInt((loStr ?? "").replace(/\?/g, "F"), 16);
+    if (Number.isFinite(lo) && Number.isFinite(hi) && lo <= target && target <= hi) {
+      return true;
+    }
+  }
+  return false;
+}
 
 export function extractWoff2Url(
   css: string,
@@ -106,17 +131,23 @@ export function extractWoff2Url(
 ): string {
   const matches = css.matchAll(FONT_FACE_RE);
   let firstWoff2: string | null = null;
+  let firstMatch: string | null = null;
   for (const m of matches) {
     const block = m[1] ?? "";
     const w = WEIGHT_RE.exec(block);
     const s = STYLE_RE.exec(block);
     const u = WOFF2_SRC_RE.exec(block);
     if (!u) continue;
-    if (firstWoff2 === null) firstWoff2 = u[1] ?? null;
-    if (w && Number(w[1]) === weight && s && s[1]?.toLowerCase() === style) {
-      return u[1] ?? "";
-    }
+    const url = u[1] ?? "";
+    if (firstWoff2 === null) firstWoff2 = url;
+    const styleMatches =
+      w && Number(w[1]) === weight && s && s[1]?.toLowerCase() === style;
+    if (!styleMatches) continue;
+    if (firstMatch === null) firstMatch = url;
+    const range = UNICODE_RANGE_RE.exec(block)?.[1] ?? "";
+    if (rangeCoversBasicLatin(range)) return url;
   }
+  if (firstMatch) return firstMatch;
   if (firstWoff2) return firstWoff2;
   throw new Error("No WOFF2 url found in Bunny CSS response");
 }
