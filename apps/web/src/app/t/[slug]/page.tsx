@@ -1,8 +1,12 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { AuthButton } from "@/components/auth-button";
 import { env } from "@/env";
-import { auth } from "@/server/better-auth";
+import {
+  getLastUsedProvider,
+  type AuthProvider,
+} from "@/server/better-auth/last-used";
 import { getSession } from "@/server/better-auth/server";
 import { api } from "@/trpc/server";
 
@@ -26,6 +30,7 @@ export default async function PublicTemplatePage({
   }
 
   const session = await getSession();
+  const lastUsed = await getLastUsedProvider();
 
   // The "?fork=1" intent is what survives an OAuth round-trip; if we land here
   // with the flag set and a real session, finish the fork and bounce to the
@@ -97,6 +102,7 @@ export default async function PublicTemplatePage({
               loggedIn={Boolean(session?.user)}
               stockSlug={stock.slug}
               returnUrl={editReturnUrl}
+              lastUsed={lastUsed}
             />
           </div>
         </div>
@@ -114,10 +120,12 @@ function EditButton({
   loggedIn,
   stockSlug,
   returnUrl,
+  lastUsed,
 }: {
   loggedIn: boolean;
   stockSlug: string;
   returnUrl: string;
+  lastUsed: AuthProvider | null;
 }) {
   if (loggedIn) {
     return (
@@ -140,22 +148,13 @@ function EditButton({
   }
 
   return (
-    <form>
-      <button
-        type="submit"
-        formAction={async () => {
-          "use server";
-          const res = await auth.api.signInSocial({
-            body: { provider: "github", callbackURL: returnUrl },
-          });
-          if (!res.url) throw new Error("No URL returned from signInSocial");
-          redirect(res.url);
-        }}
-        className="rounded-md bg-[#7c5cff] px-3 py-1.5 text-sm font-medium text-white transition hover:bg-[#6b4be0]"
-      >
-        Sign in to edit
-      </button>
-    </form>
+    <AuthButton
+      loggedIn={false}
+      lastUsed={lastUsed}
+      callbackURL={returnUrl}
+      triggerLabel="Sign in to edit"
+      className="rounded-md px-3 py-1.5 text-sm"
+    />
   );
 }
 

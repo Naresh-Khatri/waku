@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { AuthButton } from "@/components/auth-button";
 import { getSession } from "@/server/better-auth/server";
+import { getLastUsedProvider } from "@/server/better-auth/last-used";
 import { ensureProfile } from "@/server/profile";
 import { api } from "@/trpc/server";
 
@@ -13,6 +14,7 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const session = await getSession();
+  const lastUsed = await getLastUsedProvider();
 
   const profile = session?.user ? await ensureProfile(session.user) : null;
 
@@ -39,7 +41,11 @@ export default async function AppLayout({
                 </Link>
               </>
             ) : null}
-            <AuthButton />
+            <AuthButton
+              loggedIn={!!session?.user}
+              user={session?.user ?? null}
+              lastUsed={lastUsed}
+            />
           </div>
         </div>
       </header>

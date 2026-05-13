@@ -5,8 +5,10 @@ export const env = createEnv({
   server: {
     BETTER_AUTH_SECRET: z.string().min(1),
     BETTER_AUTH_URL: z.string().url(),
-    BETTER_AUTH_GITHUB_CLIENT_ID: z.string().min(1).optional(),
-    BETTER_AUTH_GITHUB_CLIENT_SECRET: z.string().min(1).optional(),
+    BETTER_AUTH_GITHUB_CLIENT_ID: z.string().min(1),
+    BETTER_AUTH_GITHUB_CLIENT_SECRET: z.string().min(1),
+    BETTER_AUTH_GOOGLE_CLIENT_ID: z.string().min(1),
+    BETTER_AUTH_GOOGLE_CLIENT_SECRET: z.string().min(1),
     DATABASE_URL: z.string().url(),
     R2_ACCOUNT_ID: z.string().min(1),
     R2_ACCESS_KEY_ID: z.string().min(1),
@@ -33,6 +35,9 @@ export const env = createEnv({
     BETTER_AUTH_GITHUB_CLIENT_ID: process.env.BETTER_AUTH_GITHUB_CLIENT_ID,
     BETTER_AUTH_GITHUB_CLIENT_SECRET:
       process.env.BETTER_AUTH_GITHUB_CLIENT_SECRET,
+    BETTER_AUTH_GOOGLE_CLIENT_ID: process.env.BETTER_AUTH_GOOGLE_CLIENT_ID,
+    BETTER_AUTH_GOOGLE_CLIENT_SECRET:
+      process.env.BETTER_AUTH_GOOGLE_CLIENT_SECRET,
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
     R2_ACCOUNT_ID: process.env.R2_ACCOUNT_ID,

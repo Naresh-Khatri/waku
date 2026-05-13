@@ -22,15 +22,16 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
-  socialProviders:
-    env.BETTER_AUTH_GITHUB_CLIENT_ID && env.BETTER_AUTH_GITHUB_CLIENT_SECRET
-      ? {
-          github: {
-            clientId: env.BETTER_AUTH_GITHUB_CLIENT_ID,
-            clientSecret: env.BETTER_AUTH_GITHUB_CLIENT_SECRET,
-          },
-        }
-      : {},
+  socialProviders: {
+    github: {
+      clientId: env.BETTER_AUTH_GITHUB_CLIENT_ID,
+      clientSecret: env.BETTER_AUTH_GITHUB_CLIENT_SECRET,
+    },
+    google: {
+      clientId: env.BETTER_AUTH_GOOGLE_CLIENT_ID,
+      clientSecret: env.BETTER_AUTH_GOOGLE_CLIENT_SECRET,
+    },
+  },
   plugins: [nextCookies()],
 });
 
