@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type MouseEvent } from "react";
+import { useRouter } from "next/navigation";
 
 import { TemplateCard } from "@/components/templates/template-card";
 import type { TemplateDocument } from "@/components/template-editor/types";
@@ -18,7 +19,23 @@ type StockItem = {
 };
 
 export function Catalogue() {
+  const router = useRouter();
   const stockQuery = api.template.listStock.useQuery();
+  const forkMutation = api.template.forkFromStock.useMutation();
+
+  const handleOpenTemplate = async (
+    e: MouseEvent<HTMLAnchorElement>,
+    stockSlug: string,
+  ) => {
+    e.preventDefault();
+    if (forkMutation.isPending) return;
+    try {
+      const { template } = await forkMutation.mutateAsync({ stockSlug });
+      router.push(`/templates/${template.slug}`);
+    } catch {
+      router.push(`/t/${stockSlug}?fork=1`);
+    }
+  };
 
   const grouped = useMemo(() => {
     const data: StockItem[] = stockQuery.data ?? [];
@@ -67,6 +84,7 @@ export function Catalogue() {
                 <TemplateCard
                   key={item.id}
                   href={`/t/${item.slug}?fork=1`}
+                  onClick={(e) => void handleOpenTemplate(e, item.slug)}
                   prefetch={false}
                   name={item.name}
                   description={item.description}
