@@ -4,8 +4,12 @@ import { useMemo, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 
 import { TemplateCard } from "@/components/templates/template-card";
+import { TemplateCardSkeleton } from "@/components/templates/template-card-skeleton";
 import type { TemplateDocument } from "@/components/template-editor/types";
 import { api } from "@/trpc/react";
+
+const CATEGORY_SKELETON_COUNT = 8;
+const SKELETON_GROUPS = 2;
 
 type StockItem = {
   id: string;
@@ -64,7 +68,16 @@ export function Catalogue() {
       </div>
 
       {stockQuery.isLoading ? (
-        <div className="text-sm text-[#9ca3af]">Loading…</div>
+        Array.from({ length: SKELETON_GROUPS }).map((_, gi) => (
+          <section key={gi} className="flex flex-col gap-3">
+            <div className="h-4 w-32 animate-pulse rounded bg-[#1f2937]" />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {Array.from({ length: CATEGORY_SKELETON_COUNT }).map((_, i) => (
+                <TemplateCardSkeleton key={i} />
+              ))}
+            </div>
+          </section>
+        ))
       ) : grouped.length === 0 ? (
         <div className="rounded-md border border-[#1f2937] bg-[#0b0f1a] px-4 py-6 text-sm text-[#9ca3af]">
           No templates yet. Admins can publish stock templates from{" "}
@@ -79,7 +92,7 @@ export function Catalogue() {
             <h3 className="text-sm font-medium uppercase tracking-wide text-[#9ca3af]">
               {group.name}
             </h3>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {group.items.map((item) => (
                 <TemplateCard
                   key={item.id}
@@ -87,7 +100,6 @@ export function Catalogue() {
                   onClick={(e) => void handleOpenTemplate(e, item.slug)}
                   prefetch={false}
                   name={item.name}
-                  description={item.description}
                   tags={item.tags}
                   thumbnailUrl={item.thumbnailUrl}
                   document={item.documentJson ?? undefined}
