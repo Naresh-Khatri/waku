@@ -124,16 +124,27 @@ export function TemplateCard({
           </p>
         ) : null}
         {tags && tags.length > 0 ? (
-          <div className="mt-2 flex flex-wrap gap-1.5">
+          <motion.div
+            variants={{
+              rest: {},
+              hover: { transition: { staggerChildren: 0.05, delayChildren: 0.15 } },
+            }}
+            className="mt-2 flex flex-wrap gap-1.5"
+          >
             {tags.slice(0, 4).map((tag) => (
-              <span
+              <motion.span
                 key={tag}
+                variants={{
+                  rest: { opacity: 0, y: 8 },
+                  hover: { opacity: 1, y: 0 },
+                }}
+                transition={{ type: "spring", stiffness: 360, damping: 28 }}
                 className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] text-white/90 backdrop-blur-sm"
               >
                 {tag}
-              </span>
+              </motion.span>
             ))}
-          </div>
+          </motion.div>
         ) : null}
       </motion.div>
     </Link>
