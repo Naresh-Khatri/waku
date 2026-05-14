@@ -1,3 +1,5 @@
+import sharp from "sharp";
+
 import {
   FONT_FAMILY_VALUES,
   paintToCss,
@@ -49,6 +51,48 @@ const toDataUri = (data: Uint8Array, contentType: string): string => {
   return `data:${contentType};base64,${b64}`;
 };
 
+// Satori's image decoder handles PNG, JPEG, GIF, and SVG. Anything else
+// (webp, avif, …) causes it to throw "a is not iterable" deep inside its
+// image-size detection. Transcode those to PNG before inlining.
+const SATORI_NATIVE_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/gif",
+  "image/svg+xml",
+]);
+
+// Cap raster dimensions before encoding so a multi-MB source doesn't blow the
+// render budget on PNG encode. 2x the largest display dimension keeps detail
+// at typical retina raster widths without paying for full-resolution decodes.
+const MAX_TRANSCODE_PX = 2048;
+
+const toSatoriCompatible = async (
+  data: Uint8Array,
+  contentType: string,
+  hintWidth?: number,
+  hintHeight?: number,
+): Promise<{ data: Uint8Array; contentType: string }> => {
+  if (SATORI_NATIVE_TYPES.has(contentType)) return { data, contentType };
+  let pipeline = sharp(data);
+  const targetW = hintWidth
+    ? Math.min(MAX_TRANSCODE_PX, Math.ceil(hintWidth * 2))
+    : MAX_TRANSCODE_PX;
+  const targetH = hintHeight
+    ? Math.min(MAX_TRANSCODE_PX, Math.ceil(hintHeight * 2))
+    : MAX_TRANSCODE_PX;
+  pipeline = pipeline.resize({
+    width: targetW,
+    height: targetH,
+    fit: "inside",
+    withoutEnlargement: true,
+  });
+  const png = await pipeline.png({ compressionLevel: 6 }).toBuffer();
+  return { data: new Uint8Array(png), contentType: "image/png" };
+};
+
+const numericProp = (v: unknown): number | undefined =>
+  typeof v === "number" && Number.isFinite(v) ? v : undefined;
+
 /**
  * Walks the satori tree and replaces any <img src="http(s)://..."> with a
  * data: URI loaded via `loadImage`. Existing data: / file: srcs are left
@@ -63,7 +107,13 @@ export async function resolveImages(
     if (node.type === "img" && typeof props.src === "string") {
       const src = props.src;
       if (src.startsWith("http://") || src.startsWith("https://")) {
-        const { data, contentType } = await loadImage(src);
+        const loaded = await loadImage(src);
+        const { data, contentType } = await toSatoriCompatible(
+          loaded.data,
+          loaded.contentType,
+          numericProp(props.width),
+          numericProp(props.height),
+        );
         props.src = toDataUri(data, contentType);
       }
     }
