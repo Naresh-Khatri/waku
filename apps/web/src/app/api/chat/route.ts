@@ -7,7 +7,7 @@ import {
   type UIMessage,
 } from "ai";
 import { and, eq } from "drizzle-orm";
-import { chatConversation, chatMessage } from "@waku/db";
+import { aiGeneration, chatConversation, chatMessage } from "@waku/db";
 
 import { AI_TEMPLATE_SYSTEM_PROMPT } from "@/components/template-editor/ai-prompt";
 import { env } from "@/env";
@@ -130,6 +130,41 @@ export async function POST(req: Request) {
   const lastUser = [...messages].reverse().find((m) => m.role === "user");
   const llmMessages = lastUser ? [lastUser] : messages;
 
+  const promptText = (() => {
+    if (!lastUser) return "";
+    const parts: string[] = [];
+    for (const p of lastUser.parts) {
+      if (p.type === "text") parts.push(p.text);
+    }
+    return parts.join("\n").slice(0, 4000);
+  })();
+  const startedAt = Date.now();
+  let recorded = false;
+  const recordGeneration = (args: {
+    status: "success" | "error";
+    error?: string | null;
+    output?: unknown;
+  }) => {
+    if (recorded) return;
+    recorded = true;
+    void db
+      .insert(aiGeneration)
+      .values({
+        userId,
+        kind: "chat.design",
+        prompt: promptText,
+        inputJson: { conversationId: cid, model: env.GROQ_MODEL },
+        outputJson: (args.output ?? null) as never,
+        creditsCharged: 0,
+        status: args.status,
+        error: args.error ?? null,
+        ms: Date.now() - startedAt,
+      })
+      .catch((err: unknown) => {
+        console.error("[ai-generation] insert failed", err);
+      });
+  };
+
   const result = streamText({
     model: groq(env.GROQ_MODEL),
     system: SYSTEM_PROMPT,
@@ -173,6 +208,13 @@ export async function POST(req: Request) {
     generateMessageId: () => crypto.randomUUID(),
     onError: (err) => {
       console.error("[chat] stream error", err);
+      recordGeneration({
+        status: "error",
+        error:
+          err instanceof Error
+            ? `${err.name}: ${err.message}`.slice(0, 500)
+            : String(err).slice(0, 500),
+      });
       return "Something went wrong. Please try again.";
     },
     onFinish: async ({ responseMessage }) => {
@@ -190,6 +232,10 @@ export async function POST(req: Request) {
         .update(chatConversation)
         .set({ updatedAt: new Date() })
         .where(eq(chatConversation.id, cid));
+      recordGeneration({
+        status: "success",
+        output: { messageId: responseMessage.id },
+      });
     },
   });
 }

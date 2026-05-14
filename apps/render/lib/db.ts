@@ -18,6 +18,7 @@ export type LoadedTemplateVersion = {
   templateId: string;
   versionId: string;
   version: number;
+  userId: string;
   document: TemplateDocumentRow;
 };
 
@@ -48,6 +49,7 @@ export const loadTemplateVersion = async (
       templateId: template.id,
       versionId: templateVersion.id,
       version: templateVersion.version,
+      userId: template.userId,
       document: templateVersion.documentJson,
     })
     .from(templateVersion)
@@ -69,23 +71,34 @@ export const loadTemplateVersion = async (
     templateId: row.templateId,
     versionId: row.versionId,
     version: row.version,
+    userId: row.userId,
     document: row.document,
   };
 };
 
 export type RenderLogEntry = {
   templateVersionId: string;
+  userId?: string | null;
   paramsHash: string;
   format: string;
   ms: number;
   status: number;
+  error?: string | null;
 };
 
 // Fire-and-forget — never throws into the response path.
 export const recordRenderLog = (entry: RenderLogEntry): void => {
   void getDb()
     .insert(renderLog)
-    .values(entry)
+    .values({
+      templateVersionId: entry.templateVersionId,
+      userId: entry.userId ?? null,
+      paramsHash: entry.paramsHash,
+      format: entry.format,
+      ms: entry.ms,
+      status: entry.status,
+      error: entry.error ?? null,
+    })
     .catch((err: unknown) => {
       console.error("[render-log] insert failed", err);
     });
@@ -102,10 +115,12 @@ export const loadDraftById = async (
       templateId: templateVersion.templateId,
       versionId: templateVersion.id,
       version: templateVersion.version,
+      userId: template.userId,
       document: templateVersion.documentJson,
       publishedAt: templateVersion.publishedAt,
     })
     .from(templateVersion)
+    .innerJoin(template, eq(template.id, templateVersion.templateId))
     .where(eq(templateVersion.id, versionId))
     .limit(1);
 
@@ -115,6 +130,7 @@ export const loadDraftById = async (
     templateId: row.templateId,
     versionId: row.versionId,
     version: row.version,
+    userId: row.userId,
     document: row.document,
   };
 };

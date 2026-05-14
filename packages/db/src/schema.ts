@@ -83,15 +83,22 @@ export const renderLog = pgTable(
     templateVersionId: uuid("template_version_id")
       .notNull()
       .references(() => templateVersion.id, { onDelete: "cascade" }),
+    // Owner of the rendered template at log time. Nullable because some logs
+    // (e.g. stock renders) aren't associated with an end-user.
+    userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
     paramsHash: text("params_hash").notNull(),
     format: text("format").notNull(),
     ms: integer("ms").notNull(),
     status: integer("status").notNull(),
+    // Short failure code/message when status >= 400 (e.g. "timeout",
+    // "render_failed", "not_found"). Null on success.
+    error: text("error"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (t) => [
     index("render_log_tv_idx").on(t.templateVersionId),
     index("render_log_created_at_idx").on(t.createdAt),
+    index("render_log_user_idx").on(t.userId, t.createdAt),
   ],
 );
 

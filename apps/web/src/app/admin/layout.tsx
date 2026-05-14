@@ -6,6 +6,8 @@ import { getSession } from "@/server/better-auth/server";
 const NAV = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/templates", label: "Stock templates" },
+  { href: "/admin/renders", label: "Render logs" },
+  { href: "/admin/ai", label: "AI generations" },
 ];
 
 export default async function AdminLayout({

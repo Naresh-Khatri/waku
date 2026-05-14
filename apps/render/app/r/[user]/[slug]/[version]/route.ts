@@ -210,6 +210,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     const ms = Date.now() - started;
     recordRenderLog({
       templateVersionId: tpl.versionId,
+      userId: tpl.userId,
       paramsHash,
       format,
       ms,
@@ -233,10 +234,12 @@ export async function GET(req: NextRequest, ctx: Ctx) {
       err instanceof Error ? err.message : "Unknown render failure";
     recordRenderLog({
       templateVersionId: tpl.versionId,
+      userId: tpl.userId,
       paramsHash,
       format,
       ms: Date.now() - started,
       status,
+      error: `${code}: ${message}`.slice(0, 500),
     });
     finishLog(status, paramsHash, version, code);
     return errorResponse(
