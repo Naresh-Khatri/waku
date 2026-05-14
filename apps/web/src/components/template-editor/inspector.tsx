@@ -1,7 +1,6 @@
 "use client";
 
-import { AlignCenter, AlignLeft, AlignRight } from "lucide-react";
-import type { ChangeEvent } from "react";
+import { AlignCenter, AlignLeft, AlignRight, ImagePlus } from "lucide-react";
 import { useState } from "react";
 import { useEditor } from "./store";
 import type {
@@ -27,7 +26,7 @@ import { ColorPicker } from "./color-picker";
 import { PaintInput } from "./paint-picker";
 import { Bindable } from "./bind-button";
 import { AssetUploadError, useAssetUploader } from "./asset-upload";
-import { AssetPickerButton } from "./asset-picker";
+import { AssetPicker } from "./asset-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -255,7 +254,7 @@ function TypeSection({ node }: { node: EditorNode }) {
       return (
         <>
           <Section title="Image">
-            <Row label="Source">
+            <Row label="Image">
               <Bindable
                 target={{ kind: "node", id: node.id }}
                 field="src"
@@ -263,18 +262,11 @@ function TypeSection({ node }: { node: EditorNode }) {
                 value={node.src}
                 fallback=""
               >
-                <TextInput value={node.src} onChange={(v) => set({ src: v })} />
+                <ImageSourceField
+                  src={node.src}
+                  onPicked={(src) => set({ src })}
+                />
               </Bindable>
-            </Row>
-            <ImageUploadRow
-              disabled={isParamRef(node.src)}
-              onUploaded={(src) => set({ src })}
-            />
-            <Row label="Library">
-              <AssetPickerButton
-                disabled={isParamRef(node.src)}
-                onPick={(src) => set({ src })}
-              />
             </Row>
             <Row label="Fit">
               <SelectInput
@@ -943,24 +935,22 @@ function ShadowSection({
   );
 }
 
-function ImageUploadRow({
-  disabled,
-  onUploaded,
+function ImageSourceField({
+  src,
+  onPicked,
 }: {
-  disabled: boolean;
-  onUploaded: (src: string) => void;
+  src: Value<string>;
+  onPicked: (src: string) => void;
 }) {
   const { upload, isUploading } = useAssetUploader();
   const [error, setError] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
 
-  const onChange = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
+  const uploadFile = async (file: File) => {
     setError(null);
     try {
       const { readUrl } = await upload(file);
-      onUploaded(readUrl);
+      onPicked(readUrl);
     } catch (err) {
       setError(
         err instanceof AssetUploadError
@@ -970,28 +960,65 @@ function ImageUploadRow({
     }
   };
 
+  const previewSrc = !isParamRef(src) && src ? src : null;
+
   return (
-    <>
-      <Row label="Upload">
-        <Input
-          type="file"
-          accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
-          onChange={onChange}
-          className="h-7 cursor-pointer text-xs"
-          disabled={disabled || isUploading}
-        />
-      </Row>
-      {isUploading ? (
-        <Row label="">
-          <span className="text-[11px] text-zinc-500">Uploading…</span>
-        </Row>
-      ) : null}
+    <div className="flex w-full flex-col gap-1">
+      <AssetPicker
+        onPick={onPicked}
+        trigger={
+          <button
+            type="button"
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setDragOver(false);
+              const file = e.dataTransfer.files?.[0];
+              if (file && file.type.startsWith("image/")) {
+                void uploadFile(file);
+              }
+            }}
+            className={cn(
+              "group relative flex h-14 w-full items-center justify-center overflow-hidden rounded-md border bg-zinc-50 transition",
+              dragOver
+                ? "border-indigo-400 bg-indigo-50"
+                : "border-zinc-200 hover:border-zinc-300 hover:bg-zinc-100",
+            )}
+          >
+            {previewSrc ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={previewSrc}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+                <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-zinc-900/0 text-[11px] font-medium text-white opacity-0 transition group-hover:bg-zinc-900/40 group-hover:opacity-100">
+                  {isUploading ? "Uploading…" : "Change"}
+                </span>
+              </>
+            ) : (
+              <span className="flex items-center gap-1.5 text-[11px] text-zinc-500">
+                <ImagePlus className="h-3.5 w-3.5" />
+                {isUploading
+                  ? "Uploading…"
+                  : dragOver
+                    ? "Drop to upload"
+                    : "Add image"}
+              </span>
+            )}
+          </button>
+        }
+      />
       {error ? (
-        <Row label="">
-          <span className="text-[11px] text-red-500">{error}</span>
-        </Row>
+        <span className="text-[11px] text-red-500">{error}</span>
       ) : null}
-    </>
+    </div>
   );
 }
 

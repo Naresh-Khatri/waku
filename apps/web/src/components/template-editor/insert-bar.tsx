@@ -58,7 +58,7 @@ export function InsertBar() {
                 <span>{label}</span>
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Add {label}</TooltipContent>
+            <TooltipContent side="bottom">Add {label}</TooltipContent>
           </Tooltip>
         ))}
       </div>

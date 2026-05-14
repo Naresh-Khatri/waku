@@ -91,7 +91,7 @@ function EditorTopBar({
   });
 
   const del = api.template.delete.useMutation({
-    onSuccess: () => router.push("/designs"),
+    onSuccess: () => router.push("/"),
   });
 
   const saveTimerRef = useRef<number | null>(null);

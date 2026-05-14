@@ -25,6 +25,7 @@ const sanitize = (name: string): string => {
 };
 
 export function useAssetUploader() {
+  const utils = api.useUtils();
   const getUploadUrl = api.asset.getUploadUrl.useMutation();
   const confirmAsset = api.asset.confirm.useMutation();
 
@@ -62,6 +63,8 @@ export function useAssetUploader() {
       storageKey,
       kind,
     });
+
+    void utils.asset.list.invalidate();
 
     return { readUrl: row.readUrl, assetId };
   };
