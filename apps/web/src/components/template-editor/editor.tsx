@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 import { Canvas } from "./canvas";
+import { ContextualBar } from "./contextual-bar";
 import { EditorConfigProvider } from "./editor-config";
 import { LeftRail } from "./left-rail";
 import { useEditor } from "./store";
@@ -120,17 +121,19 @@ export function Editor({
       enableParams={enableParams}
       liveUrl={liveUrl ?? null}
     >
-      <div
-        className="grid h-full w-full bg-zinc-100"
-        style={{ gridTemplateRows: "48px minmax(0, 1fr)" }}
-      >
+      <div className="flex h-full w-full flex-col bg-zinc-100">
         {topBar ?? <TopBar />}
         <div
-          className="grid min-h-0"
+          className="grid min-h-0 flex-1"
           style={{ gridTemplateColumns: "auto minmax(0, 1fr)" }}
         >
           <LeftRail />
-          <Canvas />
+          <div className="relative min-h-0 min-w-0">
+            <Canvas />
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-10">
+              <ContextualBar />
+            </div>
+          </div>
         </div>
       </div>
     </EditorConfigProvider>

@@ -366,7 +366,7 @@ export function Canvas() {
   const measured = wrapperSize.w > 0 && wrapperSize.h > 0;
 
   return (
-    <div className="relative flex min-h-0 min-w-0 flex-col bg-zinc-100">
+    <div className="relative flex h-full min-h-0 w-full min-w-0 flex-col bg-zinc-100">
       <div
         ref={wrapperRef}
         className="relative min-h-0 min-w-0 flex-1 select-none overflow-auto bg-zinc-100"
