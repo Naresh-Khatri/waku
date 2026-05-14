@@ -44,7 +44,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Tooltip,
   TooltipContent,
@@ -105,36 +104,7 @@ const FONT_FAMILY_GROUPS: { category: FontCategory; fonts: FontFamily[] }[] =
       .map((category) => ({ category, fonts: buckets.get(category) ?? [] }));
   })();
 
-export function Inspector() {
-  const selectedId = useEditor((s) => s.selectedId);
-  const node = useEditor((s) =>
-    s.selectedId ? (s.nodes.find((n) => n.id === s.selectedId) ?? null) : null,
-  );
-  const setArtboard = useEditor((s) => s.setArtboard);
-  const artboard = useEditor((s) => s.artboard);
-
-  return (
-    <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-md">
-      <div className="flex h-9 items-center border-b border-zinc-200 px-3">
-        <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-          {selectedId ? "Inspect" : "Document"}
-        </span>
-      </div>
-      <ScrollArea className="min-h-0 flex-1">
-        {node ? (
-          <NodeInspector key={node.id} node={node} />
-        ) : (
-          <DocumentInspector
-            artboard={artboard}
-            onChange={(p) => setArtboard(p)}
-          />
-        )}
-      </ScrollArea>
-    </aside>
-  );
-}
-
-function DocumentInspector({
+export function DocumentInspector({
   artboard,
   onChange,
 }: {
@@ -174,7 +144,7 @@ function DocumentInspector({
   );
 }
 
-function NodeInspector({ node }: { node: EditorNode }) {
+export function NodeInspector({ node }: { node: EditorNode }) {
   const update = useEditor((s) => s.updateNode);
   const set = (patch: Partial<EditorNode>) => update(node.id, patch);
 

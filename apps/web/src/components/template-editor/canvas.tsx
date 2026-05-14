@@ -363,6 +363,7 @@ export function Canvas() {
   };
 
   const selected = nodes.find((n) => n.id === selectedId) ?? null;
+  const measured = wrapperSize.w > 0 && wrapperSize.h > 0;
 
   return (
     <div className="relative flex min-h-0 min-w-0 flex-col bg-zinc-100">
@@ -376,6 +377,7 @@ export function Canvas() {
             width: stageW,
             height: stageH,
             cursor: panning ? "grabbing" : "grab",
+            visibility: measured ? "visible" : "hidden",
           }}
           onPointerDown={onBackgroundPointerDown}
         >

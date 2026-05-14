@@ -34,7 +34,6 @@ import type { LucideIcon } from "lucide-react";
 import { useEditor } from "./store";
 import type { EditorNode, NodeType } from "./types";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
 const ICON: Record<NodeType, LucideIcon> = {
@@ -48,7 +47,7 @@ const ICON: Record<NodeType, LucideIcon> = {
   path: Heart,
 };
 
-export function LayersPanel() {
+export function LayersList() {
   const nodes = useEditor((s) => s.nodes);
   const selectedId = useEditor((s) => s.selectedId);
   const select = useEditor((s) => s.select);
@@ -71,49 +70,41 @@ export function LayersPanel() {
     useEditor.setState({ nodes: [...reordered].reverse() });
   };
 
-  return (
-    <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-md">
-      <div className="flex h-9 items-center justify-between border-b border-zinc-200 px-3">
-        <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-          Layers
-        </span>
-        <span className="text-[10px] text-zinc-400">{nodes.length}</span>
+  if (nodes.length === 0) {
+    return (
+      <div className="px-3 py-6 text-xs text-zinc-400">
+        Add a layer from the Elements panel.
       </div>
-      <ScrollArea className="min-h-0 flex-1">
-        <div className="p-1">
-          {nodes.length === 0 ? (
-            <div className="px-3 py-6 text-xs text-zinc-400">
-              Add a layer from the top bar.
-            </div>
-          ) : (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={onDragEnd}
-            >
-              <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-                <ul className="space-y-0.5">
-                  {ordered.map((node) => (
-                    <LayerRow
-                      key={node.id}
-                      node={node}
-                      selected={node.id === selectedId}
-                      onSelect={() => select(node.id)}
-                      onToggleVisible={() =>
-                        updateNode(node.id, { visible: !node.visible })
-                      }
-                      onToggleLocked={() =>
-                        updateNode(node.id, { locked: !node.locked })
-                      }
-                    />
-                  ))}
-                </ul>
-              </SortableContext>
-            </DndContext>
-          )}
-        </div>
-      </ScrollArea>
-    </aside>
+    );
+  }
+
+  return (
+    <div className="p-1">
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={onDragEnd}
+      >
+        <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+          <ul className="space-y-0.5">
+            {ordered.map((node) => (
+              <LayerRow
+                key={node.id}
+                node={node}
+                selected={node.id === selectedId}
+                onSelect={() => select(node.id)}
+                onToggleVisible={() =>
+                  updateNode(node.id, { visible: !node.visible })
+                }
+                onToggleLocked={() =>
+                  updateNode(node.id, { locked: !node.locked })
+                }
+              />
+            ))}
+          </ul>
+        </SortableContext>
+      </DndContext>
+    </div>
   );
 }
 

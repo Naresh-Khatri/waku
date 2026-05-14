@@ -8,15 +8,23 @@ import {
   Italic,
   Lock,
   LockOpen,
+  MoreHorizontal,
   Trash2,
 } from "lucide-react";
 import type { CSSProperties } from "react";
 import { Bindable } from "./bind-button";
+import { NodeInspector } from "./inspector";
 import { PaintInput } from "./paint-picker";
 import { useEditor } from "./store";
 import type { EditorNode, Paint, ParamKind } from "./types";
 import { isParamRef } from "./types";
 import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
@@ -52,7 +60,44 @@ export function FloatingToolbar({
       <TypeSpecificControls node={node} />
       <Separator orientation="vertical" className="mx-1 !h-5" />
       <CommonControls node={node} />
+      <Separator orientation="vertical" className="mx-1 !h-5" />
+      <MoreControls node={node} />
     </div>
+  );
+}
+
+function MoreControls({ node }: { node: EditorNode }) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="More options"
+          title="More"
+          className="min-w-8"
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        side="bottom"
+        align="end"
+        sideOffset={8}
+        className="w-[300px] max-h-[70vh] overflow-hidden p-0"
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <div className="flex h-9 items-center border-b border-zinc-200 px-3">
+          <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            {node.name}
+          </span>
+        </div>
+        <ScrollArea className="max-h-[60vh]">
+          <NodeInspector node={node} />
+        </ScrollArea>
+      </PopoverContent>
+    </Popover>
   );
 }
 

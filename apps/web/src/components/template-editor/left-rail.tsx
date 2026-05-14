@@ -1,0 +1,375 @@
+"use client";
+
+import {
+  Circle,
+  FileImage,
+  Heart,
+  Image as ImageIcon,
+  LayoutGrid,
+  Layers as LayersIcon,
+  Minus,
+  Redo2,
+  Settings2,
+  Square,
+  Star,
+  Triangle,
+  Type,
+  Undo2,
+  Upload,
+  Wand2,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { api } from "@/trpc/react";
+import { cn } from "@/lib/utils";
+
+import { AssetUploadError, useAssetUploader } from "./asset-upload";
+import { DocumentInspector } from "./inspector";
+import { LayersList } from "./layers-panel";
+import { useEditor } from "./store";
+import type { NodeType } from "./types";
+
+type TabId = "design" | "elements" | "text" | "uploads" | "layers";
+
+interface TabDef {
+  id: TabId;
+  label: string;
+  icon: LucideIcon;
+}
+
+const TABS: TabDef[] = [
+  { id: "elements", label: "Elements", icon: LayoutGrid },
+  { id: "text", label: "Text", icon: Type },
+  { id: "uploads", label: "Uploads", icon: FileImage },
+  { id: "layers", label: "Layers", icon: LayersIcon },
+  { id: "design", label: "Design", icon: Settings2 },
+];
+
+const FLYOUT_WIDTH = 300;
+
+export function LeftRail() {
+  const [active, setActive] = useState<TabId | null>("layers");
+  const [lastTab, setLastTab] = useState<TabId>("layers");
+  useEffect(() => {
+    if (active) setLastTab(active);
+  }, [active]);
+
+  const undo = useEditor((s) => s.undo);
+  const redo = useEditor((s) => s.redo);
+  const canUndo = useEditor((s) => s.past.length > 0);
+  const canRedo = useEditor((s) => s.future.length > 0);
+
+  return (
+    <div className="flex h-full min-h-0">
+      <nav className="flex w-[68px] shrink-0 flex-col items-center gap-1 border-r border-zinc-200 bg-white py-2">
+        {TABS.map((tab) => {
+          const isActive = active === tab.id;
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActive(isActive ? null : tab.id)}
+              aria-pressed={isActive}
+              className={cn(
+                "flex h-14 w-14 flex-col items-center justify-center gap-0.5 rounded-md text-[10px] font-medium transition",
+                isActive
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900",
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+        <div className="mt-auto flex flex-col items-center gap-0.5 pb-1">
+          <Separator className="!my-1 w-8" />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                onClick={undo}
+                disabled={!canUndo}
+                aria-label="Undo"
+              >
+                <Undo2 className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Undo (⌘Z)</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                onClick={redo}
+                disabled={!canRedo}
+                aria-label="Redo"
+              >
+                <Redo2 className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Redo (⌘⇧Z)</TooltipContent>
+          </Tooltip>
+        </div>
+      </nav>
+      <div
+        aria-hidden={!active}
+        className="overflow-hidden transition-[width] duration-200 ease-out"
+        style={{ width: active ? FLYOUT_WIDTH : 0 }}
+      >
+        <Flyout tab={lastTab} />
+      </div>
+    </div>
+  );
+}
+
+function Flyout({ tab }: { tab: TabId }) {
+  const tabDef = TABS.find((t) => t.id === tab);
+  return (
+    <aside
+      className="flex h-full flex-col border-r border-zinc-200 bg-white"
+      style={{ width: FLYOUT_WIDTH }}
+    >
+      <div className="flex h-10 shrink-0 items-center border-b border-zinc-200 px-4">
+        <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+          {tabDef?.label ?? ""}
+        </span>
+      </div>
+      <ScrollArea className="min-h-0 flex-1">
+        <PanelContent tab={tab} />
+      </ScrollArea>
+    </aside>
+  );
+}
+
+function PanelContent({ tab }: { tab: TabId }) {
+  switch (tab) {
+    case "design":
+      return <DesignPanel />;
+    case "elements":
+      return <ElementsPanel />;
+    case "text":
+      return <TextPresetsPanel />;
+    case "uploads":
+      return <UploadsPanel />;
+    case "layers":
+      return <LayersList />;
+  }
+}
+
+function DesignPanel() {
+  const artboard = useEditor((s) => s.artboard);
+  const setArtboard = useEditor((s) => s.setArtboard);
+  return <DocumentInspector artboard={artboard} onChange={setArtboard} />;
+}
+
+const ELEMENT_ITEMS: { type: NodeType; icon: LucideIcon; label: string }[] = [
+  { type: "rectangle", icon: Square, label: "Rectangle" },
+  { type: "ellipse", icon: Circle, label: "Ellipse" },
+  { type: "triangle", icon: Triangle, label: "Triangle" },
+  { type: "star", icon: Star, label: "Star" },
+  { type: "line", icon: Minus, label: "Line" },
+  { type: "path", icon: Heart, label: "Path" },
+  { type: "image", icon: ImageIcon, label: "Image" },
+  { type: "text", icon: Type, label: "Text" },
+];
+
+function ElementsPanel() {
+  const addNode = useEditor((s) => s.addNode);
+  return (
+    <div className="p-3">
+      <div className="grid grid-cols-2 gap-2">
+        {ELEMENT_ITEMS.map(({ type, icon: Icon, label }) => (
+          <button
+            key={type}
+            type="button"
+            onClick={() => addNode(type)}
+            className="group flex aspect-[4/3] flex-col items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white text-zinc-600 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
+          >
+            <Icon className="h-5 w-5" />
+            <span className="text-[11px] font-medium">{label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+interface TextPreset {
+  label: string;
+  text: string;
+  fontSize: number;
+  fontWeight: 400 | 500 | 600 | 700 | 800;
+  italic?: boolean;
+  className: string;
+}
+
+const TEXT_PRESETS: TextPreset[] = [
+  {
+    label: "Heading",
+    text: "Add a heading",
+    fontSize: 72,
+    fontWeight: 800,
+    className: "text-2xl font-extrabold tracking-tight",
+  },
+  {
+    label: "Subheading",
+    text: "Add a subheading",
+    fontSize: 40,
+    fontWeight: 600,
+    className: "text-lg font-semibold tracking-tight",
+  },
+  {
+    label: "Body",
+    text: "Add body text",
+    fontSize: 18,
+    fontWeight: 400,
+    className: "text-sm",
+  },
+  {
+    label: "Caption",
+    text: "Add a caption",
+    fontSize: 14,
+    fontWeight: 500,
+    italic: true,
+    className: "text-xs italic text-zinc-500",
+  },
+];
+
+function TextPresetsPanel() {
+  const addNode = useEditor((s) => s.addNode);
+  const updateNode = useEditor((s) => s.updateNode);
+
+  const insert = (preset: TextPreset) => {
+    addNode("text");
+    const id = useEditor.getState().selectedId;
+    if (!id) return;
+    updateNode(id, {
+      text: preset.text,
+      fontSize: preset.fontSize,
+      fontWeight: preset.fontWeight,
+      italic: preset.italic ?? false,
+    });
+  };
+
+  return (
+    <div className="flex flex-col gap-2 p-3">
+      <button
+        type="button"
+        onClick={() => addNode("text")}
+        className="flex items-center justify-center gap-1.5 rounded-md bg-zinc-900 px-3 py-2 text-xs font-medium text-white hover:bg-zinc-800"
+      >
+        <Wand2 className="h-3.5 w-3.5" />
+        Add a text box
+      </button>
+      <div className="mt-2 flex flex-col gap-1.5">
+        {TEXT_PRESETS.map((preset) => (
+          <button
+            key={preset.label}
+            type="button"
+            onClick={() => insert(preset)}
+            className="flex flex-col items-start rounded-md border border-zinc-200 bg-white px-3 py-3 text-left text-zinc-800 transition hover:border-indigo-300 hover:bg-indigo-50"
+          >
+            <span
+              className={cn("leading-tight text-zinc-900", preset.className)}
+            >
+              {preset.label}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const UPLOAD_ACCEPT = "image/png,image/jpeg,image/webp,image/gif,image/svg+xml";
+
+function UploadsPanel() {
+  const list = api.asset.list.useQuery({ kind: "image" });
+  const items = list.data ?? [];
+  const addNode = useEditor((s) => s.addNode);
+  const updateNode = useEditor((s) => s.updateNode);
+  const { upload, isUploading } = useAssetUploader();
+  const [error, setError] = useState<string | null>(null);
+
+  const insertWithSrc = (src: string) => {
+    addNode("image");
+    const id = useEditor.getState().selectedId;
+    if (id) updateNode(id, { src });
+  };
+
+  const uploadFile = async (file: File) => {
+    setError(null);
+    try {
+      const { readUrl } = await upload(file);
+      insertWithSrc(readUrl);
+    } catch (err) {
+      setError(
+        err instanceof AssetUploadError
+          ? err.message
+          : "Upload failed. Try again.",
+      );
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-3 p-3">
+      <label className="flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-md border-2 border-dashed border-zinc-300 bg-zinc-50 px-3 py-4 text-zinc-500 transition hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-700">
+        <Upload className="h-4 w-4" />
+        <span className="text-[11px] font-medium">
+          {isUploading ? "Uploading…" : "Upload image"}
+        </span>
+        <input
+          type="file"
+          accept={UPLOAD_ACCEPT}
+          className="hidden"
+          disabled={isUploading}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (file) void uploadFile(file);
+          }}
+        />
+      </label>
+      {error ? <p className="text-[11px] text-rose-600">{error}</p> : null}
+      {list.isPending ? (
+        <p className="text-xs text-zinc-500">Loading…</p>
+      ) : items.length === 0 ? (
+        <p className="text-xs text-zinc-500">No uploads yet.</p>
+      ) : (
+        <div className="grid grid-cols-2 gap-2">
+          {items.map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => insertWithSrc(a.readUrl)}
+              className="group block aspect-square overflow-hidden rounded-md border border-zinc-200 bg-zinc-50 hover:border-indigo-400"
+              title={a.storageKey}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={a.readUrl}
+                alt=""
+                className="block h-full w-full object-cover transition group-hover:scale-105"
+              />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
