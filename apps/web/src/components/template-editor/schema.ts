@@ -11,20 +11,7 @@ const ParamRefStringZ = z.object({
   default: z.string().optional(),
 });
 
-const ParamRefNumberZ = z.object({
-  $param: z.string(),
-  default: z.number().optional(),
-});
-
-const ParamRefBooleanZ = z.object({
-  $param: z.string(),
-  default: z.boolean().optional(),
-});
-
 const ValueStringZ = z.union([z.string(), ParamRefStringZ]);
-const valueNumberZ = (n: z.ZodType<number> = z.number()) =>
-  z.union([n, ParamRefNumberZ]);
-const ValueBooleanZ = z.union([z.boolean(), ParamRefBooleanZ]);
 
 const ColorStopZ = z.object({
   color: ValueStringZ,
@@ -62,26 +49,7 @@ const ParamSchemaEntryZ = z.union([
     maxLen: z.number().int().positive().optional(),
   }),
   z.object({
-    kind: z.literal("url"),
-    default: z.string().optional(),
-  }),
-  z.object({
     kind: z.literal("color"),
-    default: z.string().optional(),
-  }),
-  z.object({
-    kind: z.literal("number"),
-    default: z.number().optional(),
-    min: z.number().optional(),
-    max: z.number().optional(),
-  }),
-  z.object({
-    kind: z.literal("boolean"),
-    default: z.boolean().optional(),
-  }),
-  z.object({
-    kind: z.literal("enum"),
-    values: z.tuple([z.string()]).rest(z.string()),
     default: z.string().optional(),
   }),
 ]);
@@ -95,7 +63,7 @@ const BaseFields = {
   width: z.number(),
   height: z.number(),
   rotation: z.number(),
-  opacity: valueNumberZ(z.number().min(0).max(1)),
+  opacity: z.number().min(0).max(1),
   visible: z.boolean(),
   locked: z.boolean(),
 } as const;
@@ -112,9 +80,9 @@ const ImageNodeZ = z.object({
   type: z.literal("image"),
   src: ValueStringZ,
   fit: z.enum(["cover", "contain"]),
-  cornerRadius: valueNumberZ(z.number().min(0)),
+  cornerRadius: z.number().min(0),
   stroke: PaintZ,
-  strokeWidth: valueNumberZ(z.number().min(0)),
+  strokeWidth: z.number().min(0),
   shadow: ShadowZ.nullable(),
 });
 
@@ -130,28 +98,28 @@ const TextNodeZ = z.object({
   ...BaseFields,
   type: z.literal("text"),
   text: ValueStringZ,
-  fontSize: valueNumberZ(z.number().positive()),
+  fontSize: z.number().positive(),
   fontWeight: FontWeightZ,
-  italic: ValueBooleanZ,
+  italic: z.boolean(),
   color: PaintZ,
   align: z.enum(["left", "center", "right"]),
   fontFamily: z.enum(FONT_FAMILY_VALUES),
-  letterSpacing: valueNumberZ(),
-  lineHeight: valueNumberZ(z.number().positive()),
+  letterSpacing: z.number(),
+  lineHeight: z.number().positive(),
   shadow: ShadowZ.nullable().optional(),
 });
 
 const ShapeFields = {
   fill: PaintZ,
   stroke: PaintZ,
-  strokeWidth: valueNumberZ(z.number().min(0)),
+  strokeWidth: z.number().min(0),
 } as const;
 
 const RectangleNodeZ = z.object({
   ...BaseFields,
   ...ShapeFields,
   type: z.literal("rectangle"),
-  cornerRadius: valueNumberZ(z.number().min(0)),
+  cornerRadius: z.number().min(0),
   shadow: ShadowZ.nullable().optional(),
 });
 
@@ -172,16 +140,16 @@ const StarNodeZ = z.object({
   ...BaseFields,
   ...ShapeFields,
   type: z.literal("star"),
-  points: valueNumberZ(z.number().int().min(3)),
-  innerRadiusRatio: valueNumberZ(z.number().min(0).max(1)),
+  points: z.number().int().min(3),
+  innerRadiusRatio: z.number().min(0).max(1),
 });
 
 const LineNodeZ = z.object({
   ...BaseFields,
   type: z.literal("line"),
   stroke: PaintZ,
-  strokeWidth: valueNumberZ(z.number().min(0)),
-  arrow: ValueBooleanZ,
+  strokeWidth: z.number().min(0),
+  arrow: z.boolean(),
 });
 
 const PathNodeZ = z.object({

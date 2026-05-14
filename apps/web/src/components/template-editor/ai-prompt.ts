@@ -34,14 +34,14 @@ Any color string may also be a ParamRef: { "$param": "name", "default": "#..." }
 
 # Type-specific fields
 
-text:       text (string), fontSize (px), fontWeight (400|500|600|700|800),
-            italic (bool), color (Paint), align ("left"|"center"|"right"),
+text:       text (string, bindable), fontSize (px), fontWeight (400|500|600|700|800),
+            italic (bool), color (Paint, color bindable), align ("left"|"center"|"right"),
             fontFamily (one of the values in the "# Fonts" section — use the exact string),
             letterSpacing (px, can be negative), lineHeight (multiplier, ~1.0–1.5),
             shadow (Shadow | null, optional)
 
-image:      src (url string), fit ("cover"|"contain"),
-            cornerRadius (px), stroke (Paint), strokeWidth (px),
+image:      src (string, bindable), fit ("cover"|"contain"),
+            cornerRadius (px), stroke (Paint, color bindable), strokeWidth (px),
             shadow (Shadow | null)
 
 rectangle:  fill (Paint), stroke (Paint), strokeWidth (px),
@@ -87,15 +87,15 @@ Picking guidance:
 
 paramsSchema entries:
   { "kind": "string", "default"?: "...", "maxLen"?: int }
-  { "kind": "url",    "default"?: "..." }
   { "kind": "color",  "default"?: "#..." }
-  { "kind": "number", "default"?: n, "min"?: n, "max"?: n }
-  { "kind": "boolean","default"?: bool }
-  { "kind": "enum",   "values": ["a","b",...], "default"?: "a" }
 
-To bind a field to a param, use { "$param": "name" } in place of the literal.
-For a Paint that should be a param-driven color: { "kind": "flat", "color": { "$param": "brand" } }.
+Use "string" for text content, image src, and SVG path data.
+Use "color" for any color value.
+
+To bind a string-typed field to a param, use { "$param": "name" } in place of the literal.
+To bind a Paint color: { "kind": "flat", "color": { "$param": "brand" } }.
 Every param referenced in nodes/artboard MUST appear in paramsSchema. If not parameterizing, paramsSchema is {}.
+Numbers (fontSize, strokeWidth, opacity, etc.) and booleans (italic, arrow) are always plain literals — they cannot be parameterized.
 
 # Rules
 
@@ -355,7 +355,7 @@ export const AI_TEMPLATE_EXAMPLE_PARAMETERIZED: TemplateDocument = {
   paramsSchema: {
     title: { kind: "string", default: "Your headline here", maxLen: 80 },
     image: {
-      kind: "url",
+      kind: "string",
       default:
         "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1600&q=80",
     },

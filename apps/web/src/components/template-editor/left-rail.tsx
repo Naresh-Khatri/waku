@@ -16,10 +16,11 @@ import {
   Type,
   Undo2,
   Upload,
+  Variable,
   Wand2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -33,17 +34,27 @@ import { api } from "@/trpc/react";
 import { cn } from "@/lib/utils";
 
 import { AssetUploadError, useAssetUploader } from "./asset-upload";
+import { useEditorConfig } from "./editor-config";
 import { DocumentInspector } from "./inspector";
 import { LayersList } from "./layers-panel";
 import { useEditor } from "./store";
 import type { NodeType } from "./types";
+import { VariablesPanel } from "./variables-panel";
 
-type TabId = "design" | "elements" | "text" | "uploads" | "layers";
+type TabId =
+  | "design"
+  | "elements"
+  | "text"
+  | "uploads"
+  | "layers"
+  | "variables";
 
 interface TabDef {
   id: TabId;
   label: string;
   icon: LucideIcon;
+  /** Only render this tab when `enableParams` is true. */
+  paramsOnly?: boolean;
 }
 
 const TABS: TabDef[] = [
@@ -51,12 +62,18 @@ const TABS: TabDef[] = [
   { id: "text", label: "Text", icon: Type },
   { id: "uploads", label: "Uploads", icon: FileImage },
   { id: "layers", label: "Layers", icon: LayersIcon },
+  { id: "variables", label: "Variables", icon: Variable, paramsOnly: true },
   { id: "design", label: "Design", icon: Settings2 },
 ];
 
 const FLYOUT_WIDTH = 300;
 
 export function LeftRail() {
+  const { enableParams } = useEditorConfig();
+  const visibleTabs = useMemo(
+    () => TABS.filter((t) => !t.paramsOnly || enableParams),
+    [enableParams],
+  );
   const [active, setActive] = useState<TabId | null>("layers");
   const [lastTab, setLastTab] = useState<TabId>("layers");
   useEffect(() => {
@@ -71,7 +88,7 @@ export function LeftRail() {
   return (
     <div className="flex h-full min-h-0">
       <nav className="flex w-[68px] shrink-0 flex-col items-center gap-1 border-r border-zinc-200 bg-white py-2">
-        {TABS.map((tab) => {
+        {visibleTabs.map((tab) => {
           const isActive = active === tab.id;
           const Icon = tab.icon;
           return (
@@ -168,6 +185,8 @@ function PanelContent({ tab }: { tab: TabId }) {
       return <UploadsPanel />;
     case "layers":
       return <LayersList />;
+    case "variables":
+      return <VariablesPanel />;
   }
 }
 

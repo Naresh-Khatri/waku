@@ -9,15 +9,12 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useEditorConfig } from "./editor-config";
 import { useEditor } from "./store";
@@ -25,10 +22,17 @@ import type {
   Paint,
   ParamKind,
   ParamSchemaEntry,
-  ParamsSchema,
   Value,
 } from "./types";
 import { isFlatPaint, isParamRef } from "./types";
+import {
+  VALID_NAME,
+  defaultPreview,
+  makeEntry,
+  parseRaw,
+  slugify,
+  uniqueName,
+} from "./param-helpers";
 
 export type BindTarget = { kind: "node"; id: string } | { kind: "artboard" };
 
@@ -68,8 +72,6 @@ function BindableInner(props: ValueBindable | PaintBindable) {
     if (bound) return "";
     if (inner === null || inner === undefined) return "";
     if (typeof inner === "string") return inner;
-    if (typeof inner === "number" || typeof inner === "boolean")
-      return String(inner);
     return "";
   }, [bound, inner]);
 
@@ -78,26 +80,34 @@ function BindableInner(props: ValueBindable | PaintBindable) {
   return (
     <div className="flex min-w-0 flex-1 items-center gap-1">
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            aria-label={
-              bound && boundName
-                ? `Bound to {${boundName}}`
-                : "Bind to a variable"
-            }
-            className={cn(
-              "size-5",
-              bound
-                ? "text-indigo-500 hover:bg-indigo-50 hover:text-indigo-600"
-                : "text-zinc-300 hover:bg-zinc-100 hover:text-zinc-700",
-            )}
-          >
-            <Link2 className="h-3 w-3" />
-          </Button>
-        </PopoverTrigger>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                aria-label={
+                  bound && boundName
+                    ? `Bound to {${boundName}}`
+                    : "Bind to a variable"
+                }
+                aria-pressed={bound}
+                className={cn(
+                  "size-6 rounded-md transition-colors",
+                  bound
+                    ? "bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700"
+                    : "text-zinc-500 hover:bg-indigo-50 hover:text-indigo-600",
+                )}
+              >
+                <Link2 className="h-3.5 w-3.5" />
+              </Button>
+            </PopoverTrigger>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            {bound && boundName ? `Bound to {${boundName}}` : "Bind to variable"}
+          </TooltipContent>
+        </Tooltip>
         <PopoverContent
           side="bottom"
           align="end"
@@ -259,6 +269,15 @@ function ListBody({
 }) {
   return (
     <>
+      <div className="flex items-center justify-between border-b border-zinc-100 px-3 py-2">
+        <span className="text-[11px] font-semibold text-zinc-700">
+          {boundName ? "Bound variable" : "Bind to variable"}
+        </span>
+        <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-zinc-500">
+          {paramKind}
+        </span>
+      </div>
+
       {boundEntry && boundName ? (
         <div className="flex items-center gap-1.5 border-b border-zinc-100 bg-indigo-50/40 px-2 py-1.5">
           <Hash className="h-3 w-3 shrink-0 text-indigo-400" />
@@ -291,10 +310,10 @@ function ListBody({
       <ScrollArea className="max-h-[240px]">
         <div className="p-1">
           {compatible.length === 0 ? (
-            <div className="px-2 py-3 text-center text-[11px] text-zinc-400">
+            <div className="px-2 py-4 text-center text-[11px] text-zinc-400">
               {totalParams > 0
-                ? `No ${paramKind} variables`
-                : "No variables yet"}
+                ? `No ${paramKind} variables yet.`
+                : "No variables yet."}
             </div>
           ) : (
             compatible.map(([n, e]) => {
@@ -312,16 +331,19 @@ function ListBody({
               );
             })
           )}
-          <button
-            type="button"
-            onClick={onStartCreate}
-            className="mt-0.5 flex w-full items-center gap-2 rounded px-2 py-1 text-left text-[11px] text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700"
-          >
-            <Plus className="h-3 w-3 shrink-0" />
-            <span>New variable</span>
-          </button>
         </div>
       </ScrollArea>
+
+      <div className="border-t border-zinc-100 p-1">
+        <button
+          type="button"
+          onClick={onStartCreate}
+          className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-[11px] font-medium text-indigo-600 hover:bg-indigo-50"
+        >
+          <Plus className="h-3.5 w-3.5 shrink-0" />
+          <span>New {paramKind} variable</span>
+        </button>
+      </div>
     </>
   );
 }
@@ -405,41 +427,9 @@ function DefaultEditor({
   entry: ParamSchemaEntry;
   onCommit: (v: unknown) => void;
 }) {
-  if (entry.kind === "boolean") {
-    const cur = entry.default === true;
-    return (
-      <label className="flex h-6 items-center gap-2 px-1 text-[11px] text-zinc-700">
-        <Checkbox
-          checked={cur}
-          onCheckedChange={(v) => onCommit(v === true)}
-        />
-        <span>{cur ? "true" : "false"}</span>
-      </label>
-    );
-  }
-  if (entry.kind === "enum") {
-    const cur = String(entry.default ?? entry.values[0]);
-    return (
-      <Select value={cur} onValueChange={(v) => onCommit(v)}>
-        <SelectTrigger
-          size="sm"
-          className="h-6 w-full border-indigo-200 px-1.5 text-[11px]"
-        >
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {entry.values.map((v) => (
-            <SelectItem key={v} value={v} className="text-[11px]">
-              {v}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    );
-  }
   return (
     <CommitInput
-      initial={String(entry.default ?? "")}
+      initial={entry.default ?? ""}
       kind={entry.kind}
       onCommit={onCommit}
     />
@@ -488,14 +478,7 @@ function CreateVariableForm({
     uniqueName(suggestedName, paramsSchema),
   );
   const [raw, setRaw] = useState(initialDefault);
-  const valid =
-    VALID_NAME.test(name) &&
-    !(name in paramsSchema) &&
-    (paramKind !== "enum" ||
-      raw
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean).length > 0);
+  const valid = VALID_NAME.test(name) && !(name in paramsSchema);
 
   return (
     <div
@@ -539,7 +522,6 @@ function CreateVariableForm({
         <Input
           value={raw}
           onChange={(e) => setRaw(e.target.value)}
-          placeholder={paramKind === "enum" ? "a, b, c" : ""}
           spellCheck={false}
           className="h-6 px-1.5 font-mono text-[11px]"
         />
@@ -574,79 +556,3 @@ function FormField({
   );
 }
 
-const slugify = (s: string) =>
-  s
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 32);
-
-const VALID_NAME = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
-
-function uniqueName(base: string, schema: ParamsSchema): string {
-  if (!(base in schema)) return base;
-  let i = 2;
-  while (`${base}-${i}` in schema) i++;
-  return `${base}-${i}`;
-}
-
-function makeEntry(kind: ParamKind, raw: string): ParamSchemaEntry | null {
-  switch (kind) {
-    case "string":
-    case "url":
-    case "color": {
-      const e: ParamSchemaEntry = { kind };
-      if (raw) e.default = raw;
-      return e;
-    }
-    case "number": {
-      const e: ParamSchemaEntry = { kind: "number" };
-      const n = Number(raw);
-      if (Number.isFinite(n)) e.default = n;
-      return e;
-    }
-    case "boolean": {
-      const e: ParamSchemaEntry = { kind: "boolean" };
-      if (raw === "true" || raw === "false") e.default = raw === "true";
-      return e;
-    }
-    case "enum": {
-      const values = raw
-        .split(",")
-        .map((v) => v.trim())
-        .filter(Boolean);
-      if (values.length === 0) return null;
-      const [first, ...rest] = values;
-      return { kind: "enum", values: [first!, ...rest] };
-    }
-  }
-}
-
-function parseRaw(kind: ParamKind, raw: string): unknown {
-  switch (kind) {
-    case "string":
-    case "url":
-    case "color":
-    case "enum":
-      return raw;
-    case "number": {
-      const n = Number(raw);
-      return Number.isFinite(n) ? n : 0;
-    }
-    case "boolean":
-      return raw === "true";
-  }
-}
-
-function defaultPreview(entry: ParamSchemaEntry): {
-  text: string;
-  swatch?: string;
-} {
-  if (entry.kind === "enum")
-    return { text: String(entry.default ?? entry.values[0]) };
-  const d = (entry as { default?: unknown }).default;
-  if (d === undefined) return { text: "" };
-  if (entry.kind === "color" && typeof d === "string")
-    return { text: d, swatch: d };
-  return { text: String(d) };
-}

@@ -284,6 +284,7 @@ interface EditorState {
   setPreviewOpen: (open: boolean) => void;
 
   setParamDefault: (name: string, value: unknown) => void;
+  addParam: (name: string, entry: ParamSchemaEntry) => void;
   removeParam: (name: string) => void;
 
   loadDocument: (doc: TemplateDocument) => void;
@@ -357,46 +358,17 @@ function ensureEntryDefault(
   entry: ParamSchemaEntry,
   current: unknown,
 ): ParamSchemaEntry {
-  if ("default" in entry && entry.default !== undefined) return entry;
+  if (entry.default !== undefined) return entry;
   if (current === undefined || current === null || current === "") return entry;
-  switch (entry.kind) {
-    case "string":
-    case "url":
-      return typeof current === "string" ? { ...entry, default: current } : entry;
-    case "color":
-      return typeof current === "string" && current.length > 0
-        ? { ...entry, default: current }
-        : entry;
-    case "number":
-      return typeof current === "number" && Number.isFinite(current)
-        ? { ...entry, default: current }
-        : entry;
-    case "boolean":
-      return typeof current === "boolean"
-        ? { ...entry, default: current }
-        : entry;
-    case "enum":
-      return typeof current === "string" && entry.values.includes(current)
-        ? { ...entry, default: current }
-        : entry;
-  }
+  return typeof current === "string" && current.length > 0
+    ? { ...entry, default: current }
+    : entry;
 }
 
-function defaultForEntry(entry: ParamSchemaEntry): unknown {
-  if ("default" in entry && entry.default !== undefined) return entry.default;
-  switch (entry.kind) {
-    case "string":
-    case "url":
-      return "";
-    case "color":
-      return "#000000";
-    case "number":
-      return 0;
-    case "boolean":
-      return false;
-    case "enum":
-      return entry.values[0];
-  }
+function defaultForEntry(entry: ParamSchemaEntry): string {
+  if (entry.default !== undefined) return entry.default;
+  if (entry.kind === "color") return "#000000";
+  return "";
 }
 
 const ZERO_COUNT: Record<NodeType, number> = {
@@ -643,34 +615,22 @@ export const useEditor = create<EditorState>((set, get) => ({
     set((s) => {
       const entry = s.paramsSchema[name];
       if (!entry) return s;
-      let nextEntry: ParamSchemaEntry;
-      switch (entry.kind) {
-        case "string":
-        case "url":
-        case "color":
-          nextEntry = { ...entry, default: typeof value === "string" ? value : "" };
-          break;
-        case "number": {
-          const n = typeof value === "number" ? value : Number(value);
-          nextEntry = { ...entry, default: Number.isFinite(n) ? n : 0 };
-          break;
-        }
-        case "boolean":
-          nextEntry = { ...entry, default: Boolean(value) };
-          break;
-        case "enum":
-          nextEntry = {
-            ...entry,
-            default:
-              typeof value === "string" && entry.values.includes(value)
-                ? value
-                : entry.values[0],
-          };
-          break;
-      }
+      const nextEntry: ParamSchemaEntry = {
+        ...entry,
+        default: typeof value === "string" ? value : "",
+      };
       return {
         ...withHistory(s, `param-default-${name}`),
         paramsSchema: { ...s.paramsSchema, [name]: nextEntry },
+      };
+    }),
+
+  addParam: (name, entry) =>
+    set((s) => {
+      if (!name || s.paramsSchema[name]) return s;
+      return {
+        ...withHistory(s, `add-param-${name}`),
+        paramsSchema: { ...s.paramsSchema, [name]: entry },
       };
     }),
 
