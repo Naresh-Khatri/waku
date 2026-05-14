@@ -24,13 +24,7 @@ export const isParamRef = <T>(v: Value<T>): v is ParamRef<T> =>
   "$param" in (v as object) &&
   typeof (v as ParamRef<T>).$param === "string";
 
-export type ParamKind =
-  | "string"
-  | "url"
-  | "color"
-  | "number"
-  | "boolean"
-  | "enum";
+export type ParamKind = "string" | "color";
 
 export interface ColorStop {
   color: Value<string>;
@@ -118,11 +112,7 @@ export const paintToSvgPaint = (
 
 export type ParamSchemaEntry =
   | { kind: "string"; default?: string; maxLen?: number }
-  | { kind: "url"; default?: string }
-  | { kind: "color"; default?: string }
-  | { kind: "number"; default?: number; min?: number; max?: number }
-  | { kind: "boolean"; default?: boolean }
-  | { kind: "enum"; values: [string, ...string[]]; default?: string };
+  | { kind: "color"; default?: string };
 
 export type ParamsSchema = Record<string, ParamSchemaEntry>;
 
@@ -141,7 +131,7 @@ export interface BaseNode {
   width: number;
   height: number;
   rotation: number;
-  opacity: Value<number>;
+  opacity: number;
   visible: boolean;
   locked: boolean;
 }
@@ -160,9 +150,9 @@ export interface ImageNode extends BaseNode {
   type: "image";
   src: Value<string>;
   fit: "cover" | "contain";
-  cornerRadius: Value<number>;
+  cornerRadius: number;
   stroke: Paint;
-  strokeWidth: Value<number>;
+  strokeWidth: number;
   shadow: Shadow | null;
 }
 
@@ -198,26 +188,26 @@ export type FontFamily = (typeof FONT_FAMILY_VALUES)[number];
 export interface TextNode extends BaseNode {
   type: "text";
   text: Value<string>;
-  fontSize: Value<number>;
+  fontSize: number;
   fontWeight: 400 | 500 | 600 | 700 | 800;
-  italic: Value<boolean>;
+  italic: boolean;
   color: Paint;
   align: "left" | "center" | "right";
   fontFamily: FontFamily;
-  letterSpacing: Value<number>;
-  lineHeight: Value<number>;
+  letterSpacing: number;
+  lineHeight: number;
   shadow?: Shadow | null;
 }
 
 interface ShapeFields {
   fill: Paint;
   stroke: Paint;
-  strokeWidth: Value<number>;
+  strokeWidth: number;
 }
 
 export interface RectangleNode extends BaseNode, ShapeFields {
   type: "rectangle";
-  cornerRadius: Value<number>;
+  cornerRadius: number;
   shadow?: Shadow | null;
 }
 
@@ -232,15 +222,15 @@ export interface TriangleNode extends BaseNode, ShapeFields {
 
 export interface StarNode extends BaseNode, ShapeFields {
   type: "star";
-  points: Value<number>;
-  innerRadiusRatio: Value<number>;
+  points: number;
+  innerRadiusRatio: number;
 }
 
 export interface LineNode extends BaseNode {
   type: "line";
   stroke: Paint;
-  strokeWidth: Value<number>;
-  arrow: Value<boolean>;
+  strokeWidth: number;
+  arrow: boolean;
 }
 
 /**
@@ -299,28 +289,11 @@ export function paramsFromSearch(
   const sp =
     typeof search === "string" ? new URLSearchParams(search) : search;
   const out: Record<string, unknown> = {};
-  for (const [name, entry] of Object.entries(schema)) {
+  for (const [name] of Object.entries(schema)) {
     if (RESERVED_PARAMS.has(name)) continue;
     const raw = sp.get(name);
     if (raw === null) continue;
-    switch (entry.kind) {
-      case "string":
-      case "url":
-      case "color":
-        out[name] = raw;
-        break;
-      case "number": {
-        const n = Number(raw);
-        if (Number.isFinite(n)) out[name] = n;
-        break;
-      }
-      case "boolean":
-        out[name] = raw === "1" || raw.toLowerCase() === "true";
-        break;
-      case "enum":
-        if (entry.values.includes(raw)) out[name] = raw;
-        break;
-    }
+    out[name] = raw;
   }
   return out;
 }
@@ -339,10 +312,8 @@ export function paramsWithDefaults(
   for (const [name, entry] of Object.entries(schema)) {
     const v = out[name];
     if (v !== undefined && v !== null && v !== "") continue;
-    if ("default" in entry && entry.default !== undefined) {
+    if (entry.default !== undefined) {
       out[name] = entry.default;
-    } else if (entry.kind === "enum" && entry.values.length > 0) {
-      out[name] = entry.values[0];
     }
   }
   return out;
@@ -353,27 +324,9 @@ export function searchFromParams(
   schema: ParamsSchema,
 ): URLSearchParams {
   const sp = new URLSearchParams();
-  for (const [name, entry] of Object.entries(schema)) {
+  for (const [name] of Object.entries(schema)) {
     const v = values[name];
-    if (v === undefined || v === null || v === "") continue;
-    switch (entry.kind) {
-      case "string":
-      case "url":
-      case "color":
-        if (typeof v === "string" && v.length > 0) sp.set(name, v);
-        break;
-      case "number":
-        if (typeof v === "number" && Number.isFinite(v))
-          sp.set(name, String(v));
-        break;
-      case "boolean":
-        if (typeof v === "boolean") sp.set(name, v ? "1" : "0");
-        break;
-      case "enum":
-        if (typeof v === "string" && entry.values.includes(v))
-          sp.set(name, v);
-        break;
-    }
+    if (typeof v === "string" && v.length > 0) sp.set(name, v);
   }
   return sp;
 }
