@@ -12,7 +12,12 @@ import { useEditor } from "./store";
 import type { Guide, Zoom } from "./store";
 import { snapMove } from "./snap";
 import type { EditorNode } from "./types";
-import { paintToCss, paramsWithDefaults, resolveValue } from "./types";
+import {
+  isParamRef,
+  paintToCss,
+  paramsWithDefaults,
+  resolveValue,
+} from "./types";
 import { NodeContent } from "./node-view";
 import { FloatingToolbar } from "./floating-toolbar";
 import { ZoomBar } from "./zoom-bar";
@@ -57,9 +62,12 @@ export function Canvas() {
   const artboard = useEditor((s) => s.artboard);
   const nodes = useEditor((s) => s.nodes);
   const selectedId = useEditor((s) => s.selectedId);
+  const editingId = useEditor((s) => s.editingId);
   const zoom = useEditor((s) => s.zoom);
   const select = useEditor((s) => s.select);
   const updateNode = useEditor((s) => s.updateNode);
+  const setEditingId = useEditor((s) => s.setEditingId);
+  const setDraftValue = useEditor((s) => s.setDraftValue);
   const setZoom = useEditor((s) => s.setZoom);
   const draftValues = useEditor((s) => s.draftValues);
   const paramsSchema = useEditor((s) => s.paramsSchema);
@@ -320,7 +328,8 @@ export function Canvas() {
     id: string,
     e: ReactPointerEvent<HTMLElement>,
   ) => {
-    const node = useEditor.getState().nodes.find((n) => n.id === id);
+    const state = useEditor.getState();
+    const node = state.nodes.find((n) => n.id === id);
     if (!node || node.locked) return;
     e.stopPropagation();
     const el = wrapperRef.current?.querySelector(
@@ -351,6 +360,12 @@ export function Canvas() {
     if (e.button !== 0) return;
     const target = e.target as HTMLElement;
     if (target.closest("[data-node-id]")) return;
+    if (editingId) {
+      // Flush the editor's pending commit (its blur handler) while it is
+      // still mounted, before we tear it down.
+      (document.activeElement as HTMLElement | null)?.blur();
+      setEditingId(null);
+    }
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
     panRef.current = {
@@ -405,28 +420,55 @@ export function Canvas() {
               }}
               onPointerDown={onBackgroundPointerDown}
             >
-              {nodes.map((node) => (
-                <NodeFrame
-                  key={node.id}
-                  node={node}
-                  selected={node.id === selectedId}
-                  hovered={hoverId === node.id}
-                  scale={scale}
-                  draft={draft}
-                  onPointerEnter={() => {
-                    if (dragRef.current) return;
-                    setHoverId(node.id);
-                  }}
-                  onPointerLeave={() => {
-                    if (dragRef.current) return;
-                    setHoverId((cur) => (cur === node.id ? null : cur));
-                  }}
-                  onPointerDown={(e) => {
-                    select(node.id);
-                    beginDrag("move", node.id, e);
-                  }}
-                />
-              ))}
+              {nodes.map((node) => {
+                const isEditing = editingId === node.id;
+                const isSelected = node.id === selectedId;
+                const canEdit = node.type === "text";
+                return (
+                  <NodeFrame
+                    key={node.id}
+                    node={node}
+                    selected={isSelected}
+                    hovered={hoverId === node.id}
+                    editing={isEditing}
+                    scale={scale}
+                    draft={draft}
+                    onPointerEnter={() => {
+                      if (dragRef.current) return;
+                      setHoverId(node.id);
+                    }}
+                    onPointerLeave={() => {
+                      if (dragRef.current) return;
+                      setHoverId((cur) => (cur === node.id ? null : cur));
+                    }}
+                    onPointerDown={(e) => {
+                      if (isEditing) return;
+                      select(node.id);
+                      beginDrag("move", node.id, e);
+                    }}
+                    onRequestEdit={
+                      canEdit
+                        ? () => {
+                            select(node.id);
+                            setEditingId(node.id);
+                          }
+                        : undefined
+                    }
+                    onCommitText={(text) => {
+                      if (node.type === "text" && isParamRef(node.text)) {
+                        setDraftValue(node.text.$param, text);
+                      } else {
+                        updateNode(node.id, { text });
+                      }
+                    }}
+                    onExitEditing={() => {
+                      if (useEditor.getState().editingId === node.id) {
+                        setEditingId(null);
+                      }
+                    }}
+                  />
+                );
+              })}
             </div>
           </div>
 
@@ -437,6 +479,9 @@ export function Canvas() {
               artLeft={artLeft}
               artTop={artTop}
               scale={scale}
+              hideHandles={
+                editingId === selected.id && selected.type === "text"
+              }
               onResizeStart={(corner, e) => beginDrag(corner, selected.id, e)}
             />
           ) : null}
@@ -452,11 +497,13 @@ export function Canvas() {
             />
           ) : null}
 
-          {selected ? (
+          {selected && editingId !== selected.id ? (
             <div ref={toolbarWrapRef}>
               <FloatingToolbar
                 node={selected}
-                left={artLeft + selected.x * scale + (selected.width * scale) / 2}
+                left={
+                  artLeft + selected.x * scale + (selected.width * scale) / 2
+                }
                 top={artTop + selected.y * scale}
               />
             </div>
@@ -473,21 +520,31 @@ function NodeFrame({
   node,
   selected,
   hovered,
+  editing,
   scale,
   draft,
   onPointerDown,
   onPointerEnter,
   onPointerLeave,
+  onRequestEdit,
+  onCommitText,
+  onExitEditing,
 }: {
   node: EditorNode;
   selected: boolean;
   hovered: boolean;
+  editing: boolean;
   scale: number;
   draft: Record<string, unknown>;
   onPointerDown: (e: ReactPointerEvent<HTMLDivElement>) => void;
   onPointerEnter: () => void;
   onPointerLeave: () => void;
+  onRequestEdit?: (caret?: { x: number; y: number }) => void;
+  onCommitText: (text: string) => void;
+  onExitEditing: () => void;
 }) {
+  const wasSelectedBeforePressRef = useRef(false);
+  const caretPointRef = useRef<{ x: number; y: number } | null>(null);
   if (!node.visible) return null;
   const showHover = !selected && hovered;
   const style: CSSProperties = {
@@ -499,19 +556,47 @@ function NodeFrame({
     opacity: resolveValue(node.opacity, draft) ?? 1,
     transform: node.rotation ? `rotate(${node.rotation}deg)` : undefined,
     transformOrigin: "center center",
-    cursor: node.locked ? "default" : "move",
+    cursor: editing ? "text" : node.locked ? "default" : "move",
     outline: showHover ? `${1 / scale}px solid rgb(165 180 252)` : undefined,
     outlineOffset: showHover ? `-${1 / scale}px` : undefined,
+    ...(editing
+      ? {
+          boxShadow: `0 0 0 ${2 / scale}px rgb(99 102 241)`,
+          borderRadius: 2,
+        }
+      : {}),
   };
   return (
     <div
       style={style}
-      onPointerDown={onPointerDown}
+      onPointerDown={(e) => {
+        if (editing) {
+          e.stopPropagation();
+          return;
+        }
+        wasSelectedBeforePressRef.current = selected;
+        onPointerDown(e);
+      }}
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
+      onClick={(e) => {
+        if (editing) return;
+        if (!onRequestEdit) return;
+        if (!wasSelectedBeforePressRef.current) return;
+        const caret = { x: e.clientX, y: e.clientY };
+        caretPointRef.current = caret;
+        onRequestEdit(caret);
+      }}
       data-node-id={node.id}
     >
-      <NodeContent node={node} draft={draft} />
+      <NodeContent
+        node={node}
+        draft={draft}
+        editing={editing}
+        caretPoint={editing ? caretPointRef.current : null}
+        onCommitText={onCommitText}
+        onExitEditing={onExitEditing}
+      />
     </div>
   );
 }
@@ -522,6 +607,7 @@ function SelectionFrame({
   artLeft,
   artTop,
   scale,
+  hideHandles = false,
   onResizeStart,
 }: {
   frameRef?: React.Ref<HTMLDivElement>;
@@ -529,6 +615,7 @@ function SelectionFrame({
   artLeft: number;
   artTop: number;
   scale: number;
+  hideHandles?: boolean;
   onResizeStart: (
     corner: "nw" | "ne" | "sw" | "se",
     e: ReactPointerEvent<HTMLElement>,
@@ -547,31 +634,37 @@ function SelectionFrame({
     pointerEvents: "none",
     transform: node.rotation ? `rotate(${node.rotation}deg)` : undefined,
     transformOrigin: "center center",
-    outline: "2px solid rgb(99 102 241)",
+    outline: hideHandles
+      ? "1.5px solid rgb(99 102 241)"
+      : "2px solid rgb(99 102 241)",
     outlineOffset: "-1px",
   };
   return (
     <div ref={frameRef} style={frame}>
-      <Handle
-        position="nw"
-        cursor="nwse-resize"
-        onPointerDown={(e) => onResizeStart("nw", e)}
-      />
-      <Handle
-        position="ne"
-        cursor="nesw-resize"
-        onPointerDown={(e) => onResizeStart("ne", e)}
-      />
-      <Handle
-        position="sw"
-        cursor="nesw-resize"
-        onPointerDown={(e) => onResizeStart("sw", e)}
-      />
-      <Handle
-        position="se"
-        cursor="nwse-resize"
-        onPointerDown={(e) => onResizeStart("se", e)}
-      />
+      {!hideHandles && (
+        <>
+          <Handle
+            position="nw"
+            cursor="nwse-resize"
+            onPointerDown={(e) => onResizeStart("nw", e)}
+          />
+          <Handle
+            position="ne"
+            cursor="nesw-resize"
+            onPointerDown={(e) => onResizeStart("ne", e)}
+          />
+          <Handle
+            position="sw"
+            cursor="nesw-resize"
+            onPointerDown={(e) => onResizeStart("sw", e)}
+          />
+          <Handle
+            position="se"
+            cursor="nwse-resize"
+            onPointerDown={(e) => onResizeStart("se", e)}
+          />
+        </>
+      )}
     </div>
   );
 }
@@ -658,4 +751,3 @@ function SnapGuides({
     </>
   );
 }
-

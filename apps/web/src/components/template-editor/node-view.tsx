@@ -1,13 +1,16 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  type CSSProperties,
+} from "react";
 import type { EditorNode, Paint, Shadow } from "./types";
 import { isFlatPaint, paintToCss, resolveValue } from "./types";
 
-function shadowCss(
-  shadow: Shadow,
-  draft: Record<string, unknown>,
-): string {
+function shadowCss(shadow: Shadow, draft: Record<string, unknown>): string {
   const color = resolveValue(shadow.color, draft) ?? "#00000040";
   return `${shadow.offsetX}px ${shadow.offsetY}px ${shadow.blur}px ${color}`;
 }
@@ -39,9 +42,17 @@ import {
 export function NodeContent({
   node,
   draft,
+  editing = false,
+  caretPoint = null,
+  onCommitText,
+  onExitEditing,
 }: {
   node: EditorNode;
   draft: Record<string, unknown>;
+  editing?: boolean;
+  caretPoint?: { x: number; y: number } | null;
+  onCommitText?: (text: string) => void;
+  onExitEditing?: () => void;
 }) {
   switch (node.type) {
     case "image": {
@@ -100,12 +111,7 @@ export function NodeContent({
         return (
           <div style={wrapStyle}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={src}
-              alt=""
-              draggable={false}
-              style={innerImgStyle}
-            />
+            <img src={src} alt="" draggable={false} style={innerImgStyle} />
           </div>
         );
       }
@@ -120,6 +126,7 @@ export function NodeContent({
         resolveValue(node.lineHeight, draft) ?? 1.2,
       );
       const baseColorStyle = paintColorStyle(node.color, draft);
+      const text = resolveValue(node.text, draft) ?? "";
       const containerStyle: CSSProperties = {
         fontFamily: node.fontFamily,
         fontSize,
@@ -139,12 +146,23 @@ export function NodeContent({
               : "flex-start",
         whiteSpace: "pre-wrap",
         wordBreak: "break-word",
-        pointerEvents: "none",
+        overflow: "hidden",
         ...(node.shadow ? { textShadow: shadowCss(node.shadow, draft) } : {}),
       };
+      if (editing) {
+        return (
+          <EditableText
+            initialText={typeof text === "string" ? text : String(text)}
+            initialCaret={caretPoint}
+            containerStyle={containerStyle}
+            onCommit={(next) => onCommitText?.(next)}
+            onExit={() => onExitEditing?.()}
+          />
+        );
+      }
       return (
         <div className="h-full w-full" style={containerStyle}>
-          {resolveValue(node.text, draft) ?? ""}
+          {text}
         </div>
       );
     }
@@ -161,4 +179,159 @@ export function NodeContent({
     case "path":
       return <PathSvg node={node} draft={draft} />;
   }
+}
+
+function EditableText({
+  initialText,
+  initialCaret,
+  containerStyle,
+  onCommit,
+  onExit,
+}: {
+  initialText: string;
+  initialCaret?: { x: number; y: number } | null;
+  containerStyle: CSSProperties;
+  onCommit: (text: string) => void;
+  onExit: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const initialCaretRef = useRef(initialCaret ?? null);
+  const initialRef = useRef(initialText);
+  const onCommitRef = useRef(onCommit);
+  const onExitRef = useRef(onExit);
+  const committedRef = useRef(false);
+  onCommitRef.current = onCommit;
+  onExitRef.current = onExit;
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.focus({ preventScroll: true });
+    const sel = window.getSelection();
+    if (!sel) return;
+    const pt = initialCaretRef.current;
+    let range: Range | null = null;
+    if (pt) {
+      const doc = document as Document & {
+        caretRangeFromPoint?: (x: number, y: number) => Range | null;
+        caretPositionFromPoint?: (
+          x: number,
+          y: number,
+        ) => { offsetNode: Node; offset: number } | null;
+      };
+      if (doc.caretRangeFromPoint) {
+        range = doc.caretRangeFromPoint(pt.x, pt.y);
+      } else if (doc.caretPositionFromPoint) {
+        const cp = doc.caretPositionFromPoint(pt.x, pt.y);
+        if (cp) {
+          range = document.createRange();
+          range.setStart(cp.offsetNode, cp.offset);
+        }
+      }
+      // discard a point that resolved outside this editable element
+      if (range && !el.contains(range.startContainer)) range = null;
+    }
+    if (!range) {
+      // no usable click point (e.g. keyboard Enter) — place caret at the end
+      range = document.createRange();
+      range.selectNodeContents(el);
+      range.collapse(false);
+    } else {
+      range.collapse(true);
+    }
+    try {
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } catch {
+      // ignore if selection fails
+    }
+    // Clicking the canvas background unmounts this element before `blur`
+    // fires, so commit on unmount too (idempotent via committedRef).
+    return () => {
+      if (committedRef.current) return;
+      committedRef.current = true;
+      const next = el.innerText ?? "";
+      if (next !== initialRef.current) {
+        onCommitRef.current(next);
+      }
+    };
+  }, []);
+
+  const commit = useCallback(() => {
+    if (committedRef.current) return;
+    committedRef.current = true;
+    const next = ref.current?.innerText ?? "";
+    if (next !== initialRef.current) {
+      onCommitRef.current(next);
+    }
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    commit();
+    onExitRef.current();
+  }, [commit]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        ref.current?.blur();
+        return;
+      }
+      // Enter commits; Shift+Enter inserts a newline.
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        ref.current?.blur();
+        return;
+      }
+      if (e.key === "Tab") {
+        e.preventDefault();
+        ref.current?.blur();
+        return;
+      }
+    },
+    [],
+  );
+
+  return (
+    <div
+      ref={ref}
+      className="h-full w-full outline-none"
+      style={{
+        ...containerStyle,
+        cursor: "text",
+        userSelect: "text",
+        WebkitUserSelect: "text",
+        MozUserSelect: "text",
+        msUserSelect: "text",
+        caretColor: "rgb(99 102 241)",
+      }}
+      contentEditable
+      suppressContentEditableWarning
+      spellCheck={false}
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerMove={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+      onDoubleClick={(e) => e.stopPropagation()}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      onInput={(e) => {
+        const target = e.target as HTMLDivElement;
+        if (target.innerText === "" && initialRef.current !== "") {
+          target.innerText = "\n";
+          const range = document.createRange();
+          range.selectNodeContents(target);
+          range.collapse(false);
+          const sel = window.getSelection();
+          sel?.removeAllRanges();
+          sel?.addRange(range);
+        }
+      }}
+    >
+      {initialText}
+    </div>
+  );
 }

@@ -19,7 +19,9 @@ export function Editor({
   topBar?: ReactNode;
 }) {
   const selectedId = useEditor((s) => s.selectedId);
+  const editingId = useEditor((s) => s.editingId);
   const select = useEditor((s) => s.select);
+  const setEditingId = useEditor((s) => s.setEditingId);
   // Lazily fetch every font actually used by a text node in the doc. The font
   // picker handles its own preview loading (see FontFamilySelect).
   const usedFontsKey = useEditor((s) => {
@@ -85,6 +87,15 @@ export function Editor({
         return;
       }
       if (!selectedId) return;
+      if (e.key === "Enter") {
+        const state = useEditor.getState();
+        const node = state.nodes.find((n) => n.id === state.selectedId);
+        if (node?.type === "text") {
+          e.preventDefault();
+          setEditingId(node.id);
+          return;
+        }
+      }
       if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
         removeNode(selectedId);
@@ -106,21 +117,20 @@ export function Editor({
     return () => window.removeEventListener("keydown", onKey);
   }, [
     selectedId,
+    editingId,
     removeNode,
     duplicate,
     copyNode,
     paste,
     select,
+    setEditingId,
     setZoom,
     undo,
     redo,
   ]);
 
   return (
-    <EditorConfigProvider
-      enableParams={enableParams}
-      liveUrl={liveUrl ?? null}
-    >
+    <EditorConfigProvider enableParams={enableParams} liveUrl={liveUrl ?? null}>
       <div className="flex h-full w-full flex-col bg-zinc-100">
         {topBar ?? <TopBar />}
         <div

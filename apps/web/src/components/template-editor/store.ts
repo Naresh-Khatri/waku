@@ -234,6 +234,7 @@ interface EditorState {
   artboard: Artboard;
   nodes: EditorNode[];
   selectedId: string | null;
+  editingId: string | null;
   drag: DragSession | null;
   zoom: Zoom;
   nextCount: Record<NodeType, number>;
@@ -260,6 +261,7 @@ interface EditorState {
   copyNode: (id: string) => void;
   paste: () => void;
   select: (id: string | null) => void;
+  setEditingId: (id: string | null) => void;
   raise: (id: string) => void;
   lower: (id: string) => void;
   bringToFront: (id: string) => void;
@@ -386,6 +388,7 @@ export const useEditor = create<EditorState>((set, get) => ({
   artboard: { width: 1200, height: 630, background: flatPaint("#ffffff") },
   nodes: [],
   selectedId: null,
+  editingId: null,
   drag: null,
   zoom: "fit",
   nextCount: { ...ZERO_COUNT },
@@ -425,6 +428,7 @@ export const useEditor = create<EditorState>((set, get) => ({
       ...withHistory(s, `remove-${id}`),
       nodes: s.nodes.filter((n) => n.id !== id),
       selectedId: s.selectedId === id ? null : s.selectedId,
+      editingId: s.editingId === id ? null : s.editingId,
     })),
 
   updateNode: (id, patch) =>
@@ -498,7 +502,13 @@ export const useEditor = create<EditorState>((set, get) => ({
       };
     }),
 
-  select: (id) => set({ selectedId: id }),
+  select: (id) =>
+    set((s) => ({
+      selectedId: id,
+      editingId: s.editingId && s.editingId !== id ? null : s.editingId,
+    })),
+
+  setEditingId: (id) => set({ editingId: id }),
 
   raise: (id) =>
     set((s) => {
