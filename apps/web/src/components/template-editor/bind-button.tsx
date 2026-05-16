@@ -411,7 +411,7 @@ function VarRow({
           type="button"
           onClick={onDelete}
           title="Delete variable"
-          className="-ml-2 flex h-4 w-0 shrink-0 items-center justify-center overflow-hidden rounded text-zinc-300 transition-all duration-150 hover:bg-rose-50 hover:text-rose-600 group-hover:ml-0 group-hover:w-4 focus-visible:ml-0 focus-visible:w-4"
+          className="-ml-2 flex h-4 w-0 shrink-0 items-center justify-center overflow-hidden rounded text-zinc-300 transition-all duration-150 hover:bg-rose-50 hover:text-rose-600 group-hover:ml-0 group-hover:w-4 focus-visible:ml-0 focus-visible:w-4 pointer-coarse:ml-0 pointer-coarse:w-4 pointer-coarse:text-zinc-400"
         >
           <Trash2 className="h-3 w-3 shrink-0" />
         </button>

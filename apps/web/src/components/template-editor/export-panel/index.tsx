@@ -6,12 +6,19 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
+  Drawer,
+  DrawerBody,
+  DrawerContent,
+  DrawerTitle,
+} from "@/components/ui/drawer";
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/trpc/react";
 import { useRenderedImage, type Platform } from "./og-preview";
+import { useIsMobile } from "../use-is-mobile";
 import { useEditor } from "../store";
 import { isParamRef, paramsWithDefaults } from "../types";
 import type { Artboard, EditorNode, TemplateDocument } from "../types";
@@ -53,9 +60,11 @@ export function ExportPanel({
   const [tab, setTab] = useState<Tab>("preview");
   const [platform, setPlatform] = useState<Platform>("x");
   const panelRef = useRef<HTMLDivElement | null>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
-    if (!expanded) return;
+    // Mobile uses the Drawer's own overlay-tap dismissal.
+    if (!expanded || isMobile) return;
     const onMouseDown = (e: MouseEvent) => {
       const node = panelRef.current;
       if (!node) return;
@@ -65,7 +74,7 @@ export function ExportPanel({
     };
     document.addEventListener("mousedown", onMouseDown);
     return () => document.removeEventListener("mousedown", onMouseDown);
-  }, [expanded, setExpanded]);
+  }, [expanded, setExpanded, isMobile]);
 
   const utils = api.useUtils();
   const snapshots = api.template.listSnapshots.useQuery(
@@ -128,6 +137,72 @@ export function ExportPanel({
       ? restore.variables.versionId
       : null;
 
+  const body =
+    tab === "preview" ? (
+      <PreviewTab
+        entries={entries}
+        draftValues={draftValues}
+        setDraftValue={setDraftValue}
+        fullUrl={fullUrl}
+        liveUrl={liveUrl}
+        templateSlug={templateSlug}
+        imageUrl={imageUrl}
+        status={status}
+        platform={platform}
+        onPlatform={setPlatform}
+        handle={handle}
+        mobile={isMobile}
+      />
+    ) : (
+      <HistoryTab
+        snapshots={snapshots.data}
+        isLoading={snapshots.isLoading}
+        buildSnapshotUrl={buildSnapshotUrl}
+        onCreate={() => create.mutate({ templateId })}
+        creating={create.isPending}
+        createError={create.error?.message ?? null}
+        restoringId={restoringId}
+        onRestore={(id) => restore.mutate({ versionId: id })}
+        onRename={(id, label) => rename.mutate({ versionId: id, label })}
+        onDelete={(id) => del.mutate({ versionId: id })}
+      />
+    );
+
+  if (isMobile) {
+    return (
+      <>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="default" onClick={() => setExpanded(true)}>
+              <Upload />
+              <span>Export</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Export to a static image</p>
+          </TooltipContent>
+        </Tooltip>
+        <Drawer open={expanded} onOpenChange={setExpanded}>
+          <DrawerContent
+            aria-describedby={undefined}
+            className="z-[71] h-[50dvh] overflow-hidden text-xs"
+          >
+            <DrawerTitle className="sr-only">Export</DrawerTitle>
+            <Header
+              tab={tab}
+              onTab={setTab}
+              snapshotCount={snapshotCount}
+              status={tab === "preview" ? status : null}
+              onClose={() => setExpanded(false)}
+              mobile
+            />
+            <DrawerBody>{body}</DrawerBody>
+          </DrawerContent>
+        </Drawer>
+      </>
+    );
+  }
+
   return (
     <>
       <AnimatePresence>
@@ -180,36 +255,7 @@ export function ExportPanel({
               onClose={() => setExpanded(false)}
             />
 
-            {tab === "preview" ? (
-              <PreviewTab
-                entries={entries}
-                draftValues={draftValues}
-                setDraftValue={setDraftValue}
-                fullUrl={fullUrl}
-                liveUrl={liveUrl}
-                templateSlug={templateSlug}
-                imageUrl={imageUrl}
-                status={status}
-                platform={platform}
-                onPlatform={setPlatform}
-                handle={handle}
-              />
-            ) : (
-              <HistoryTab
-                snapshots={snapshots.data}
-                isLoading={snapshots.isLoading}
-                buildSnapshotUrl={buildSnapshotUrl}
-                onCreate={() => create.mutate({ templateId })}
-                creating={create.isPending}
-                createError={create.error?.message ?? null}
-                restoringId={restoringId}
-                onRestore={(id) => restore.mutate({ versionId: id })}
-                onRename={(id, label) =>
-                  rename.mutate({ versionId: id, label })
-                }
-                onDelete={(id) => del.mutate({ versionId: id })}
-              />
-            )}
+            {body}
           </motion.div>
         )}
       </AnimatePresence>

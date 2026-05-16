@@ -41,7 +41,7 @@ import { useEditor } from "./store";
 import type { NodeType } from "./types";
 import { VariablesPanel } from "./variables-panel";
 
-type TabId =
+export type TabId =
   | "design"
   | "elements"
   | "text"
@@ -57,7 +57,7 @@ interface TabDef {
   paramsOnly?: boolean;
 }
 
-const TABS: TabDef[] = [
+export const TABS: TabDef[] = [
   { id: "elements", label: "Elements", icon: LayoutGrid },
   { id: "text", label: "Text", icon: Type },
   { id: "uploads", label: "Uploads", icon: FileImage },
@@ -154,6 +154,82 @@ export function LeftRail() {
   );
 }
 
+export function useVisibleTabs() {
+  const { enableParams } = useEditorConfig();
+  return useMemo(
+    () => TABS.filter((t) => !t.paramsOnly || enableParams),
+    [enableParams],
+  );
+}
+
+/**
+ * Mobile replacement for the desktop icon rail: a bottom tab bar that opens
+ * the matching panel in a sheet, plus an always-visible undo/redo cluster.
+ */
+export function MobileBottomNav({
+  activeTab,
+  onTabPress,
+}: {
+  activeTab: TabId | null;
+  onTabPress: (tab: TabId) => void;
+}) {
+  const visibleTabs = useVisibleTabs();
+  const undo = useEditor((s) => s.undo);
+  const redo = useEditor((s) => s.redo);
+  const canUndo = useEditor((s) => s.past.length > 0);
+  const canRedo = useEditor((s) => s.future.length > 0);
+
+  return (
+    <nav className="flex h-14 shrink-0 items-stretch border-t border-zinc-200 bg-white pb-[env(safe-area-inset-bottom)]">
+      <div className="flex min-w-0 flex-1 items-stretch overflow-x-auto">
+        {visibleTabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => onTabPress(tab.id)}
+              aria-pressed={isActive}
+              className={cn(
+                "flex min-w-[64px] flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition",
+                isActive
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "text-zinc-600 active:bg-zinc-100",
+              )}
+            >
+              <Icon className="h-5 w-5" />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex shrink-0 items-center gap-0.5 border-l border-zinc-200 px-1">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={undo}
+          disabled={!canUndo}
+          aria-label="Undo"
+        >
+          <Undo2 className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={redo}
+          disabled={!canRedo}
+          aria-label="Redo"
+        >
+          <Redo2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </nav>
+  );
+}
+
 function Flyout({ tab }: { tab: TabId }) {
   const tabDef = TABS.find((t) => t.id === tab);
   return (
@@ -173,7 +249,7 @@ function Flyout({ tab }: { tab: TabId }) {
   );
 }
 
-function PanelContent({ tab }: { tab: TabId }) {
+export function PanelContent({ tab }: { tab: TabId }) {
   switch (tab) {
     case "design":
       return <DesignPanel />;

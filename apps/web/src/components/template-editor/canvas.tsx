@@ -20,6 +20,7 @@ import {
 } from "./types";
 import { NodeContent } from "./node-view";
 import { FloatingToolbar } from "./floating-toolbar";
+import { useIsMobile } from "./use-is-mobile";
 import { ZoomBar } from "./zoom-bar";
 
 type DragMode = "move" | "nw" | "ne" | "sw" | "se";
@@ -91,6 +92,11 @@ export function Canvas() {
   const [panning, setPanning] = useState(false);
   const stageRef = useRef({ artLeft: 0, artTop: 0, scale: 1 });
   const pendingScrollRef = useRef<{ left: number; top: number } | null>(null);
+  const activePointersRef = useRef<Map<number, { x: number; y: number }>>(
+    new Map(),
+  );
+  const lastPinchDistRef = useRef<number | null>(null);
+  const isMobile = useIsMobile();
 
   useLayoutEffect(() => {
     const el = wrapperRef.current;
@@ -128,6 +134,63 @@ export function Canvas() {
 
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
+      if (activePointersRef.current.has(e.pointerId)) {
+        activePointersRef.current.set(e.pointerId, {
+          x: e.clientX,
+          y: e.clientY,
+        });
+      }
+
+      // Two fingers down with no active node drag → pinch-to-zoom, anchored at
+      // the gesture midpoint (reuses the wheel-zoom scroll-anchor math).
+      if (activePointersRef.current.size === 2 && !dragRef.current) {
+        const pts = [...activePointersRef.current.values()];
+        const p1 = pts[0]!;
+        const p2 = pts[1]!;
+        const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+        const last = lastPinchDistRef.current;
+        if (last !== null && last > 0) {
+          const z = useEditor.getState().zoom;
+          const current = z === "fit" ? fitScale : z;
+          const nextScale = clamp(
+            current * (dist / last),
+            MIN_ZOOM,
+            MAX_ZOOM,
+          );
+          const el = wrapperRef.current;
+          if (nextScale !== current && el) {
+            const midX = (p1.x + p2.x) / 2;
+            const midY = (p1.y + p2.y) / 2;
+            const rect = el.getBoundingClientRect();
+            const cursorStageX = el.scrollLeft + (midX - rect.left);
+            const cursorStageY = el.scrollTop + (midY - rect.top);
+            const { artLeft: curArtLeft, artTop: curArtTop } =
+              stageRef.current;
+            const artX = (cursorStageX - curArtLeft) / current;
+            const artY = (cursorStageY - curArtTop) / current;
+            const newScaledW = artboard.width * nextScale;
+            const newScaledH = artboard.height * nextScale;
+            const newStageW = Math.max(
+              rect.width,
+              newScaledW + STAGE_PADDING * 2,
+            );
+            const newStageH = Math.max(
+              rect.height,
+              newScaledH + STAGE_PADDING * 2,
+            );
+            const newArtLeft = (newStageW - newScaledW) / 2;
+            const newArtTop = (newStageH - newScaledH) / 2;
+            pendingScrollRef.current = {
+              left: newArtLeft + artX * nextScale - (midX - rect.left),
+              top: newArtTop + artY * nextScale - (midY - rect.top),
+            };
+            setZoom(nextScale);
+          }
+        }
+        lastPinchDistRef.current = dist;
+        return;
+      }
+
       const pan = panRef.current;
       if (pan) {
         const px = e.clientX - pan.startX;
@@ -227,7 +290,11 @@ export function Canvas() {
         selectionFrameRef.current.style.height = `${nh * stage.scale}px`;
       }
     };
-    const onUp = () => {
+    const onUp = (e: PointerEvent) => {
+      activePointersRef.current.delete(e.pointerId);
+      if (activePointersRef.current.size < 2) {
+        lastPinchDistRef.current = null;
+      }
       if (panRef.current) {
         const moved = panRef.current.moved;
         panRef.current = null;
@@ -274,7 +341,15 @@ export function Canvas() {
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
     };
-  }, [scale, updateNode, select]);
+  }, [
+    scale,
+    updateNode,
+    select,
+    fitScale,
+    setZoom,
+    artboard.width,
+    artboard.height,
+  ]);
 
   // Wheel zooms, anchored at the cursor. Shift+wheel pans horizontally.
   useEffect(() => {
@@ -368,6 +443,16 @@ export function Canvas() {
     }
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
+    activePointersRef.current.set(e.pointerId, {
+      x: e.clientX,
+      y: e.clientY,
+    });
+    // A second finger starts a pinch, not a pan — leave any in-progress pan
+    // as-is and let the pinch handler take over.
+    if (activePointersRef.current.size > 1) {
+      panRef.current = null;
+      return;
+    }
     panRef.current = {
       startX: e.clientX,
       startY: e.clientY,
@@ -385,6 +470,7 @@ export function Canvas() {
       <div
         ref={wrapperRef}
         className="relative min-h-0 min-w-0 flex-1 select-none overflow-auto bg-zinc-100"
+        style={{ touchAction: "none" }}
       >
         <div
           style={{
@@ -497,7 +583,7 @@ export function Canvas() {
             />
           ) : null}
 
-          {selected && editingId !== selected.id ? (
+          {selected && editingId !== selected.id && !isMobile ? (
             <div ref={toolbarWrapRef}>
               <FloatingToolbar
                 node={selected}
@@ -557,6 +643,7 @@ function NodeFrame({
     transform: node.rotation ? `rotate(${node.rotation}deg)` : undefined,
     transformOrigin: "center center",
     cursor: editing ? "text" : node.locked ? "default" : "move",
+    touchAction: "none",
     outline: showHover ? `${1 / scale}px solid rgb(165 180 252)` : undefined,
     outlineOffset: showHover ? `-${1 / scale}px` : undefined,
     ...(editing
@@ -678,27 +765,42 @@ function Handle({
   cursor: string;
   onPointerDown: (e: ReactPointerEvent<HTMLDivElement>) => void;
 }) {
+  // 44×44 transparent hit area centered on the corner (touch target), with a
+  // 10×10 visual dot centered inside it. Invisible to mouse users — no desktop
+  // regression — while giving fingers a reliable target.
   const offsets: Record<"nw" | "ne" | "sw" | "se", CSSProperties> = {
-    nw: { left: -5, top: -5 },
-    ne: { right: -5, top: -5 },
-    sw: { left: -5, bottom: -5 },
-    se: { right: -5, bottom: -5 },
+    nw: { left: -22, top: -22 },
+    ne: { right: -22, top: -22 },
+    sw: { left: -22, bottom: -22 },
+    se: { right: -22, bottom: -22 },
   };
   return (
     <div
       onPointerDown={onPointerDown}
       style={{
         position: "absolute",
-        width: 10,
-        height: 10,
-        background: "white",
-        border: "1.5px solid rgb(99 102 241)",
-        borderRadius: 9999,
+        width: 44,
+        height: 44,
         cursor,
         pointerEvents: "auto",
+        touchAction: "none",
         ...offsets[position],
       }}
-    />
+    >
+      <div
+        style={{
+          position: "absolute",
+          left: 17,
+          top: 17,
+          width: 10,
+          height: 10,
+          background: "white",
+          border: "1.5px solid rgb(99 102 241)",
+          borderRadius: 9999,
+          pointerEvents: "none",
+        }}
+      />
+    </div>
   );
 }
 

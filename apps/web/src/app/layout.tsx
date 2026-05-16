@@ -1,6 +1,6 @@
 import "@/styles/globals.css";
 
-import { type Metadata } from "next";
+import { type Metadata, type Viewport } from "next";
 import { Geist } from "next/font/google";
 
 import { TRPCReactProvider } from "@/trpc/react";
@@ -10,6 +10,14 @@ export const metadata: Metadata = {
   title: "Waku",
   description: "AI-assisted image templates with a URL-as-API contract.",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // Lets the editor reach behind notches; safe-area insets handle the chrome.
+  // No maximumScale — locking zoom is a WCAG 1.4.4 violation.
+  viewportFit: "cover",
 };
 
 const geist = Geist({

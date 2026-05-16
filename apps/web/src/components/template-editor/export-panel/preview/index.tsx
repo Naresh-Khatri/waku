@@ -1,4 +1,5 @@
 import {
+  OgBarePreview,
   OgPreviewActions,
   OgSocialPreview,
   type Platform,
@@ -20,6 +21,7 @@ export function PreviewTab({
   platform,
   onPlatform,
   handle,
+  mobile = false,
 }: {
   entries: [string, ParamSchemaEntry][];
   draftValues: Record<string, unknown>;
@@ -32,8 +34,52 @@ export function PreviewTab({
   platform: Platform;
   onPlatform: (p: Platform) => void;
   handle: string;
+  // Stacks params over preview instead of the desktop two-pane layout.
+  mobile?: boolean;
 }) {
   const showPreview = Boolean(liveUrl && fullUrl);
+
+  if (mobile) {
+    return (
+      <div className="flex h-full min-h-0 flex-col">
+        {showPreview ? (
+          <div className="min-h-0 flex-1 border-b border-zinc-200">
+            <OgBarePreview
+              url={fullUrl}
+              imageUrl={imageUrl}
+              status={status}
+            />
+          </div>
+        ) : null}
+
+        <div className="max-h-[45%] shrink-0 overflow-y-auto overscroll-contain">
+          {entries.length === 0 ? (
+            <div className="px-4 py-4 text-[11px] text-zinc-500">
+              Click the link icon next to a field to bind a param.
+            </div>
+          ) : (
+            <div className="space-y-2 px-4 py-3">
+              {entries.map(([name, entry]) => (
+                <ParamRow
+                  key={name}
+                  name={name}
+                  entry={entry}
+                  value={draftValues[name]}
+                  onChange={(v) => setDraftValue(name, v)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {liveUrl ? (
+          <div className="shrink-0">
+            <OgPreviewActions url={fullUrl} filename={templateSlug} />
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <>

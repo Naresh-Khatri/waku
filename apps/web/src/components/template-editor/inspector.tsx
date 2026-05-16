@@ -835,7 +835,7 @@ function ImageSourceField({
                   alt=""
                   className="h-full w-full object-cover"
                 />
-                <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-zinc-900/0 text-[11px] font-medium text-white opacity-0 transition group-hover:bg-zinc-900/40 group-hover:opacity-100">
+                <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-zinc-900/0 text-[11px] font-medium text-white opacity-0 transition group-hover:bg-zinc-900/40 group-hover:opacity-100 pointer-coarse:bg-zinc-900/30 pointer-coarse:opacity-100">
                   {isUploading ? "Uploading…" : "Change"}
                 </span>
               </>

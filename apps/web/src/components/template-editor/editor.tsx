@@ -1,12 +1,25 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import {
+  Drawer,
+  DrawerBody,
+  DrawerContent,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import { Canvas } from "./canvas";
-import { ContextualBar } from "./contextual-bar";
+import { ContextualBar, MobileContextualBar } from "./contextual-bar";
 import { EditorConfigProvider } from "./editor-config";
-import { LeftRail } from "./left-rail";
+import {
+  LeftRail,
+  MobileBottomNav,
+  PanelContent,
+  TABS,
+  type TabId,
+} from "./left-rail";
 import { useEditor } from "./store";
 import { TopBar } from "./top-bar";
+import { useIsMobile } from "./use-is-mobile";
 import { useLazyFonts } from "./use-lazy-font";
 
 export function Editor({
@@ -38,6 +51,7 @@ export function Editor({
   const setZoom = useEditor((s) => s.setZoom);
   const undo = useEditor((s) => s.undo);
   const redo = useEditor((s) => s.redo);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -129,6 +143,17 @@ export function Editor({
     redo,
   ]);
 
+  if (isMobile) {
+    return (
+      <EditorConfigProvider
+        enableParams={enableParams}
+        liveUrl={liveUrl ?? null}
+      >
+        <MobileEditorLayout topBar={topBar} />
+      </EditorConfigProvider>
+    );
+  }
+
   return (
     <EditorConfigProvider enableParams={enableParams} liveUrl={liveUrl ?? null}>
       <div className="flex h-full w-full flex-col bg-zinc-100">
@@ -147,5 +172,41 @@ export function Editor({
         </div>
       </div>
     </EditorConfigProvider>
+  );
+}
+
+function MobileEditorLayout({ topBar }: { topBar?: ReactNode }) {
+  const [activeTab, setActiveTab] = useState<TabId | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const onTabPress = (tab: TabId) => {
+    if (activeTab === tab) {
+      setSheetOpen((o) => !o);
+      return;
+    }
+    setActiveTab(tab);
+    setSheetOpen(true);
+  };
+
+  const sheetTab = activeTab ?? "layers";
+  const sheetLabel = TABS.find((t) => t.id === sheetTab)?.label ?? "";
+
+  return (
+    <div className="flex h-full w-full flex-col bg-zinc-100">
+      {topBar ?? <TopBar />}
+      <div className="relative min-h-0 min-w-0 flex-1">
+        <Canvas />
+      </div>
+      <MobileContextualBar />
+      <MobileBottomNav activeTab={activeTab} onTabPress={onTabPress} />
+      <Drawer open={sheetOpen} onOpenChange={setSheetOpen}>
+        <DrawerContent aria-describedby={undefined}>
+          <DrawerTitle>{sheetLabel}</DrawerTitle>
+          <DrawerBody>
+            <PanelContent tab={sheetTab} />
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
+    </div>
   );
 }

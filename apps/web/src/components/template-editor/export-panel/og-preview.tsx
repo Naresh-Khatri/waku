@@ -294,6 +294,31 @@ export function OgSocialPreview({
   );
 }
 
+/**
+ * Just the rendered OG image, no social-card chrome. Used on mobile where the
+ * decorative platform scaffolding (fake avatar/like/share) only competes with
+ * the real controls.
+ */
+export function OgBarePreview({
+  url,
+  imageUrl,
+  status,
+}: {
+  url: string | null;
+  imageUrl: string | null;
+  status: RenderStatus;
+}) {
+  return (
+    <div className="flex h-full w-full items-center justify-center overflow-y-auto bg-zinc-50 p-3">
+      <OgImage
+        ctx={{ imageUrl, status, url, handle: "" }}
+        rounded
+        className="max-w-full"
+      />
+    </div>
+  );
+}
+
 export function StatusDot({ status }: { status: RenderStatus }) {
   return (
     <span
@@ -451,7 +476,7 @@ const OG_IMAGE_TRANSITION = {
   damping: 32,
 };
 
-function OgImage({
+export function OgImage({
   ctx,
   className,
   rounded = false,

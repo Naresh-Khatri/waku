@@ -17,6 +17,7 @@ export function Header({
   snapshotCount,
   status,
   onClose,
+  mobile = false,
 }: {
   tab: Tab;
   onTab: (tab: Tab) => void;
@@ -24,6 +25,8 @@ export function Header({
   // null hides the status pill (e.g. on the History tab where it's irrelevant).
   status: RenderStatus | null;
   onClose: () => void;
+  // On mobile the Drawer owns dismissal, so the X button is redundant.
+  mobile?: boolean;
 }) {
   return (
     <header className="flex h-9 shrink-0 items-center gap-1 border-b border-zinc-200 px-2">
@@ -61,21 +64,23 @@ export function Header({
             </TooltipContent>
           </Tooltip>
         ) : null}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-xs"
-              onClick={onClose}
-              aria-label="Hide"
-              className="border border-zinc-200 bg-zinc-100 text-zinc-600 shadow-sm hover:border-zinc-300 hover:bg-zinc-200 hover:text-zinc-900"
-            >
-              <X className="h-3.5 w-3.5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Hide</TooltipContent>
-        </Tooltip>
+        {mobile ? null : (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                onClick={onClose}
+                aria-label="Hide"
+                className="border border-zinc-200 bg-zinc-100 text-zinc-600 shadow-sm hover:border-zinc-300 hover:bg-zinc-200 hover:text-zinc-900"
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Hide</TooltipContent>
+          </Tooltip>
+        )}
       </div>
     </header>
   );

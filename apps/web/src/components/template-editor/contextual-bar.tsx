@@ -5,11 +5,21 @@ import {
   AlignLeft,
   AlignRight,
   Bold,
+  Copy,
   Italic,
   MoveRight,
   SlidersHorizontal,
+  Trash2,
 } from "lucide-react";
 import { useState } from "react";
+
+import {
+  Drawer,
+  DrawerBody,
+  DrawerContent,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -119,12 +129,22 @@ export function ContextualBar() {
   );
 }
 
-function BarContent({ node }: { node: EditorNode }) {
+export function BarContent({
+  node,
+  mode = "desktop",
+}: {
+  node: EditorNode;
+  mode?: "desktop" | "mobile";
+}) {
   return (
     <div className="flex h-full items-center gap-1">
       <TypeControls node={node} />
       <Divider />
-      <MoreButton node={node} />
+      {mode === "mobile" ? (
+        <MobileMoreButton node={node} />
+      ) : (
+        <MoreButton node={node} />
+      )}
     </div>
   );
 }
@@ -631,5 +651,77 @@ function MoreButton({ node }: { node: EditorNode }) {
         </ScrollArea>
       </PopoverContent>
     </Popover>
+  );
+}
+
+function MobileMoreButton({ node }: { node: EditorNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Drawer open={open} onOpenChange={setOpen}>
+      <DrawerTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-8 gap-1.5 text-xs text-zinc-600"
+          aria-label="More options"
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+          More
+        </Button>
+      </DrawerTrigger>
+      <DrawerContent aria-describedby={undefined}>
+        <DrawerTitle>{node.name}</DrawerTitle>
+        <DrawerBody>
+          <NodeInspector node={node} />
+        </DrawerBody>
+      </DrawerContent>
+    </Drawer>
+  );
+}
+
+/**
+ * Mobile selection bar: a horizontally-scrollable strip of the same
+ * `BarContent` controls, with a fixed Duplicate/Delete cluster on the right.
+ * Renders nothing when no node is selected.
+ */
+export function MobileContextualBar() {
+  const node = useEditor((s) =>
+    s.selectedId ? (s.nodes.find((n) => n.id === s.selectedId) ?? null) : null,
+  );
+  const duplicate = useEditor((s) => s.duplicate);
+  const removeNode = useEditor((s) => s.removeNode);
+
+  if (!node) return null;
+
+  return (
+    <div className="flex shrink-0 items-stretch border-t border-zinc-200 bg-white">
+      <div className="min-w-0 flex-1 overflow-x-auto overscroll-x-contain">
+        <div className="flex h-11 min-w-max items-center gap-1 px-3">
+          <BarContent node={node} mode="mobile" />
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-0.5 border-l border-zinc-200 px-1.5">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => duplicate(node.id)}
+          aria-label="Duplicate"
+        >
+          <Copy className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => removeNode(node.id)}
+          aria-label="Delete"
+          className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
   );
 }
