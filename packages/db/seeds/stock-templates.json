@@ -49,6 +49,11 @@
       "slug": "newsletter",
       "name": "Newsletter",
       "sortOrder": 100
+    },
+    {
+      "slug": "brand",
+      "name": "Brand",
+      "sortOrder": 110
     }
   ],
   "templates": [
@@ -1047,7 +1052,7 @@
             "maxLen": 60
           },
           "cover": {
-            "kind": "url",
+            "kind": "string",
             "default": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1600&q=80"
           }
         }
@@ -2822,7 +2827,7 @@
             "maxLen": 32
           },
           "image": {
-            "kind": "url",
+            "kind": "string",
             "default": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1600&q=80"
           }
         }
@@ -6683,7 +6688,7 @@
             "maxLen": 80
           },
           "avatar": {
-            "kind": "url",
+            "kind": "string",
             "default": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=400&q=80"
           }
         }
@@ -7130,7 +7135,7 @@
             "maxLen": 30
           },
           "avatar": {
-            "kind": "url",
+            "kind": "string",
             "default": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=200&q=80"
           }
         }
@@ -7469,7 +7474,7 @@
         ],
         "paramsSchema": {
           "photo": {
-            "kind": "url",
+            "kind": "string",
             "default": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1600&q=80"
           }
         }
@@ -9972,7 +9977,7 @@
             "maxLen": 60
           },
           "guestImage": {
-            "kind": "url",
+            "kind": "string",
             "default": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1600&q=80"
           },
           "topic": {
@@ -10371,11 +10376,11 @@
             "maxLen": 40
           },
           "host1Image": {
-            "kind": "url",
+            "kind": "string",
             "default": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1600&q=80"
           },
           "host2Image": {
-            "kind": "url",
+            "kind": "string",
             "default": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1600&q=80"
           }
         }
@@ -16662,6 +16667,672 @@
           "issue": {
             "kind": "string",
             "default": "ISSUE #112",
+            "maxLen": 20
+          }
+        }
+      }
+    },
+    {
+      "slug": "tech-artist",
+      "name": "Tech Artist",
+      "category": "brand",
+      "description": "Split portrait and light panel with a mono bio — a sharp personal portfolio card.",
+      "tags": [
+        "portfolio",
+        "split",
+        "editorial",
+        "brand"
+      ],
+      "document": {
+        "artboard": {
+          "width": 1200,
+          "height": 630,
+          "background": {
+            "kind": "flat",
+            "color": "#ffffff"
+          }
+        },
+        "nodes": [
+          {
+            "id": "photo",
+            "type": "image",
+            "name": "Portrait",
+            "x": 0,
+            "y": 0,
+            "width": 470,
+            "height": 630,
+            "src": {
+              "$param": "photo",
+              "default": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=900&q=80"
+            },
+            "fit": "cover",
+            "cornerRadius": 0,
+            "stroke": {
+              "kind": "flat",
+              "color": "#000000"
+            },
+            "strokeWidth": 0
+          },
+          {
+            "id": "panel",
+            "type": "rectangle",
+            "name": "Panel",
+            "x": 470,
+            "y": 0,
+            "width": 730,
+            "height": 630,
+            "fill": {
+              "kind": "flat",
+              "color": "#f4f4f3"
+            },
+            "stroke": {
+              "kind": "flat",
+              "color": "#000000"
+            },
+            "strokeWidth": 0,
+            "cornerRadius": 0
+          },
+          {
+            "id": "headline",
+            "type": "text",
+            "name": "Headline",
+            "x": 540,
+            "y": 175,
+            "width": 580,
+            "height": 170,
+            "text": {
+              "$param": "headline",
+              "default": "TECH ARTIST & 3D WEB DEV"
+            },
+            "fontSize": 56,
+            "fontWeight": 600,
+            "color": {
+              "kind": "flat",
+              "color": "#18181b"
+            },
+            "align": "left",
+            "fontFamily": "Inter",
+            "letterSpacing": -1,
+            "lineHeight": 1.12
+          },
+          {
+            "id": "bio",
+            "type": "text",
+            "name": "Bio",
+            "x": 540,
+            "y": 380,
+            "width": 540,
+            "height": 170,
+            "text": {
+              "$param": "bio",
+              "default": "INDEPENDENT CRAFTER, PERFECT FOR COMPANIES LOOKING TO CATALYZE SOME MAGIC. IF YOUR VISION INVOLVES 3D — I CAN HELP YOU BRING IT TO LIFE, USUALLY FROM SCRATCH."
+            },
+            "fontSize": 15,
+            "fontWeight": 400,
+            "color": {
+              "kind": "flat",
+              "color": "#8a8a8a"
+            },
+            "align": "left",
+            "fontFamily": "JetBrains Mono",
+            "letterSpacing": 1,
+            "lineHeight": 1.7
+          }
+        ],
+        "paramsSchema": {
+          "photo": {
+            "kind": "string",
+            "default": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=900&q=80"
+          },
+          "headline": {
+            "kind": "string",
+            "default": "TECH ARTIST & 3D WEB DEV",
+            "maxLen": 60
+          },
+          "bio": {
+            "kind": "string",
+            "default": "INDEPENDENT CRAFTER, PERFECT FOR COMPANIES LOOKING TO CATALYZE SOME MAGIC. IF YOUR VISION INVOLVES 3D — I CAN HELP YOU BRING IT TO LIFE, USUALLY FROM SCRATCH.",
+            "maxLen": 240
+          }
+        }
+      }
+    },
+    {
+      "slug": "photo-brand-cover",
+      "name": "Photo Brand Cover",
+      "category": "brand",
+      "description": "Full-bleed photo with a centered logo mark and bold wordmark — a striking brand cover.",
+      "tags": [
+        "brand",
+        "photo",
+        "bold",
+        "cover"
+      ],
+      "document": {
+        "artboard": {
+          "width": 1200,
+          "height": 630,
+          "background": {
+            "kind": "flat",
+            "color": "#111111"
+          }
+        },
+        "nodes": [
+          {
+            "id": "photo",
+            "type": "image",
+            "name": "Cover photo",
+            "x": 0,
+            "y": 0,
+            "width": 1200,
+            "height": 630,
+            "src": {
+              "$param": "photo",
+              "default": "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1400&q=80"
+            },
+            "fit": "cover",
+            "cornerRadius": 0,
+            "stroke": {
+              "kind": "flat",
+              "color": "#000000"
+            },
+            "strokeWidth": 0
+          },
+          {
+            "id": "scrim",
+            "type": "rectangle",
+            "name": "Scrim",
+            "x": 0,
+            "y": 0,
+            "width": 1200,
+            "height": 630,
+            "opacity": 0.18,
+            "fill": {
+              "kind": "flat",
+              "color": "#000000"
+            },
+            "stroke": {
+              "kind": "flat",
+              "color": "#000000"
+            },
+            "strokeWidth": 0,
+            "cornerRadius": 0
+          },
+          {
+            "id": "mark",
+            "type": "path",
+            "name": "Leaf mark",
+            "x": 455,
+            "y": 255,
+            "width": 96,
+            "height": 96,
+            "fill": {
+              "kind": "flat",
+              "color": "#ffffff"
+            },
+            "stroke": {
+              "kind": "flat",
+              "color": "#000000"
+            },
+            "strokeWidth": 0,
+            "d": "M50 4 C 80 28 80 72 50 96 C 20 72 20 28 50 4 Z",
+            "viewBox": [
+              100,
+              100
+            ]
+          },
+          {
+            "id": "brand",
+            "type": "text",
+            "name": "Wordmark",
+            "x": 560,
+            "y": 248,
+            "width": 420,
+            "height": 120,
+            "text": {
+              "$param": "brand",
+              "default": "Feels"
+            },
+            "fontSize": 104,
+            "fontWeight": 700,
+            "color": {
+              "kind": "flat",
+              "color": "#ffffff"
+            },
+            "align": "left",
+            "fontFamily": "Inter",
+            "letterSpacing": -4,
+            "lineHeight": 1
+          }
+        ],
+        "paramsSchema": {
+          "photo": {
+            "kind": "string",
+            "default": "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1400&q=80"
+          },
+          "brand": {
+            "kind": "string",
+            "default": "Feels",
+            "maxLen": 24
+          }
+        }
+      }
+    },
+    {
+      "slug": "saas-showcase",
+      "name": "SaaS Showcase",
+      "category": "brand",
+      "description": "Vivid lime brand header with desktop and mobile dashboard screenshots — built for product launches.",
+      "tags": [
+        "saas",
+        "product",
+        "vivid",
+        "brand"
+      ],
+      "document": {
+        "artboard": {
+          "width": 1200,
+          "height": 630,
+          "background": {
+            "kind": "flat",
+            "color": "#d7f23a"
+          }
+        },
+        "nodes": [
+          {
+            "id": "mark",
+            "type": "path",
+            "name": "Logo mark",
+            "x": 438,
+            "y": 64,
+            "width": 56,
+            "height": 56,
+            "fill": {
+              "kind": "flat",
+              "color": "#111111"
+            },
+            "stroke": {
+              "kind": "flat",
+              "color": "#000000"
+            },
+            "strokeWidth": 0,
+            "d": "M30 10 H60 C82 10 82 54 60 54 H46 V92 H30 Z",
+            "viewBox": [
+              100,
+              100
+            ]
+          },
+          {
+            "id": "brand",
+            "type": "text",
+            "name": "Brand",
+            "x": 506,
+            "y": 60,
+            "width": 280,
+            "height": 70,
+            "text": {
+              "$param": "brand",
+              "default": "Peblo"
+            },
+            "fontSize": 56,
+            "fontWeight": 700,
+            "color": {
+              "kind": "flat",
+              "color": "#111111"
+            },
+            "align": "left",
+            "fontFamily": "Inter",
+            "letterSpacing": -2,
+            "lineHeight": 1
+          },
+          {
+            "id": "desktop",
+            "type": "image",
+            "name": "Desktop dashboard",
+            "x": 120,
+            "y": 185,
+            "width": 740,
+            "height": 415,
+            "src": {
+              "$param": "desktopImage",
+              "default": "https://image.thum.io/get/width/1400/crop/900/https://flowbite-admin-dashboard.vercel.app/"
+            },
+            "fit": "cover",
+            "cornerRadius": 16,
+            "stroke": {
+              "kind": "flat",
+              "color": "#000000"
+            },
+            "strokeWidth": 0,
+            "shadow": {
+              "offsetX": 0,
+              "offsetY": 24,
+              "blur": 48,
+              "color": "rgba(0,0,0,0.18)"
+            }
+          },
+          {
+            "id": "mobile",
+            "type": "image",
+            "name": "Mobile dashboard",
+            "x": 840,
+            "y": 215,
+            "width": 230,
+            "height": 380,
+            "src": {
+              "$param": "mobileImage",
+              "default": "https://image.thum.io/get/viewportWidth/400/width/420/crop/860/https://flowbite-admin-dashboard.vercel.app/"
+            },
+            "fit": "cover",
+            "cornerRadius": 28,
+            "stroke": {
+              "kind": "flat",
+              "color": "#000000"
+            },
+            "strokeWidth": 0,
+            "shadow": {
+              "offsetX": 0,
+              "offsetY": 20,
+              "blur": 40,
+              "color": "rgba(0,0,0,0.22)"
+            }
+          }
+        ],
+        "paramsSchema": {
+          "brand": {
+            "kind": "string",
+            "default": "Peblo",
+            "maxLen": 24
+          },
+          "desktopImage": {
+            "kind": "string",
+            "default": "https://image.thum.io/get/width/1400/crop/900/https://flowbite-admin-dashboard.vercel.app/"
+          },
+          "mobileImage": {
+            "kind": "string",
+            "default": "https://image.thum.io/get/viewportWidth/400/width/420/crop/860/https://flowbite-admin-dashboard.vercel.app/"
+          }
+        }
+      }
+    },
+    {
+      "slug": "capital-fintech",
+      "name": "Capital Fintech",
+      "category": "brand",
+      "description": "Bold logo lockup on black above a minimal banking-app phone mockup — a fintech brand cover.",
+      "tags": [
+        "brand",
+        "fintech",
+        "dark",
+        "mobile"
+      ],
+      "document": {
+        "artboard": {
+          "width": 1200,
+          "height": 630,
+          "background": {
+            "kind": "flat",
+            "color": "#000000"
+          }
+        },
+        "nodes": [
+          {
+            "id": "logo-sq",
+            "type": "rectangle",
+            "name": "Logo square",
+            "x": 336,
+            "y": 60,
+            "width": 120,
+            "height": 120,
+            "fill": {
+              "kind": "flat",
+              "color": "#ece9e2"
+            },
+            "stroke": {
+              "kind": "flat",
+              "color": "#000000"
+            },
+            "strokeWidth": 0,
+            "cornerRadius": 14
+          },
+          {
+            "id": "logo-dot",
+            "type": "ellipse",
+            "name": "Logo dot",
+            "x": 365,
+            "y": 89,
+            "width": 62,
+            "height": 62,
+            "fill": {
+              "kind": "flat",
+              "color": "#000000"
+            },
+            "stroke": {
+              "kind": "flat",
+              "color": "#000000"
+            },
+            "strokeWidth": 0
+          },
+          {
+            "id": "brand",
+            "type": "text",
+            "name": "Wordmark",
+            "x": 484,
+            "y": 82,
+            "width": 420,
+            "height": 84,
+            "text": {
+              "$param": "brand",
+              "default": "CAPITAL"
+            },
+            "fontSize": 76,
+            "fontWeight": 800,
+            "color": {
+              "kind": "flat",
+              "color": "#ece9e2"
+            },
+            "align": "left",
+            "fontFamily": "Inter",
+            "letterSpacing": 2,
+            "lineHeight": 1
+          },
+          {
+            "id": "phone-body",
+            "type": "rectangle",
+            "name": "Phone body",
+            "x": 360,
+            "y": 290,
+            "width": 480,
+            "height": 480,
+            "fill": {
+              "kind": "flat",
+              "color": "#2a2433"
+            },
+            "stroke": {
+              "kind": "flat",
+              "color": "#000000"
+            },
+            "strokeWidth": 0,
+            "cornerRadius": 60,
+            "shadow": {
+              "offsetX": 0,
+              "offsetY": 30,
+              "blur": 70,
+              "color": "rgba(0,0,0,0.55)"
+            }
+          },
+          {
+            "id": "phone-screen",
+            "type": "rectangle",
+            "name": "Phone screen",
+            "x": 378,
+            "y": 308,
+            "width": 444,
+            "height": 462,
+            "fill": {
+              "kind": "flat",
+              "color": "#efece3"
+            },
+            "stroke": {
+              "kind": "flat",
+              "color": "#000000"
+            },
+            "strokeWidth": 0,
+            "cornerRadius": 46
+          },
+          {
+            "id": "notch",
+            "type": "rectangle",
+            "name": "Notch",
+            "x": 560,
+            "y": 326,
+            "width": 80,
+            "height": 22,
+            "fill": {
+              "kind": "flat",
+              "color": "#15131a"
+            },
+            "stroke": {
+              "kind": "flat",
+              "color": "#000000"
+            },
+            "strokeWidth": 0,
+            "cornerRadius": 11
+          },
+          {
+            "id": "time",
+            "type": "text",
+            "name": "Time",
+            "x": 410,
+            "y": 330,
+            "width": 120,
+            "height": 26,
+            "text": "9:41",
+            "fontSize": 19,
+            "fontWeight": 600,
+            "color": {
+              "kind": "flat",
+              "color": "#14110f"
+            },
+            "align": "left",
+            "fontFamily": "Inter",
+            "letterSpacing": 0,
+            "lineHeight": 1
+          },
+          {
+            "id": "account",
+            "type": "text",
+            "name": "Account",
+            "x": 410,
+            "y": 382,
+            "width": 300,
+            "height": 52,
+            "text": {
+              "$param": "label",
+              "default": "Account"
+            },
+            "fontSize": 40,
+            "fontWeight": 700,
+            "color": {
+              "kind": "flat",
+              "color": "#14110f"
+            },
+            "align": "left",
+            "fontFamily": "Inter",
+            "letterSpacing": -1,
+            "lineHeight": 1
+          },
+          {
+            "id": "app-icon",
+            "type": "rectangle",
+            "name": "App icon",
+            "x": 742,
+            "y": 384,
+            "width": 52,
+            "height": 52,
+            "fill": {
+              "kind": "linear",
+              "angle": 135,
+              "stops": [
+                {
+                  "color": "#ff8a00",
+                  "position": 0
+                },
+                {
+                  "color": "#e52e71",
+                  "position": 0.5
+                },
+                {
+                  "color": "#7c5cff",
+                  "position": 1
+                }
+              ]
+            },
+            "stroke": {
+              "kind": "flat",
+              "color": "#000000"
+            },
+            "strokeWidth": 0,
+            "cornerRadius": 14
+          },
+          {
+            "id": "available",
+            "type": "text",
+            "name": "Available label",
+            "x": 410,
+            "y": 472,
+            "width": 320,
+            "height": 24,
+            "text": "AVAILABLE NOW",
+            "fontSize": 16,
+            "fontWeight": 600,
+            "color": {
+              "kind": "flat",
+              "color": "#9a958c"
+            },
+            "align": "left",
+            "fontFamily": "Inter",
+            "letterSpacing": 3,
+            "lineHeight": 1
+          },
+          {
+            "id": "balance",
+            "type": "text",
+            "name": "Balance",
+            "x": 404,
+            "y": 500,
+            "width": 420,
+            "height": 70,
+            "text": {
+              "$param": "balance",
+              "default": "$805,428.51"
+            },
+            "fontSize": 56,
+            "fontWeight": 700,
+            "color": {
+              "kind": "flat",
+              "color": "#14110f"
+            },
+            "align": "left",
+            "fontFamily": "Inter",
+            "letterSpacing": -1,
+            "lineHeight": 1
+          }
+        ],
+        "paramsSchema": {
+          "brand": {
+            "kind": "string",
+            "default": "CAPITAL",
+            "maxLen": 24
+          },
+          "label": {
+            "kind": "string",
+            "default": "Account",
+            "maxLen": 24
+          },
+          "balance": {
+            "kind": "string",
+            "default": "$805,428.51",
             "maxLen": 20
           }
         }
