@@ -102,7 +102,11 @@ export function useVariablesTour() {
       prevBtnText: "← Back",
       doneBtnText: "Got it",
       steps: VARIABLES_TOUR_STEPS,
-      onHighlighted: (_el, _step, opts) => {
+      // Fires synchronously on step entry, before the enter transition. The
+      // final step's "Got it" destroys the tour immediately, which would race
+      // (and lose to) the post-transition `onHighlighted` — so record
+      // completion here instead, where the Done click can't outrun it.
+      onHighlightStarted: (_el, _step, opts) => {
         if (opts.state.activeIndex === VARIABLES_TOUR_STEPS.length - 1) {
           reachedEnd = true;
         }
