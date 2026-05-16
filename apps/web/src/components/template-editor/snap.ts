@@ -104,3 +104,78 @@ export function snapMove(
   }
   return { x, y, guides };
 }
+
+interface ResizeResult {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  guides: Guide[];
+}
+
+/**
+ * Snap the moving edges of a resize against sibling/artboard edges. Only the
+ * edges named in `edges` move; the opposite edge stays pinned, so width/height
+ * absorb the snap delta.
+ */
+export function snapResize(
+  bounds: Bounds,
+  edges: { left?: boolean; right?: boolean; top?: boolean; bottom?: boolean },
+  others: EditorNode[],
+  artboard: Artboard,
+): ResizeResult {
+  const xCandidates = collectAxis(others, artboard, "x").filter(
+    (c) => !c.fromCenter,
+  );
+  const yCandidates = collectAxis(others, artboard, "y").filter(
+    (c) => !c.fromCenter,
+  );
+
+  let { x, y, width, height } = bounds;
+  const guides: Guide[] = [];
+
+  const snapEdge = (value: number, cands: AxisCandidate[]) => {
+    let best: { pos: number; delta: number } | null = null;
+    for (const cand of cands) {
+      const d = cand.position - value;
+      if (Math.abs(d) <= SNAP_THRESHOLD) {
+        if (!best || Math.abs(d) < Math.abs(best.delta)) {
+          best = { pos: cand.position, delta: d };
+        }
+      }
+    }
+    return best;
+  };
+
+  if (edges.left) {
+    const hit = snapEdge(x, xCandidates);
+    if (hit) {
+      width = x + width - hit.pos;
+      x = hit.pos;
+      guides.push({ axis: "x", position: hit.pos });
+    }
+  } else if (edges.right) {
+    const hit = snapEdge(x + width, xCandidates);
+    if (hit) {
+      width = hit.pos - x;
+      guides.push({ axis: "x", position: hit.pos });
+    }
+  }
+
+  if (edges.top) {
+    const hit = snapEdge(y, yCandidates);
+    if (hit) {
+      height = y + height - hit.pos;
+      y = hit.pos;
+      guides.push({ axis: "y", position: hit.pos });
+    }
+  } else if (edges.bottom) {
+    const hit = snapEdge(y + height, yCandidates);
+    if (hit) {
+      height = hit.pos - y;
+      guides.push({ axis: "y", position: hit.pos });
+    }
+  }
+
+  return { x, y, width, height, guides };
+}

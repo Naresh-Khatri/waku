@@ -10,7 +10,7 @@ import {
 } from "react";
 import { useEditor } from "./store";
 import type { Guide, Zoom } from "./store";
-import { snapMove } from "./snap";
+import { snapMove, snapResize } from "./snap";
 import type { EditorNode } from "./types";
 import {
   isParamRef,
@@ -23,7 +23,22 @@ import { FloatingToolbar } from "./floating-toolbar";
 import { useIsMobile } from "./use-is-mobile";
 import { ZoomBar } from "./zoom-bar";
 
-type DragMode = "move" | "nw" | "ne" | "sw" | "se";
+type ResizeMode = "nw" | "ne" | "sw" | "se" | "n" | "s" | "e" | "w";
+type DragMode = "move" | ResizeMode;
+
+const RESIZE_EDGES: Record<
+  ResizeMode,
+  { left?: boolean; right?: boolean; top?: boolean; bottom?: boolean }
+> = {
+  nw: { left: true, top: true },
+  ne: { right: true, top: true },
+  sw: { left: true, bottom: true },
+  se: { right: true, bottom: true },
+  n: { top: true },
+  s: { bottom: true },
+  e: { right: true },
+  w: { left: true },
+};
 
 interface DragState {
   mode: DragMode;
@@ -77,6 +92,7 @@ export function Canvas() {
 
   const wrapperRef = useRef<HTMLDivElement>(null);
   const selectionFrameRef = useRef<HTMLDivElement>(null);
+  const sizePillRef = useRef<HTMLDivElement>(null);
   const toolbarWrapRef = useRef<HTMLDivElement>(null);
   const [wrapperSize, setWrapperSize] = useState({ w: 0, h: 0 });
   const [hoverId, setHoverId] = useState<string | null>(null);
@@ -242,32 +258,49 @@ export function Canvas() {
         return;
       }
 
+      const edges = RESIZE_EDGES[drag.mode as ResizeMode];
       let nx = drag.origX;
       let ny = drag.origY;
       let nw = drag.origW;
       let nh = drag.origH;
-      if (drag.mode === "nw" || drag.mode === "sw") {
+      if (edges.left) {
         nx = drag.origX + dx;
         nw = drag.origW - dx;
       }
-      if (drag.mode === "ne" || drag.mode === "se") {
+      if (edges.right) {
         nw = drag.origW + dx;
       }
-      if (drag.mode === "nw" || drag.mode === "ne") {
+      if (edges.top) {
         ny = drag.origY + dy;
         nh = drag.origH - dy;
       }
-      if (drag.mode === "sw" || drag.mode === "se") {
+      if (edges.bottom) {
         nh = drag.origH + dy;
       }
+
+      const others = state.nodes.filter((n) => n.id !== drag.id);
+      const snapped = snapResize(
+        { x: nx, y: ny, width: nw, height: nh },
+        edges,
+        others,
+        state.artboard,
+      );
+      nx = snapped.x;
+      ny = snapped.y;
+      nw = snapped.width;
+      nh = snapped.height;
+      setGuides((prev) =>
+        sameGuides(prev, snapped.guides) ? prev : snapped.guides,
+      );
+
       if (nw < MIN_SIZE) {
-        if (drag.mode === "nw" || drag.mode === "sw") {
+        if (edges.left) {
           nx = drag.origX + drag.origW - MIN_SIZE;
         }
         nw = MIN_SIZE;
       }
       if (nh < MIN_SIZE) {
-        if (drag.mode === "nw" || drag.mode === "ne") {
+        if (edges.top) {
           ny = drag.origY + drag.origH - MIN_SIZE;
         }
         nh = MIN_SIZE;
@@ -288,6 +321,10 @@ export function Canvas() {
         selectionFrameRef.current.style.top = `${stage.artTop + ny * stage.scale}px`;
         selectionFrameRef.current.style.width = `${nw * stage.scale}px`;
         selectionFrameRef.current.style.height = `${nh * stage.scale}px`;
+      }
+      if (sizePillRef.current) {
+        sizePillRef.current.textContent = `${Math.round(nw)} × ${Math.round(nh)}`;
+        sizePillRef.current.style.display = "block";
       }
     };
     const onUp = (e: PointerEvent) => {
@@ -328,6 +365,7 @@ export function Canvas() {
             });
           }
         }
+        if (sizePillRef.current) sizePillRef.current.style.display = "none";
         if (toolbarWrapRef.current) toolbarWrapRef.current.style.display = "";
         setGuides([]);
         useEditor.getState().clearOpKey();
@@ -561,6 +599,7 @@ export function Canvas() {
           {selected ? (
             <SelectionFrame
               frameRef={selectionFrameRef}
+              sizePillRef={sizePillRef}
               node={selected}
               artLeft={artLeft}
               artTop={artTop}
@@ -568,7 +607,7 @@ export function Canvas() {
               hideHandles={
                 editingId === selected.id && selected.type === "text"
               }
-              onResizeStart={(corner, e) => beginDrag(corner, selected.id, e)}
+              onResizeStart={(mode, e) => beginDrag(mode, selected.id, e)}
             />
           ) : null}
 
@@ -690,6 +729,7 @@ function NodeFrame({
 
 function SelectionFrame({
   frameRef,
+  sizePillRef,
   node,
   artLeft,
   artTop,
@@ -698,13 +738,14 @@ function SelectionFrame({
   onResizeStart,
 }: {
   frameRef?: React.Ref<HTMLDivElement>;
+  sizePillRef?: React.Ref<HTMLDivElement>;
   node: EditorNode;
   artLeft: number;
   artTop: number;
   scale: number;
   hideHandles?: boolean;
   onResizeStart: (
-    corner: "nw" | "ne" | "sw" | "se",
+    mode: ResizeMode,
     e: ReactPointerEvent<HTMLElement>,
   ) => void;
 }) {
@@ -730,6 +771,26 @@ function SelectionFrame({
     <div ref={frameRef} style={frame}>
       {!hideHandles && (
         <>
+          <EdgeHandle
+            edge="n"
+            cursor="ns-resize"
+            onPointerDown={(e) => onResizeStart("n", e)}
+          />
+          <EdgeHandle
+            edge="s"
+            cursor="ns-resize"
+            onPointerDown={(e) => onResizeStart("s", e)}
+          />
+          <EdgeHandle
+            edge="w"
+            cursor="ew-resize"
+            onPointerDown={(e) => onResizeStart("w", e)}
+          />
+          <EdgeHandle
+            edge="e"
+            cursor="ew-resize"
+            onPointerDown={(e) => onResizeStart("e", e)}
+          />
           <Handle
             position="nw"
             cursor="nwse-resize"
@@ -752,6 +813,26 @@ function SelectionFrame({
           />
         </>
       )}
+      <div
+        ref={sizePillRef}
+        style={{
+          display: "none",
+          position: "absolute",
+          left: "50%",
+          bottom: -28,
+          transform: "translateX(-50%)",
+          padding: "2px 8px",
+          background: "rgb(99 102 241)",
+          color: "white",
+          fontSize: 11,
+          fontWeight: 600,
+          lineHeight: "16px",
+          borderRadius: 9999,
+          whiteSpace: "nowrap",
+          pointerEvents: "none",
+          fontVariantNumeric: "tabular-nums",
+        }}
+      />
     </div>
   );
 }
@@ -784,6 +865,7 @@ function Handle({
         cursor,
         pointerEvents: "auto",
         touchAction: "none",
+        zIndex: 1,
         ...offsets[position],
       }}
     >
@@ -798,6 +880,60 @@ function Handle({
           border: "1.5px solid rgb(99 102 241)",
           borderRadius: 9999,
           pointerEvents: "none",
+        }}
+      />
+    </div>
+  );
+}
+
+function EdgeHandle({
+  edge,
+  cursor,
+  onPointerDown,
+}: {
+  edge: "n" | "s" | "e" | "w";
+  cursor: string;
+  onPointerDown: (e: ReactPointerEvent<HTMLDivElement>) => void;
+}) {
+  // A hit strip running along the side, inset 22px at each end so it never
+  // overlaps a corner's 44×44 hit area. A thin bar is drawn on the edge as a
+  // visual affordance.
+  const horizontal = edge === "n" || edge === "s";
+  const strip: CSSProperties = horizontal
+    ? {
+        left: 22,
+        right: 22,
+        height: 16,
+        ...(edge === "n" ? { top: -8 } : { bottom: -8 }),
+      }
+    : {
+        top: 22,
+        bottom: 22,
+        width: 16,
+        ...(edge === "w" ? { left: -8 } : { right: -8 }),
+      };
+  const bar: CSSProperties = horizontal
+    ? { left: "50%", top: 7, width: 18, height: 4, marginLeft: -9 }
+    : { top: "50%", left: 7, width: 4, height: 18, marginTop: -9 };
+  return (
+    <div
+      onPointerDown={onPointerDown}
+      style={{
+        position: "absolute",
+        cursor,
+        pointerEvents: "auto",
+        touchAction: "none",
+        ...strip,
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          background: "white",
+          border: "1.5px solid rgb(99 102 241)",
+          borderRadius: 9999,
+          pointerEvents: "none",
+          ...bar,
         }}
       />
     </div>
