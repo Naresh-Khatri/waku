@@ -120,6 +120,7 @@ export function ContextualBar() {
   return (
     <div className="flex justify-center pt-3">
       <div
+        data-tour="contextual-bar"
         className="pointer-events-auto inline-flex max-w-[calc(100%-24px)] items-center gap-1 rounded-xl border border-zinc-200 bg-white px-2 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.18)]"
         style={{ height: BAR_HEIGHT }}
       >

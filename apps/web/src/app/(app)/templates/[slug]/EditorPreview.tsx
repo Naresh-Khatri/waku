@@ -9,6 +9,7 @@ import { DownloadButton } from "@/components/template-editor/download-button";
 import { Editor } from "@/components/template-editor/editor";
 import { ExportPanel } from "@/components/template-editor/export-panel";
 import { useEditor } from "@/components/template-editor/store";
+import { UndoRedo } from "@/components/template-editor/undo-redo";
 import type { TemplateDocument } from "@/components/template-editor/types";
 import { paramsFromSearch } from "@/components/template-editor/url-params";
 import { Button } from "@/components/ui/button";
@@ -162,6 +163,7 @@ function EditorTopBar({
         </span>
         <span className="font-mono text-[10px] text-zinc-400">v{version}</span>
       </div>
+      <UndoRedo />
 
       {status ? (
         <span

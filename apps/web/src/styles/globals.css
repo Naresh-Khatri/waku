@@ -177,3 +177,102 @@
     @apply font-sans;
   }
 }
+
+/* Onboarding tour (driver.js) — minimal, brand-aligned popover. */
+.driver-popover.wk-variables-tour {
+  --wk-accent: #6366f1;
+  border-radius: 16px;
+  padding: 20px;
+  max-width: 320px;
+  background: #fff;
+  border: 1px solid rgb(228 228 231);
+  box-shadow:
+    0 1px 2px rgb(24 24 27 / 0.04),
+    0 12px 32px -12px rgb(24 24 27 / 0.22);
+}
+
+.driver-popover.wk-variables-tour .driver-popover-arrow {
+  border-color: #fff;
+}
+
+.driver-popover.wk-variables-tour .driver-popover-title {
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  color: rgb(24 24 27);
+  padding-right: 18px;
+}
+
+.driver-popover.wk-variables-tour .driver-popover-description {
+  margin-top: 8px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: rgb(113 113 122);
+}
+
+.driver-popover.wk-variables-tour .driver-popover-description b {
+  font-weight: 600;
+  color: rgb(63 63 70);
+}
+
+.driver-popover.wk-variables-tour .driver-popover-close-btn {
+  width: 22px;
+  height: 22px;
+  top: 14px;
+  right: 14px;
+  color: rgb(161 161 170);
+  font-size: 18px;
+  line-height: 1;
+  transition: color 0.12s ease;
+}
+.driver-popover.wk-variables-tour .driver-popover-close-btn:hover {
+  color: rgb(82 82 91);
+}
+
+.driver-popover.wk-variables-tour .driver-popover-footer {
+  margin-top: 18px;
+  gap: 8px;
+}
+
+.driver-popover.wk-variables-tour .driver-popover-progress-text {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgb(161 161 170);
+}
+
+.driver-popover.wk-variables-tour .driver-popover-footer button {
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 550;
+  text-shadow: none;
+  border: 1px solid transparent;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.driver-popover.wk-variables-tour .driver-popover-prev-btn {
+  background: transparent;
+  color: rgb(113 113 122);
+}
+.driver-popover.wk-variables-tour .driver-popover-prev-btn:hover {
+  background: rgb(244 244 245);
+  color: rgb(63 63 70);
+}
+
+.driver-popover.wk-variables-tour .driver-popover-next-btn {
+  background: var(--wk-accent);
+  color: #fff;
+}
+.driver-popover.wk-variables-tour .driver-popover-next-btn:hover {
+  background: #4f46e5;
+}
+
+.driver-popover.wk-variables-tour .driver-popover-prev-btn.driver-popover-btn-disabled {
+  opacity: 0.4;
+}

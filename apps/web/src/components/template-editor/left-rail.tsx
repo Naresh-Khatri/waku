@@ -25,11 +25,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { api } from "@/trpc/react";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +32,8 @@ import { AssetUploadError, useAssetUploader } from "./asset-upload";
 import { useEditorConfig } from "./editor-config";
 import { DocumentInspector } from "./inspector";
 import { LayersList } from "./layers-panel";
+import { VariablesTourButton } from "./onboarding/tour-button";
+import { useTourStore } from "./onboarding/tour-store";
 import { useEditor } from "./store";
 import type { NodeType } from "./types";
 import { VariablesPanel } from "./variables-panel";
@@ -78,16 +75,19 @@ export function LeftRail() {
   // Hover floats a panel as an absolute overlay — no canvas shift.
   const [pinned, setPinned] = useState<TabId | null>("layers");
   const [hovered, setHovered] = useState<TabId | null>(null);
-  const activeTab = pinned ?? hovered;
-  const pinnedOpen = pinned != null;
-  const floatOpen = pinned == null && hovered != null;
+  // The onboarding tour can pin a panel open regardless of user input.
+  const forcedPanel = useTourStore((s) => s.forcedPanel);
+  const activeTab = forcedPanel ?? pinned ?? hovered;
+  const pinnedOpen = forcedPanel != null || pinned != null;
+  const floatOpen = forcedPanel == null && pinned == null && hovered != null;
 
   // Keep the last rendered tab for each panel so content doesn't snap
   // away while it animates closed.
   const [lastPinnedTab, setLastPinnedTab] = useState<TabId>("layers");
   useEffect(() => {
-    if (pinned) setLastPinnedTab(pinned);
-  }, [pinned]);
+    const next = forcedPanel ?? pinned;
+    if (next) setLastPinnedTab(next);
+  }, [pinned, forcedPanel]);
   const [lastFloatTab, setLastFloatTab] = useState<TabId>("layers");
   useEffect(() => {
     if (floatOpen && hovered) setLastFloatTab(hovered);
@@ -114,11 +114,6 @@ export function LeftRail() {
   };
   useEffect(() => cancelClose, []);
 
-  const undo = useEditor((s) => s.undo);
-  const redo = useEditor((s) => s.redo);
-  const canUndo = useEditor((s) => s.past.length > 0);
-  const canRedo = useEditor((s) => s.future.length > 0);
-
   return (
     <div className="relative flex h-full min-h-0">
       <nav
@@ -132,6 +127,7 @@ export function LeftRail() {
             <button
               key={tab.id}
               type="button"
+              data-tour={`rail-${tab.id}`}
               onClick={() =>
                 setPinned((p) => (p === tab.id ? null : tab.id))
               }
@@ -149,39 +145,12 @@ export function LeftRail() {
             </button>
           );
         })}
-        <div className="mt-auto flex flex-col items-center gap-0.5 pb-1">
-          <Separator className="!my-1 w-8" />
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                onClick={undo}
-                disabled={!canUndo}
-                aria-label="Undo"
-              >
-                <Undo2 className="h-3.5 w-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">Undo (⌘Z)</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                onClick={redo}
-                disabled={!canRedo}
-                aria-label="Redo"
-              >
-                <Redo2 className="h-3.5 w-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">Redo (⌘⇧Z)</TooltipContent>
-          </Tooltip>
-        </div>
+        {enableParams ? (
+          <div className="mt-auto flex flex-col items-center gap-0.5 pb-1">
+            <Separator className="!my-1 w-8" />
+            <VariablesTourButton />
+          </div>
+        ) : null}
       </nav>
       {/* Pinned: docks in-flow and pushes the canvas. */}
       <div

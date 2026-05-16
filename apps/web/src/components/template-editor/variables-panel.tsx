@@ -55,11 +55,12 @@ function VariablesPanelInner() {
   );
 
   return (
-    <div className="flex flex-col gap-2 p-3">
+    <div className="flex flex-col gap-2 p-3" data-tour="variables-panel">
       <Button
         type="button"
         variant="outline"
         size="sm"
+        data-tour="new-variable"
         onClick={() => setCreating((v) => !v)}
         className="w-full justify-start gap-1.5 text-xs"
       >
@@ -84,11 +85,12 @@ function VariablesPanelInner() {
         </div>
       ) : (
         <ul className="flex flex-col gap-1.5">
-          {entries.map(([name, entry]) => (
+          {entries.map(([name, entry], i) => (
             <VariableRow
               key={name}
               name={name}
               entry={entry}
+              tourAnchor={i === 0}
               usage={usage[name] ?? 0}
               onSetDefault={(v) => setParamDefault(name, v)}
               onDelete={() => removeParam(name)}
@@ -104,12 +106,14 @@ function VariableRow({
   name,
   entry,
   usage,
+  tourAnchor,
   onSetDefault,
   onDelete,
 }: {
   name: string;
   entry: ParamSchemaEntry;
   usage: number;
+  tourAnchor?: boolean;
   onSetDefault: (v: unknown) => void;
   onDelete: () => void;
 }) {
@@ -118,6 +122,7 @@ function VariableRow({
 
   return (
     <li
+      data-tour={tourAnchor ? "variable-row" : undefined}
       className={cn(
         "overflow-hidden rounded-md border bg-white",
         expanded ? "border-indigo-200" : "border-zinc-200",

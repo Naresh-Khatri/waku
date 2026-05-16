@@ -87,6 +87,7 @@ function BindableInner(props: ValueBindable | PaintBindable) {
                 type="button"
                 variant="ghost"
                 size="icon-xs"
+                data-tour="bind-button"
                 aria-label={
                   bound && boundName
                     ? `Bound to {${boundName}}`
@@ -113,6 +114,7 @@ function BindableInner(props: ValueBindable | PaintBindable) {
           align="end"
           sideOffset={6}
           className="w-[260px] p-0"
+          data-tour="bind-popover"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <PickerBody
@@ -141,6 +143,7 @@ function BoundPill({ name, onClick }: { name: string; onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
+      data-tour="bound-pill"
       title={`Bound to {${name}} — click to edit`}
       className="flex h-7 w-full min-w-0 items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50 px-2 text-left font-mono text-[11px] text-indigo-700 hover:border-indigo-300 hover:bg-indigo-100"
     >
