@@ -27,6 +27,13 @@ export function VariablesTourButton() {
 
   const markSeen = () => window.localStorage.setItem(SEEN_KEY, "1");
 
+  // Until they've finished once, the tour is locked (no overlay-close);
+  // after that, replays close freely.
+  const run = () => {
+    const seen = !!window.localStorage.getItem(SEEN_KEY);
+    start({ enforce: !seen, onComplete: markSeen });
+  };
+
   useEffect(() => {
     if (isMobile || autoFired.current) return;
     if (typeof window === "undefined") return;
@@ -34,8 +41,9 @@ export function VariablesTourButton() {
     autoFired.current = true;
     // Only mark seen once they actually finish — bail early and it
     // greets them again next visit.
-    const t = window.setTimeout(() => start(markSeen), 400);
+    const t = window.setTimeout(run, 400);
     return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMobile, start]);
 
   if (isMobile) return null;
@@ -45,7 +53,7 @@ export function VariablesTourButton() {
       <TooltipTrigger asChild>
         <button
           type="button"
-          onClick={() => start(markSeen)}
+          onClick={run}
           className="flex h-14 w-14 flex-col items-center justify-center gap-0.5 rounded-md text-[10px] font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900"
         >
           <GraduationCap className="h-4 w-4" />

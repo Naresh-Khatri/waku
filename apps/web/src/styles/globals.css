@@ -181,9 +181,9 @@
 /* Onboarding tour (driver.js) — minimal, brand-aligned popover. */
 .driver-popover.wk-variables-tour {
   --wk-accent: #6366f1;
-  border-radius: 16px;
-  padding: 20px;
-  max-width: 320px;
+  border-radius: 18px;
+  padding: 26px;
+  max-width: 384px;
   background: #fff;
   border: 1px solid rgb(228 228 231);
   box-shadow:
@@ -192,7 +192,31 @@
 }
 
 .driver-popover.wk-variables-tour .driver-popover-arrow {
-  border-color: #fff;
+  display: none;
+}
+
+.driver-popover.wk-variables-tour.wk-nudge {
+  animation: wk-tour-nudge 0.32s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+@keyframes wk-tour-nudge {
+  10%,
+  90% {
+    transform: translateX(-2px);
+  }
+  20%,
+  80% {
+    transform: translateX(4px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-7px);
+  }
+  40%,
+  60% {
+    transform: translateX(7px);
+  }
 }
 
 .driver-popover.wk-variables-tour .driver-popover-title {

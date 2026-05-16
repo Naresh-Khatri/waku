@@ -31,16 +31,23 @@ interface Snapshot {
 export function useVariablesTour() {
   const driverRef = useRef<Driver | null>(null);
   const snapRef = useRef<Snapshot | null>(null);
+  const nudgeRef = useRef<((e: MouseEvent) => void) | null>(null);
 
   const cleanup = useCallback(() => {
     useTourStore.getState().setForcedPanel(null);
+    if (nudgeRef.current) {
+      document.removeEventListener("click", nudgeRef.current, true);
+      nudgeRef.current = null;
+    }
     const snap = snapRef.current;
     snapRef.current = null;
     if (snap) useEditor.setState({ ...snap });
   }, []);
 
-  const start = useCallback((onComplete?: () => void) => {
+  const start = useCallback(
+    (opts?: { onComplete?: () => void; enforce?: boolean }) => {
     if (driverRef.current) return;
+    const { onComplete, enforce = false } = opts ?? {};
     let reachedEnd = false;
 
     const ed = useEditor.getState();
@@ -83,7 +90,9 @@ export function useVariablesTour() {
 
     const d = driver({
       showProgress: true,
-      allowClose: true,
+      // First time through, no bail-out: overlay clicks just shake the card
+      // (wired below). Once they've finished once, replays close freely.
+      allowClose: !enforce,
       overlayOpacity: 0.6,
       stagePadding: 6,
       stageRadius: 8,
@@ -105,6 +114,24 @@ export function useVariablesTour() {
       },
     });
     driverRef.current = d;
+
+    // While enforced, overlay clicks can't dismiss — shake the card instead
+    // so it's clear they should use the buttons to move on.
+    if (enforce) {
+      const nudge = (e: MouseEvent) => {
+        const target = e.target as HTMLElement | null;
+        if (!target?.closest(".driver-overlay")) return;
+        const pop = document.querySelector<HTMLElement>(
+          ".driver-popover.wk-variables-tour",
+        );
+        if (!pop) return;
+        pop.classList.remove("wk-nudge");
+        void pop.offsetWidth; // restart the animation
+        pop.classList.add("wk-nudge");
+      };
+      nudgeRef.current = nudge;
+      document.addEventListener("click", nudge, true);
+    }
 
     // Let React flush the seeded state + the forced panel before driver.js
     // measures anchors.
