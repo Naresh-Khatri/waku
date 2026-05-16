@@ -1,4 +1,5 @@
-import type { NodeType, Paint, ParamKind } from "./types";
+import type { EditorNode, NodeType, Paint, ParamKind } from "./types";
+import { isFlatPaint, isParamRef } from "./types";
 
 export interface BindingField {
   /** Field name on the node — passed to `bindToParam`/`unbind`. */
@@ -49,6 +50,30 @@ export const NODE_BINDINGS: Record<NodeType, BindingField[]> = {
     { field: "stroke", label: "Color", kind: "color", paint: true },
   ],
 };
+
+/**
+ * Names of the params a node's bindable fields are currently bound to, in
+ * field display order. A field counts as bound when its value is a
+ * `ParamRef`, or — for paint fields — when it's a flat paint whose color is
+ * a `ParamRef`. Used to surface a binding indicator on the canvas.
+ */
+export function nodeBoundParams(node: EditorNode): string[] {
+  const fields = NODE_BINDINGS[node.type] ?? [];
+  const names: string[] = [];
+  for (const f of fields) {
+    const raw = (node as unknown as Record<string, unknown>)[f.field];
+    if (raw == null) continue;
+    const inner = f.paint
+      ? isFlatPaint(raw as Paint)
+        ? (raw as { color: unknown }).color
+        : null
+      : raw;
+    if (inner != null && isParamRef(inner)) {
+      names.push((inner as { $param: string }).$param);
+    }
+  }
+  return names;
+}
 
 const FLAT_BLACK: Paint = { kind: "flat", color: "#000000" };
 

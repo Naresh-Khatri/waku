@@ -8,6 +8,7 @@ import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { Link2 } from "lucide-react";
 import { useEditor } from "./store";
 import type { Guide, Zoom } from "./store";
 import { snapMove, snapResize } from "./snap";
@@ -19,6 +20,7 @@ import {
   resolveValue,
 } from "./types";
 import { NodeContent } from "./node-view";
+import { nodeBoundParams } from "./node-bindings";
 import { FloatingToolbar } from "./floating-toolbar";
 import { useIsMobile } from "./use-is-mobile";
 import { ZoomBar } from "./zoom-bar";
@@ -672,6 +674,8 @@ function NodeFrame({
   const caretPointRef = useRef<{ x: number; y: number } | null>(null);
   if (!node.visible) return null;
   const showHover = !selected && hovered;
+  const boundNames = nodeBoundParams(node);
+  const showBinding = boundNames.length > 0 && !editing;
   const style: CSSProperties = {
     position: "absolute",
     left: node.x,
@@ -689,6 +693,11 @@ function NodeFrame({
       ? {
           boxShadow: `0 0 0 ${2 / scale}px rgb(99 102 241)`,
           borderRadius: 2,
+        }
+      : {}),
+    ...(showBinding
+      ? {
+          boxShadow: `inset 0 0 0 ${1.5 / scale}px rgba(99, 102, 241, 0.55)`,
         }
       : {}),
   };
@@ -715,6 +724,34 @@ function NodeFrame({
       }}
       data-node-id={node.id}
     >
+      {showBinding ? (
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            transform: `translateY(-100%) scale(${1 / scale})`,
+            transformOrigin: "bottom left",
+            display: "flex",
+            alignItems: "center",
+            gap: 3,
+            marginBottom: 2,
+            padding: "1px 5px",
+            background: "rgb(99 102 241)",
+            color: "white",
+            fontSize: 10,
+            lineHeight: "14px",
+            fontWeight: 600,
+            borderRadius: 3,
+            whiteSpace: "nowrap",
+            pointerEvents: "none",
+            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+          }}
+        >
+          <Link2 size={10} strokeWidth={2.5} style={{ flexShrink: 0 }} />
+          {boundNames.join(" · ")}
+        </div>
+      ) : null}
       <NodeContent
         node={node}
         draft={draft}
