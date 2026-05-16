@@ -31,6 +31,8 @@ import {
   type SimpleIcon,
 } from "simple-icons";
 
+import { InlineUrl } from "./history/colored-url";
+
 export type Platform =
   | "x"
   | "linkedin"
@@ -420,12 +422,16 @@ export function OgPreviewActions({
           >
             <LinkIcon className="h-3.5 w-3.5" />
           </span>
-          <span
-            className={`min-w-0 flex-1 truncate text-left font-mono ${
-              copied ? "text-emerald-800" : "text-emerald-900"
-            }`}
-          >
-            {copied ? "Copied to clipboard" : (url ?? "no url")}
+          <span className="min-w-0 flex-1 text-left font-mono">
+            {copied ? (
+              <span className="block truncate text-emerald-800">
+                Copied to clipboard
+              </span>
+            ) : url ? (
+              <InlineUrl url={url} />
+            ) : (
+              <span className="block truncate text-emerald-900">no url</span>
+            )}
           </span>
           <span
             className={`flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold text-white transition-colors ${

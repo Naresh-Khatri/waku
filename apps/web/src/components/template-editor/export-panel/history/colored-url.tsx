@@ -38,6 +38,55 @@ export function ColoredUrl({ url }: { url: string }) {
   );
 }
 
+// Single-line variant for tight spots (the copy bar). The base host/path is
+// boilerplate, so it gets `truncate` and yields space first; the params are
+// what actually vary, so they stay pinned adjacent to the base and fully
+// visible, with just the param name bolded. Net: you always see the params,
+// the long base elides — no color noise.
+export function InlineUrl({ url }: { url: string }) {
+  const qIdx = url.indexOf("?");
+  if (qIdx === -1) {
+    return (
+      <span className="block min-w-0 truncate text-emerald-900">{url}</span>
+    );
+  }
+  const base = url.slice(0, qIdx);
+  const pairs = url.slice(qIdx + 1).split("&");
+  return (
+    <span className="flex min-w-0 items-baseline text-emerald-900">
+      {/* flex-initial: shrinks/truncates on overflow but never grows, so the
+          params stay adjacent instead of being pushed to the far edge. */}
+      <span className="min-w-0 flex-initial truncate text-emerald-700/70">
+        {base}
+      </span>
+      <span className="shrink-0">
+        {pairs.map((pair, i) => {
+          const sep = i === 0 ? "?" : "&";
+          const eqIdx = pair.indexOf("=");
+          if (eqIdx === -1) {
+            return (
+              <span key={`${pair}-${i}`} className="text-emerald-700/70">
+                {sep}
+                {pair}
+              </span>
+            );
+          }
+          const k = pair.slice(0, eqIdx);
+          const v = pair.slice(eqIdx + 1);
+          return (
+            <span key={`${k}-${i}`}>
+              <span className="text-emerald-700/60">{sep}</span>
+              <span className="font-semibold">{k}</span>
+              <span className="text-emerald-700/60">=</span>
+              <span>{v}</span>
+            </span>
+          );
+        })}
+      </span>
+    </span>
+  );
+}
+
 // Tailwind needs full class strings present in source for JIT. Same key always
 // lands on the same color so a param reads consistently across snapshot rows.
 const BIND_PALETTE = [
