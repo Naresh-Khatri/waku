@@ -20,7 +20,7 @@ import {
   Wand2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -74,11 +74,45 @@ export function LeftRail() {
     () => TABS.filter((t) => !t.paramsOnly || enableParams),
     [enableParams],
   );
-  const [active, setActive] = useState<TabId | null>("layers");
-  const [lastTab, setLastTab] = useState<TabId>("layers");
+  // Click pins a panel: it docks in-flow and pushes the canvas.
+  // Hover floats a panel as an absolute overlay — no canvas shift.
+  const [pinned, setPinned] = useState<TabId | null>("layers");
+  const [hovered, setHovered] = useState<TabId | null>(null);
+  const activeTab = pinned ?? hovered;
+  const pinnedOpen = pinned != null;
+  const floatOpen = pinned == null && hovered != null;
+
+  // Keep the last rendered tab for each panel so content doesn't snap
+  // away while it animates closed.
+  const [lastPinnedTab, setLastPinnedTab] = useState<TabId>("layers");
   useEffect(() => {
-    if (active) setLastTab(active);
-  }, [active]);
+    if (pinned) setLastPinnedTab(pinned);
+  }, [pinned]);
+  const [lastFloatTab, setLastFloatTab] = useState<TabId>("layers");
+  useEffect(() => {
+    if (floatOpen && hovered) setLastFloatTab(hovered);
+  }, [floatOpen, hovered]);
+
+  // Small grace period so moving the pointer from an icon to the floating
+  // panel (and back) doesn't flicker it shut.
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelClose = () => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  };
+  const openHover = (id: TabId) => {
+    // Hover is disabled while a panel is pinned open.
+    if (pinned != null) return;
+    cancelClose();
+    setHovered(id);
+  };
+  const scheduleClose = () => {
+    cancelClose();
+    closeTimer.current = setTimeout(() => setHovered(null), 120);
+  };
+  useEffect(() => cancelClose, []);
 
   const undo = useEditor((s) => s.undo);
   const redo = useEditor((s) => s.redo);
@@ -86,17 +120,23 @@ export function LeftRail() {
   const canRedo = useEditor((s) => s.future.length > 0);
 
   return (
-    <div className="flex h-full min-h-0">
-      <nav className="flex w-[68px] shrink-0 flex-col items-center gap-1 border-r border-zinc-200 bg-white py-2">
+    <div className="relative flex h-full min-h-0">
+      <nav
+        className="flex w-[68px] shrink-0 flex-col items-center gap-1 border-r border-zinc-200 bg-white py-2"
+        onMouseLeave={scheduleClose}
+      >
         {visibleTabs.map((tab) => {
-          const isActive = active === tab.id;
+          const isActive = activeTab === tab.id;
           const Icon = tab.icon;
           return (
             <button
               key={tab.id}
               type="button"
-              onClick={() => setActive(isActive ? null : tab.id)}
-              aria-pressed={isActive}
+              onClick={() =>
+                setPinned((p) => (p === tab.id ? null : tab.id))
+              }
+              onMouseEnter={() => openHover(tab.id)}
+              aria-pressed={pinned === tab.id}
               className={cn(
                 "flex h-14 w-14 flex-col items-center justify-center gap-0.5 rounded-md text-[10px] font-medium transition",
                 isActive
@@ -143,12 +183,28 @@ export function LeftRail() {
           </Tooltip>
         </div>
       </nav>
+      {/* Pinned: docks in-flow and pushes the canvas. */}
       <div
-        aria-hidden={!active}
+        aria-hidden={!pinnedOpen}
         className="overflow-hidden transition-[width] duration-200 ease-out"
-        style={{ width: active ? FLYOUT_WIDTH : 0 }}
+        style={{ width: pinnedOpen ? FLYOUT_WIDTH : 0 }}
       >
-        <Flyout tab={lastTab} />
+        <Flyout tab={lastPinnedTab} floating={false} />
+      </div>
+      {/* Hover: floats as an overlay, never shifting the canvas. */}
+      <div
+        aria-hidden={!floatOpen}
+        onMouseEnter={cancelClose}
+        onMouseLeave={scheduleClose}
+        className={cn(
+          "absolute left-full top-0 z-30 h-full p-2 transition-[opacity,transform] duration-150 ease-out",
+          floatOpen
+            ? "pointer-events-auto translate-x-0 opacity-100"
+            : "pointer-events-none -translate-x-3 opacity-0",
+        )}
+        style={{ width: FLYOUT_WIDTH + 16 }}
+      >
+        <Flyout tab={lastFloatTab} floating />
       </div>
     </div>
   );
@@ -230,11 +286,16 @@ export function MobileBottomNav({
   );
 }
 
-function Flyout({ tab }: { tab: TabId }) {
+function Flyout({ tab, floating }: { tab: TabId; floating: boolean }) {
   const tabDef = TABS.find((t) => t.id === tab);
   return (
     <aside
-      className="flex h-full flex-col border-r border-zinc-200 bg-white"
+      className={cn(
+        "flex h-full flex-col bg-white",
+        floating
+          ? "overflow-hidden rounded-xl border border-zinc-200 shadow-2xl ring-1 ring-black/5"
+          : "border-r border-zinc-200 shadow-md",
+      )}
       style={{ width: FLYOUT_WIDTH }}
     >
       <div className="flex h-10 shrink-0 items-center border-b border-zinc-200 px-4">
