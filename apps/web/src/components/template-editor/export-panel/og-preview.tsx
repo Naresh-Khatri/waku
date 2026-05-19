@@ -422,15 +422,17 @@ export function OgPreviewActions({
           >
             <LinkIcon className="h-3.5 w-3.5" />
           </span>
-          <span className="min-w-0 flex-1 text-left font-mono">
+          <span className="flex min-w-0 flex-1 items-center text-left font-mono">
             {copied ? (
-              <span className="block truncate text-emerald-800">
+              <span className="block w-full truncate text-emerald-800">
                 Copied to clipboard
               </span>
             ) : url ? (
               <InlineUrl url={url} />
             ) : (
-              <span className="block truncate text-emerald-900">no url</span>
+              <span className="block w-full truncate text-emerald-900">
+                no url
+              </span>
             )}
           </span>
           <span
