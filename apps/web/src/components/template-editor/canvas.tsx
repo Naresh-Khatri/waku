@@ -675,7 +675,7 @@ function NodeFrame({
   if (!node.visible) return null;
   const showHover = !selected && hovered;
   const boundNames = nodeBoundParams(node);
-  const showBinding = boundNames.length > 0 && !editing;
+  const showBinding = boundNames.length > 0 && !editing && !selected;
   const style: CSSProperties = {
     position: "absolute",
     left: node.x,
@@ -932,26 +932,50 @@ function EdgeHandle({
   cursor: string;
   onPointerDown: (e: ReactPointerEvent<HTMLDivElement>) => void;
 }) {
-  // A hit strip running along the side, inset 22px at each end so it never
-  // overlaps a corner's 44×44 hit area. A thin bar is drawn on the edge as a
-  // visual affordance.
+  // A generous hit box centered on the middle of the side (not a full-length
+  // strip), straddling the edge so it's grabbable from just inside or outside.
+  // A thin centered bar is drawn on the edge as a visual affordance.
   const horizontal = edge === "n" || edge === "s";
+  const HIT_LONG = 88; // along the edge
+  const HIT_THICK = 44; // across the edge
   const strip: CSSProperties = horizontal
     ? {
-        left: 22,
-        right: 22,
-        height: 16,
-        ...(edge === "n" ? { top: -8 } : { bottom: -8 }),
+        left: "50%",
+        marginLeft: -HIT_LONG / 2,
+        width: HIT_LONG,
+        height: HIT_THICK,
+        ...(edge === "n"
+          ? { top: -HIT_THICK / 2 }
+          : { bottom: -HIT_THICK / 2 }),
       }
     : {
-        top: 22,
-        bottom: 22,
-        width: 16,
-        ...(edge === "w" ? { left: -8 } : { right: -8 }),
+        top: "50%",
+        marginTop: -HIT_LONG / 2,
+        height: HIT_LONG,
+        width: HIT_THICK,
+        ...(edge === "w"
+          ? { left: -HIT_THICK / 2 }
+          : { right: -HIT_THICK / 2 }),
       };
+  const BAR_LONG = 24; // visible bar length, along the edge
+  const BAR_THICK = 7; // visible bar thickness, across the edge
   const bar: CSSProperties = horizontal
-    ? { left: "50%", top: 7, width: 18, height: 4, marginLeft: -9 }
-    : { top: "50%", left: 7, width: 4, height: 18, marginTop: -9 };
+    ? {
+        left: "50%",
+        top: "50%",
+        width: BAR_LONG,
+        height: BAR_THICK,
+        marginLeft: -BAR_LONG / 2,
+        marginTop: -BAR_THICK / 2,
+      }
+    : {
+        top: "50%",
+        left: "50%",
+        width: BAR_THICK,
+        height: BAR_LONG,
+        marginTop: -BAR_LONG / 2,
+        marginLeft: -BAR_THICK / 2,
+      };
   return (
     <div
       onPointerDown={onPointerDown}
