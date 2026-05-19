@@ -11,17 +11,7 @@ export const VARIABLES_TOUR_STEPS: DriveStep[] = [
     popover: {
       title: "one design, infinite versions 🎨",
       description:
-        "variables let you make it once and remix forever. same layout, new headline, new colors. 60 secs, you got this.",
-    },
-  },
-  {
-    element: '[data-tour="rail-variables"]',
-    popover: {
-      side: "right",
-      align: "start",
-      title: "the variables tab",
-      description:
-        "every reusable value lives here. basically your template's brand kit, but private.",
+        "variables let you make it once and remix forever. same layout, new headline, new colors. 30 secs.",
     },
   },
   {
@@ -29,19 +19,9 @@ export const VARIABLES_TOUR_STEPS: DriveStep[] = [
     popover: {
       side: "right",
       align: "center",
-      title: "what even is a variable",
+      title: "the variables tab",
       description:
-        "a <b>name</b>, a <b>type</b> (text or color), and a <b>default</b> that shows until someone says otherwise. that's it. not deep.",
-    },
-  },
-  {
-    element: '[data-tour="new-variable"]',
-    popover: {
-      side: "right",
-      align: "start",
-      title: "spawn one here",
-      description:
-        "name it, pick a type, give it a default. takes like 3 seconds fr.",
+        "every reusable value lives here: a <b>name</b>, a <b>type</b> (text or color), and a <b>default</b>. spin up new ones with the + button.",
     },
   },
   {
@@ -55,30 +35,13 @@ export const VARIABLES_TOUR_STEPS: DriveStep[] = [
     },
   },
   {
-    popover: {
-      title: "plot twist: it does nothing yet 😅",
-      description:
-        "a variable on its own just sits there. the real magic is <b>binding</b> it to something on the canvas.",
-    },
-  },
-  {
-    element: '[data-tour="contextual-bar"]',
-    popover: {
-      side: "bottom",
-      align: "center",
-      title: "click a thing, get this bar",
-      description:
-        "select any element and this lil floating toolbar pops up. you already know this one.",
-    },
-  },
-  {
     element: '[data-tour="bind-button"]',
     popover: {
       side: "bottom",
       align: "start",
-      title: "the chain icon is the move",
+      title: "now bind it 🔗",
       description:
-        "sits next to text & color. tap it to link this field to a variable, or make a fresh one right there.",
+        "a variable alone does nothing. select an element, hit the chain icon next to text/color to link it, or make a fresh one right there.",
     },
   },
   {
@@ -86,16 +49,9 @@ export const VARIABLES_TOUR_STEPS: DriveStep[] = [
     popover: {
       side: "bottom",
       align: "start",
-      title: "bound. it's giving reusable 🔗",
-      description:
-        "the input turns into a pill. this field now follows the variable everywhere. edit the variable and this moves with it.",
-    },
-  },
-  {
-    popover: {
       title: "that's literally it 🚀",
       description:
-        "define in <b>variables</b>, <b>bind</b> on canvas, override per use. wanna see it again? hit the tour button anytime.",
+        "the field turns into a pill and follows the variable everywhere. replay this tour anytime from the tour button.",
     },
   },
 ];
