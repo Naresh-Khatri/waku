@@ -811,21 +811,25 @@ function SelectionFrame({
           <EdgeHandle
             edge="n"
             cursor="ns-resize"
+            sideLength={width}
             onPointerDown={(e) => onResizeStart("n", e)}
           />
           <EdgeHandle
             edge="s"
             cursor="ns-resize"
+            sideLength={width}
             onPointerDown={(e) => onResizeStart("s", e)}
           />
           <EdgeHandle
             edge="w"
             cursor="ew-resize"
+            sideLength={height}
             onPointerDown={(e) => onResizeStart("w", e)}
           />
           <EdgeHandle
             edge="e"
             cursor="ew-resize"
+            sideLength={height}
             onPointerDown={(e) => onResizeStart("e", e)}
           />
           <Handle
@@ -926,32 +930,33 @@ function Handle({
 function EdgeHandle({
   edge,
   cursor,
+  sideLength,
   onPointerDown,
 }: {
   edge: "n" | "s" | "e" | "w";
   cursor: string;
+  sideLength: number;
   onPointerDown: (e: ReactPointerEvent<HTMLDivElement>) => void;
 }) {
-  // A generous hit box centered on the middle of the side (not a full-length
-  // strip), straddling the edge so it's grabbable from just inside or outside.
-  // A thin centered bar is drawn on the edge as a visual affordance.
+  // Full-length hit strip straddling the edge, inset at each end by the
+  // corner's half-size so edge and corner zones tile instead of overlapping.
+  // Same thickness as the corner box (44) so all eight handles feel balanced,
+  // like Figma/Sketch. A thin centered bar is drawn as the visual affordance.
   const horizontal = edge === "n" || edge === "s";
-  const HIT_LONG = 88; // along the edge
-  const HIT_THICK = 44; // across the edge
+  const HIT_THICK = 44; // across the edge — matches the 44×44 corner box
+  const END_INSET = 22; // = corner box half-size, so they meet without overlap
   const strip: CSSProperties = horizontal
     ? {
-        left: "50%",
-        marginLeft: -HIT_LONG / 2,
-        width: HIT_LONG,
+        left: END_INSET,
+        right: END_INSET,
         height: HIT_THICK,
         ...(edge === "n"
           ? { top: -HIT_THICK / 2 }
           : { bottom: -HIT_THICK / 2 }),
       }
     : {
-        top: "50%",
-        marginTop: -HIT_LONG / 2,
-        height: HIT_LONG,
+        top: END_INSET,
+        bottom: END_INSET,
         width: HIT_THICK,
         ...(edge === "w"
           ? { left: -HIT_THICK / 2 }
@@ -959,6 +964,10 @@ function EdgeHandle({
       };
   const BAR_LONG = 24; // visible bar length, along the edge
   const BAR_THICK = 7; // visible bar thickness, across the edge
+  // Drop the pill on short sides — otherwise it nearly spans the node and
+  // collides with the corner dots (looks doubled-up). The full hit strip
+  // stays; corners just take over the affordance, like Figma/Sketch.
+  const showBar = sideLength >= END_INSET + BAR_LONG / 2;
   const bar: CSSProperties = horizontal
     ? {
         left: "50%",
@@ -987,16 +996,18 @@ function EdgeHandle({
         ...strip,
       }}
     >
-      <div
-        style={{
-          position: "absolute",
-          background: "white",
-          border: "1.5px solid rgb(99 102 241)",
-          borderRadius: 9999,
-          pointerEvents: "none",
-          ...bar,
-        }}
-      />
+      {showBar && (
+        <div
+          style={{
+            position: "absolute",
+            background: "white",
+            border: "1.5px solid rgb(99 102 241)",
+            borderRadius: 9999,
+            pointerEvents: "none",
+            ...bar,
+          }}
+        />
+      )}
     </div>
   );
 }
