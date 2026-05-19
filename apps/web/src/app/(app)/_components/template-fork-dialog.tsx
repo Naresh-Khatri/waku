@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2Icon } from "lucide-react";
 
-import { AuthButton } from "@/components/auth-button";
+import { AuthProviders } from "@/components/auth-button";
 import { TemplatePreview } from "@/app/(app)/_components/template-preview";
 import type { TemplateDocument } from "@/components/template-editor/types";
 import {
@@ -88,26 +89,36 @@ export function TemplateForkDialog({
           )}
         </div>
 
-        <div className="flex items-center justify-end">
-          {loggedIn ? (
+        {loggedIn ? (
+          <div className="flex items-center justify-end">
             <button
               type="button"
               onClick={() => void handleFork()}
               disabled={forkMutation.isPending}
-              className="rounded-md bg-[#7c5cff] px-3 py-1.5 text-sm font-medium text-white transition hover:bg-[#6b4be0] disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-md bg-[#7c5cff] px-3 py-1.5 text-sm font-medium text-white transition hover:bg-[#6b4be0] disabled:opacity-60"
             >
-              {forkMutation.isPending ? "Opening…" : "Edit this template"}
+              {forkMutation.isPending ? (
+                <>
+                  <Loader2Icon className="size-4 animate-spin" />
+                  Opening…
+                </>
+              ) : (
+                "Edit this template"
+              )}
             </button>
-          ) : (
-            <AuthButton
-              loggedIn={false}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-3">
+            <p className="text-sm text-muted-foreground">
+              Sign in to fork this template and start editing.
+            </p>
+            <AuthProviders
               lastUsed={lastUsed}
               callbackURL={`/?fork=${stock?.slug ?? ""}`}
-              triggerLabel="Sign in to edit"
-              className="rounded-md px-3 py-1.5 text-sm"
+              className="max-w-xs"
             />
-          )}
-        </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

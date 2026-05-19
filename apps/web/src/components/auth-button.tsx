@@ -263,6 +263,41 @@ export function AuthButton({
   );
 }
 
+// Inline provider list — no overlay, no portal. For surfaces that are already
+// their own modal (e.g. a dialog) so we don't nest a fullscreen reveal inside
+// a transformed container (which traps `position: fixed`).
+export function AuthProviders({
+  lastUsed = null,
+  callbackURL = "/",
+  className,
+}: {
+  lastUsed?: AuthProvider | null;
+  callbackURL?: string;
+  className?: string;
+}) {
+  const [pending, startTransition] = useTransition();
+  return (
+    <div className={cn("flex w-full flex-col items-center gap-3", className)}>
+      <ProviderCard
+        provider="github"
+        label="Continue with GitHub"
+        isLastUsed={lastUsed === "github"}
+        callbackURL={callbackURL}
+        pending={pending}
+        startTransition={startTransition}
+      />
+      <ProviderCard
+        provider="google"
+        label="Continue with Google"
+        isLastUsed={lastUsed === "google"}
+        callbackURL={callbackURL}
+        pending={pending}
+        startTransition={startTransition}
+      />
+    </div>
+  );
+}
+
 function ProviderCard({
   provider,
   label,
