@@ -196,8 +196,13 @@ function MobileEditorLayout({ topBar }: { topBar?: ReactNode }) {
       {topBar ?? <TopBar />}
       <div className="relative min-h-0 min-w-0 flex-1">
         <Canvas />
+        {/* Overlay the contextual bar instead of letting it sit in the column
+            flow — otherwise mounting/unmounting it on (de)selection resizes
+            the flex-1 canvas and the artboard jumps. */}
+        <div className="absolute inset-x-0 bottom-0 z-10">
+          <MobileContextualBar />
+        </div>
       </div>
-      <MobileContextualBar />
       <MobileBottomNav activeTab={activeTab} onTabPress={onTabPress} />
       <Drawer open={sheetOpen} onOpenChange={setSheetOpen}>
         <DrawerContent aria-describedby={undefined}>

@@ -2,6 +2,7 @@
 
 import { Maximize2, Minus, Plus } from "lucide-react";
 import { useEditor } from "./store";
+import { useIsMobile } from "./use-is-mobile";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -31,6 +32,12 @@ export function ZoomBar({
 }) {
   const zoom = useEditor((s) => s.zoom);
   const setZoom = useEditor((s) => s.setZoom);
+  const hasSelection = useEditor((s) => s.selectedId != null);
+  const isMobile = useIsMobile();
+
+  // On mobile the contextual bar (h-11) overlays the canvas bottom whenever a
+  // node is selected; lift the zoom bar clear of it so it isn't covered.
+  const raised = isMobile && hasSelection;
 
   const stepDown = () => {
     const next = [...STEPS].reverse().find((s) => s < scale - 0.001);
@@ -44,7 +51,12 @@ export function ZoomBar({
   const selectValue = zoom === "fit" ? "fit" : String(closestStep(scale));
 
   return (
-    <div className="absolute bottom-3 right-3 z-10 inline-flex h-9 items-center gap-1 rounded-xl border border-zinc-200 bg-white px-1.5 text-xs text-zinc-700 shadow-md">
+    <div
+      className={cn(
+        "absolute right-3 z-10 inline-flex h-9 items-center gap-1 rounded-xl border border-zinc-200 bg-white px-1.5 text-xs text-zinc-700 shadow-md transition-[bottom] duration-150",
+        raised ? "bottom-[4.5rem]" : "bottom-3",
+      )}
+    >
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
