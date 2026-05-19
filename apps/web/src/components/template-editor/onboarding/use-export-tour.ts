@@ -10,7 +10,7 @@ import { useTourStore } from "./tour-store";
 
 /**
  * Drives the export-panel walkthrough. Unlike the variables tour it seeds no
- * document state — every anchor already exists once the panel is open — so it
+ * document state (every anchor already exists once the panel is open), so it
  * only has to keep the panel from closing under driver.js's overlay (via
  * `exportTourActive`) and tear that flag down on teardown.
  */
@@ -46,7 +46,7 @@ export function useExportTour() {
         prevBtnText: "← Back",
         doneBtnText: "Got it",
         steps: EXPORT_TOUR_STEPS,
-        // Record completion on entry to the last step — the "Got it" click
+        // Record completion on entry to the last step; the "Got it" click
         // destroys the tour synchronously and would outrace a post-transition
         // hook (same reasoning as the variables tour).
         onHighlightStarted: (_el, _step, o) => {
@@ -62,7 +62,7 @@ export function useExportTour() {
       });
       driverRef.current = d;
 
-      // While enforced, overlay clicks can't dismiss — shake the card instead.
+      // While enforced, overlay clicks can't dismiss; shake the card instead.
       if (enforce) {
         const nudge = (e: MouseEvent) => {
           const target = e.target as HTMLElement | null;

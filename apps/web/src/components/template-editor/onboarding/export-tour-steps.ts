@@ -14,7 +14,7 @@ export const EXPORT_TOUR_STEPS: DriveStep[] = [
       align: "start",
       title: "tweak values live",
       description:
-        "every bound variable lands here. change one and the preview updates instantly — no save needed.",
+        "every bound variable lands here. change one and the preview updates instantly, no save needed.",
     },
   },
   {
