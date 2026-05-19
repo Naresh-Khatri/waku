@@ -84,7 +84,10 @@ export function PreviewTab({
   return (
     <>
       <div className="flex min-h-0 flex-1">
-        <div className="flex w-[280px] shrink-0 flex-col">
+        <div
+          data-tour="export-params"
+          className="flex w-[280px] shrink-0 flex-col"
+        >
           {entries.length === 0 ? (
             <div className="flex-1 px-3 py-3 text-[11px] text-zinc-500">
               Click the link icon next to a field to bind a param.
@@ -107,7 +110,10 @@ export function PreviewTab({
         </div>
 
         {showPreview ? (
-          <div className="flex w-[440px] shrink-0 flex-col border-l border-zinc-200 bg-zinc-50">
+          <div
+            data-tour="export-preview"
+            className="flex w-[440px] shrink-0 flex-col border-l border-zinc-200 bg-zinc-50"
+          >
             <div className="min-h-0 flex-1 overflow-hidden">
               <OgSocialPreview
                 url={fullUrl}

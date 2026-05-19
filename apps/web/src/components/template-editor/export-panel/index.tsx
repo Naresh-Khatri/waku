@@ -23,10 +23,14 @@ import { useEditor } from "../store";
 import { isParamRef, paramsWithDefaults } from "../types";
 import type { Artboard, EditorNode, TemplateDocument } from "../types";
 import { searchFromParams } from "../url-params";
+import { useExportTour } from "../onboarding/use-export-tour";
+import { useTourStore } from "../onboarding/tour-store";
 import { TRANSITION } from "./constants";
 import { Header, type Tab } from "./header";
 import { HistoryTab } from "./history";
 import { PreviewTab } from "./preview";
+
+const TOUR_SEEN_KEY = "wk:exportTourSeen";
 
 type Props = {
   liveUrl?: string;
@@ -62,10 +66,15 @@ export function ExportPanel({
   const panelRef = useRef<HTMLDivElement | null>(null);
   const isMobile = useIsMobile();
 
+  const { start: startTour } = useExportTour();
+  const tourFired = useRef(false);
+
   useEffect(() => {
     // Mobile uses the Drawer's own overlay-tap dismissal.
     if (!expanded || isMobile) return;
     const onMouseDown = (e: MouseEvent) => {
+      // Don't let clicks on the tour's overlay dismiss the panel.
+      if (useTourStore.getState().exportTourActive) return;
       const node = panelRef.current;
       if (!node) return;
       if (e.target instanceof Node && !node.contains(e.target)) {
@@ -75,6 +84,26 @@ export function ExportPanel({
     document.addEventListener("mousedown", onMouseDown);
     return () => document.removeEventListener("mousedown", onMouseDown);
   }, [expanded, setExpanded, isMobile]);
+
+  // First time the panel is opened (desktop, with a live URL to demo
+  // against), auto-run a short walkthrough. Locked until finished, so a
+  // bail-out greets them again next time; replays close freely.
+  useEffect(() => {
+    if (!expanded || isMobile || tourFired.current) return;
+    if (typeof window === "undefined" || !liveUrl) return;
+    if (window.localStorage.getItem(TOUR_SEEN_KEY)) return;
+    tourFired.current = true;
+    const t = window.setTimeout(
+      () =>
+        startTour({
+          enforce: true,
+          onComplete: () =>
+            window.localStorage.setItem(TOUR_SEEN_KEY, "1"),
+        }),
+      400,
+    );
+    return () => window.clearTimeout(t);
+  }, [expanded, isMobile, liveUrl, startTour]);
 
   const utils = api.useUtils();
   const snapshots = api.template.listSnapshots.useQuery(
