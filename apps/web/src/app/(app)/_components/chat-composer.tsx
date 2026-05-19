@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { TemplateDocument } from "@/components/template-editor/types";
+import { authClient } from "@/server/better-auth/client";
 import { api } from "@/trpc/react";
 
 import { TemplatePreview } from "./template-preview";
@@ -148,12 +149,22 @@ export function ChatComposer() {
     syncUrl(null);
   };
 
+  const { data: session } = authClient.useSession();
+
   const send = (text: string) => {
     const trimmed = text.trim();
     if (!trimmed || status === "submitted" || status === "streaming") return;
     setExpanded(true);
-    sendMessage({ text: trimmed });
     setInput("");
+    void (async () => {
+      // First persisting action for a guest → mint the anon session before
+      // the POST so /api/chat sees a user (and conversation/credits scope).
+      if (!session) {
+        const res = await authClient.signIn.anonymous();
+        if (res.error) return;
+      }
+      sendMessage({ text: trimmed });
+    })();
   };
 
   const onSubmit = (e: React.FormEvent) => {

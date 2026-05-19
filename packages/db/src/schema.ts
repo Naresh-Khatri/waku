@@ -205,6 +205,30 @@ export const aiGeneration = pgTable(
   ],
 );
 
+// Durable intent record for anonymous → real account conversion. Written
+// (pending) before migrateAnonData runs, flipped to done in the same commit
+// that deletes the anon user. The cleanup cron reconciles non-done rows and
+// must never delete an anon user that still has a non-done row here.
+// See server/better-auth/anon-migration-design.md.
+export const anonLink = pgTable(
+  "anon_link",
+  {
+    anonUserId: text("anon_user_id")
+      .primaryKey()
+      .references(() => user.id, { onDelete: "cascade" }),
+    targetUserId: text("target_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    // "pending" | "done" | "failed"
+    status: text("status").notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    lastError: text("last_error"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [index("anon_link_status_idx").on(t.status, t.updatedAt)],
+);
+
 export const userRelations = relations(user, ({ many, one }) => ({
   account: many(account),
   session: many(session),

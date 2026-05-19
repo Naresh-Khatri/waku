@@ -7,7 +7,10 @@ import { CREDIT_COSTS, getBalance } from "@/server/billing/credits";
 
 export const creditsRouter = createTRPCRouter({
   balance: protectedProcedure.query(async ({ ctx }) => {
-    const balance = await getBalance(ctx.session.user.id);
+    const balance = await getBalance(
+      ctx.session.user.id,
+      ctx.session.user.isAnonymous ?? false,
+    );
     return { balance, costs: CREDIT_COSTS };
   }),
 

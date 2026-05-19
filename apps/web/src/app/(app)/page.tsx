@@ -13,7 +13,10 @@ export default async function DashboardPage() {
     <>
       <div className="mx-auto flex max-w-7xl flex-col gap-10 pb-40">
         <MyDesignsStrip />
-        <Catalogue loggedIn={Boolean(session?.user)} lastUsed={lastUsed} />
+        <Catalogue
+          loggedIn={Boolean(session?.user) && !session?.user.isAnonymous}
+          lastUsed={lastUsed}
+        />
       </div>
       <div
         aria-hidden

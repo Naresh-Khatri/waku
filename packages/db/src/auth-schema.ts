@@ -12,6 +12,13 @@ export const user = pgTable("user", {
     .default(false)
     .$defaultFn(() => false)
     .notNull(),
+  // Set by the better-auth anonymous plugin. Anonymous users are real rows
+  // (so userId FKs work) but own only ephemeral guest work until they
+  // convert; see server/better-auth/anon-migration-design.md.
+  isAnonymous: boolean("is_anonymous")
+    .default(false)
+    .$defaultFn(() => false)
+    .notNull(),
   createdAt: timestamp("created_at")
     .$defaultFn(() => /* @__PURE__ */ new Date())
     .notNull(),

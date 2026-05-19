@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  DeleteObjectsCommand,
   HeadObjectCommand,
   PutObjectCommand,
   S3Client,
@@ -62,6 +63,20 @@ export const storage: StorageAdapter = {
       };
     } catch {
       return null;
+    }
+  },
+
+  async delete(keys): Promise<void> {
+    const unique = [...new Set(keys.filter(Boolean))];
+    // S3/R2 DeleteObjects caps at 1000 keys per request.
+    for (let i = 0; i < unique.length; i += 1000) {
+      const batch = unique.slice(i, i + 1000);
+      await getClient().send(
+        new DeleteObjectsCommand({
+          Bucket: env.R2_BUCKET,
+          Delete: { Objects: batch.map((Key) => ({ Key })), Quiet: true },
+        }),
+      );
     }
   },
 };

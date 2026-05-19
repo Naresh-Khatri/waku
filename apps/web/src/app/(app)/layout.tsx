@@ -16,7 +16,12 @@ export default async function AppLayout({
   const session = await getSession();
   const lastUsed = await getLastUsedProvider();
 
-  const profile = session?.user ? await ensureProfile(session.user) : null;
+  // A guest has a session but no real account. They still get a profile
+  // (the handle is needed for render-preview URLs in the editor), but the
+  // member chrome (@handle, credits) is reserved for real accounts.
+  const isRealUser = !!session?.user && !session.user.isAnonymous;
+  const profile =
+    session?.user && isRealUser ? await ensureProfile(session.user) : null;
 
   const [templates, usage] = session?.user
     ? await Promise.all([api.template.list(), api.template.usage()])
@@ -42,8 +47,8 @@ export default async function AppLayout({
               </>
             ) : null}
             <AuthButton
-              loggedIn={!!session?.user}
-              user={session?.user ?? null}
+              loggedIn={isRealUser}
+              user={isRealUser ? (session?.user ?? null) : null}
               lastUsed={lastUsed}
             />
           </div>

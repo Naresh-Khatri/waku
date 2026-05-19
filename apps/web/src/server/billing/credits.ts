@@ -6,6 +6,11 @@ import { sql, eq } from "drizzle-orm";
 import { db } from "@/server/db";
 
 export const FREE_STARTER_CREDITS = 25;
+// Anonymous guests get a small allowance (Option A): enough to try AI once or
+// twice, capped low so a minted-and-abandoned guest row costs little. On
+// conversion the real account still gets the full FREE_STARTER_CREDITS and
+// the merged anon balance rides along — intentional, no de-dup.
+export const FREE_ANON_CREDITS = 5;
 
 export const CREDIT_COSTS = {
   pickTemplate: 1,
@@ -17,13 +22,18 @@ export const CREDIT_COSTS = {
 export type CreditReason =
   | "topup"
   | "starter"
+  | "anon_starter"
+  | "anon_merge"
   | "ai.template_pick"
   | "ai.theme_remix"
   | "ai.bg_gen"
   | "ai.copy"
   | "refund";
 
-export async function ensureBalanceRow(userId: string): Promise<number> {
+export async function ensureBalanceRow(
+  userId: string,
+  isAnonymous = false,
+): Promise<number> {
   const existing = await db
     .select({ balance: creditBalance.balance })
     .from(creditBalance)
@@ -31,23 +41,31 @@ export async function ensureBalanceRow(userId: string): Promise<number> {
     .limit(1);
   if (existing[0]) return existing[0].balance;
 
+  // Grant size depends on whether the row is being created for a guest.
+  // Caller MUST pass isAnonymous for anon sessions, or a guest mints the
+  // full starter grant (the core abuse vector — see anon-migration-design).
+  const grant = isAnonymous ? FREE_ANON_CREDITS : FREE_STARTER_CREDITS;
+  const reason: CreditReason = isAnonymous ? "anon_starter" : "starter";
   return db.transaction(async (tx) => {
     await tx
       .insert(creditBalance)
-      .values({ userId, balance: FREE_STARTER_CREDITS })
+      .values({ userId, balance: grant })
       .onConflictDoNothing();
     await tx.insert(creditLedger).values({
       userId,
-      delta: FREE_STARTER_CREDITS,
-      reason: "starter",
-      balanceAfter: FREE_STARTER_CREDITS,
+      delta: grant,
+      reason,
+      balanceAfter: grant,
     });
-    return FREE_STARTER_CREDITS;
+    return grant;
   });
 }
 
-export async function getBalance(userId: string): Promise<number> {
-  return ensureBalanceRow(userId);
+export async function getBalance(
+  userId: string,
+  isAnonymous = false,
+): Promise<number> {
+  return ensureBalanceRow(userId, isAnonymous);
 }
 
 export type ChargeResult =
@@ -59,9 +77,10 @@ export async function chargeCredits(
   amount: number,
   reason: CreditReason,
   refId?: string,
+  isAnonymous = false,
 ): Promise<ChargeResult> {
   if (amount <= 0) throw new Error("amount must be positive");
-  await ensureBalanceRow(userId);
+  await ensureBalanceRow(userId, isAnonymous);
   return db.transaction(async (tx) => {
     const updated = await tx
       .update(creditBalance)
