@@ -15,6 +15,13 @@
       "when": 1778098891919,
       "tag": "0001_misty_master_chief",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779189624743,
+      "tag": "0002_futuristic_marvel_boy",
+      "breakpoints": true
     }
   ]
 }
