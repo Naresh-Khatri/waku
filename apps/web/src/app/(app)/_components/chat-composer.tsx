@@ -2,7 +2,7 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
-import { ChevronDown, Sparkles, X } from "lucide-react";
+import { ChevronDown, Loader2, Sparkles, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -72,6 +72,11 @@ export function ChatComposer() {
   const [input, setInput] = useState("");
   const conversationIdRef = useRef<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  // Whether the view is pinned to the bottom. Stays true until the user
+  // scrolls up, so streaming tokens keep the latest content in view but we
+  // never yank them back down while they're reading history.
+  const stickRef = useRef(true);
 
   const transport = useMemo(
     () =>
@@ -183,9 +188,34 @@ export function ChatComposer() {
   const busy = status === "submitted" || status === "streaming";
   const empty = messages.length === 0 && !hydrating;
   const lastMessage = messages[messages.length - 1];
-  const showTyping =
-    status === "submitted" ||
-    (status === "streaming" && lastMessage?.role === "user");
+  // The assistant message frame arrives before any tokens, so keep the
+  // indicator up until it has something renderable (text or a design),
+  // not just until its role flips to "assistant".
+  const hasRenderableContent = (lastMessage?.parts ?? []).some(
+    (p) =>
+      (p.type === "text" && Boolean(p.text?.trim())) ||
+      p.type === "tool-propose_design",
+  );
+  const showTyping = busy && !hasRenderableContent;
+
+  const onScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    stickRef.current =
+      el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  };
+
+  // Follow new content (streamed tokens, new messages, the typing
+  // indicator) while pinned to the bottom. Reset to pinned when switching
+  // chats so a freshly loaded thread opens at its latest message.
+  useEffect(() => {
+    if (!stickRef.current) return;
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages, showTyping, hydrating]);
+
+  useEffect(() => {
+    stickRef.current = true;
+  }, [activeId]);
 
   return (
     <>
@@ -227,7 +257,19 @@ export function ChatComposer() {
                 onSelectChat={selectChat}
                 onCollapse={collapse}
               />
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex items-center gap-2 border-b border-[#1f2937] bg-[#111827] px-3 py-1.5 text-[11px] text-[#9ca3af]">
+                <span className="shrink-0 rounded-full bg-[#7c5cff] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                  Beta
+                </span>
+                <span className="truncate">
+                  This is rough around the edges. Expect things to go wrong.
+                </span>
+              </div>
+              <div
+                ref={scrollRef}
+                onScroll={onScroll}
+                className="flex-1 overflow-y-auto"
+              >
                 {hydrating ? (
                   <div className="flex h-full items-center justify-center text-sm text-[#6b7280]">
                     Loading chat…
@@ -272,7 +314,7 @@ export function ChatComposer() {
                         conversationId={activeId}
                       />
                     ))}
-                    {showTyping ? <Typing /> : null}
+                    {showTyping ? <ThinkingIndicator /> : null}
                     {error ? (
                       <div className="rounded-md border border-[#7f1d1d] bg-[#1f0a0a] px-3 py-2 text-sm text-[#fca5a5]">
                         Something went wrong. Please try again.
@@ -289,12 +331,12 @@ export function ChatComposer() {
           layout
           transition={PANEL_SPRING}
           onSubmit={onSubmit}
-          className={`flex items-end gap-2 border border-[#1f2937] bg-[#0b0f1a]/95 p-2 shadow-lg backdrop-blur focus-within:border-[#7c5cff] ${
+          className={`flex items-center gap-2 border border-[#1f2937] bg-[#0b0f1a]/95 p-2 shadow-lg backdrop-blur focus-within:border-[#7c5cff] ${
             expanded ? "rounded-b-2xl border-t-0" : "rounded-2xl"
           }`}
         >
           {!expanded ? (
-            <Sparkles className="ml-2 mt-2 h-4 w-4 shrink-0 text-[#7c5cff]" />
+            <Sparkles className="ml-2 h-4 w-4 shrink-0 text-[#7c5cff]" />
           ) : null}
           <textarea
             ref={inputRef}
@@ -318,8 +360,9 @@ export function ChatComposer() {
             <button
               type="button"
               onClick={stop}
-              className="rounded-full border border-[#1f2937] px-4 py-2 text-sm font-medium text-[#9ca3af] transition hover:border-[#7c5cff] hover:text-[#e5e7eb]"
+              className="flex items-center gap-1.5 rounded-full border border-[#1f2937] px-4 py-2 text-sm font-medium text-[#9ca3af] transition hover:border-[#7c5cff] hover:text-[#e5e7eb]"
             >
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
               Stop
             </button>
           ) : (
@@ -569,7 +612,10 @@ function DesignProposal({
   };
 
   return (
-    <ProposalShell label={name} sublabel={basedOnStock ? `based on ${basedOnStock}` : null}>
+    <ProposalShell
+      label={name}
+      sublabel={basedOnStock ? `based on ${basedOnStock}` : null}
+    >
       <button
         type="button"
         onClick={onOpen}
@@ -610,7 +656,9 @@ function ProposalShell({
         <div className="flex items-baseline justify-between gap-2 px-1">
           <div className="text-xs font-medium text-[#9ca3af]">{label}</div>
           {sublabel ? (
-            <div className="truncate text-[10px] text-[#6b7280]">{sublabel}</div>
+            <div className="truncate text-[10px] text-[#6b7280]">
+              {sublabel}
+            </div>
           ) : null}
         </div>
         {children}
@@ -619,15 +667,70 @@ function ProposalShell({
   );
 }
 
-function Typing() {
+// Whimsical gerunds, Claude-Code style. Picked at random and rotated while
+// the model is working so the wait feels alive rather than stalled.
+const THINKING_VERBS = [
+  "Thinking",
+  "Designing",
+  "Sketching",
+  "Composing",
+  "Conjuring",
+  "Crafting",
+  "Pondering",
+  "Imagining",
+  "Mulling",
+  "Noodling",
+  "Brewing",
+  "Percolating",
+  "Synthesizing",
+  "Vibing",
+];
+
+function ShimmerText({ text }: { text: string }) {
+  return (
+    <motion.span
+      className="bg-clip-text text-transparent"
+      style={{
+        backgroundImage:
+          "linear-gradient(90deg, #6b7280 0%, #6b7280 40%, #f3f4f6 50%, #6b7280 60%, #6b7280 100%)",
+        backgroundSize: "200% 100%",
+      }}
+      animate={{ backgroundPositionX: ["200%", "-200%"] }}
+      transition={{ duration: 1.6, ease: "linear", repeat: Infinity }}
+    >
+      {text}
+    </motion.span>
+  );
+}
+
+function ThinkingIndicator() {
+  const [i, setI] = useState(() =>
+    Math.floor(Math.random() * THINKING_VERBS.length),
+  );
+  useEffect(() => {
+    const id = setInterval(
+      () => setI((p) => (p + 1) % THINKING_VERBS.length),
+      2200,
+    );
+    return () => clearInterval(id);
+  }, []);
+  const verb = THINKING_VERBS[i];
+
   return (
     <div className="flex justify-start">
-      <div className="rounded-2xl rounded-bl-sm border border-[#1f2937] bg-[#0b0f1a] px-4 py-3">
-        <div className="flex gap-1">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#6b7280]" />
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#6b7280] [animation-delay:120ms]" />
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#6b7280] [animation-delay:240ms]" />
-        </div>
+      <div className="rounded-2xl rounded-bl-sm border border-[#1f2937] bg-[#0b0f1a] px-4 py-2.5">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={verb}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.22 }}
+            className="text-sm font-medium"
+          >
+            <ShimmerText text={`${verb}…`} />
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );
