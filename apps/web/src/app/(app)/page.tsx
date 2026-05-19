@@ -1,13 +1,19 @@
+import { getLastUsedProvider } from "@/server/better-auth/last-used";
+import { getSession } from "@/server/better-auth/server";
+
 import { Catalogue } from "./_components/catalogue";
 import { ChatComposer } from "./_components/chat-composer";
 import { MyDesignsStrip } from "./_components/my-designs-strip";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const session = await getSession();
+  const lastUsed = await getLastUsedProvider();
+
   return (
     <>
       <div className="mx-auto flex max-w-7xl flex-col gap-10 pb-40">
         <MyDesignsStrip />
-        <Catalogue />
+        <Catalogue loggedIn={Boolean(session?.user)} lastUsed={lastUsed} />
       </div>
       <div
         aria-hidden
