@@ -38,21 +38,18 @@ export function ColoredUrl({ url }: { url: string }) {
   );
 }
 
-// Single-line variant for tight spots (the copy bar). Renders as a single
-// truncating line so a long encoded param value elides with an ellipsis
-// instead of overflowing under the adjacent Copy/Download buttons. Param
-// names stay bolded for scannability; the full URL lives in the title attr.
+// Single-line variant for the copy bar. Stays on one line (no wrap) so its
+// horizontal-scroll container can pan a long encoded URL instead of clamping
+// it. Param names stay bolded for scannability.
 export function InlineUrl({ url }: { url: string }) {
   const qIdx = url.indexOf("?");
   if (qIdx === -1) {
-    return (
-      <span className="block w-full min-w-0 truncate text-emerald-900">{url}</span>
-    );
+    return <span className="text-emerald-900">{url}</span>;
   }
   const base = url.slice(0, qIdx);
   const pairs = url.slice(qIdx + 1).split("&");
   return (
-    <span className="block w-full min-w-0 truncate text-emerald-900">
+    <span className="text-emerald-900">
       <span className="text-emerald-700/70">{base}</span>
       {pairs.map((pair, i) => {
         const sep = i === 0 ? "?" : "&";

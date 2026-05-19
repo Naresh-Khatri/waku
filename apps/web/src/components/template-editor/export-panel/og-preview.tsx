@@ -31,6 +31,7 @@ import {
   type SimpleIcon,
 } from "simple-icons";
 
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { InlineUrl } from "./history/colored-url";
 
 export type Platform =
@@ -119,7 +120,8 @@ function withPreviewQuality(url: string): string {
 function inferDownloadExt(url: string, contentType: string | null): string {
   if (contentType) {
     if (contentType.includes("png")) return "png";
-    if (contentType.includes("jpeg") || contentType.includes("jpg")) return "jpg";
+    if (contentType.includes("jpeg") || contentType.includes("jpg"))
+      return "jpg";
     if (contentType.includes("webp")) return "webp";
     if (contentType.includes("svg")) return "svg";
   }
@@ -399,47 +401,44 @@ export function OgPreviewActions({
   return (
     <div className="flex flex-col">
       <div
+        data-tour="export-actions"
         className={`flex border-t ${
           copied
             ? "border-emerald-300 bg-emerald-100"
             : "border-emerald-200 bg-emerald-50"
         }`}
       >
-        <button
-          onClick={copyUrl}
-          disabled={!url}
-          title={url ?? undefined}
-          className={`group flex min-w-0 flex-1 items-center gap-2 px-2 py-2 text-[11px] transition-colors disabled:opacity-50 ${
-            copied ? "" : "hover:bg-emerald-100/60"
-          }`}
-        >
+        <div className="group flex min-w-0 flex-1 items-center gap-2 px-2 py-2 text-[11px]">
           <span
             className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${
               copied
                 ? "bg-emerald-200 text-emerald-800"
-                : "bg-emerald-100 text-emerald-700 group-hover:bg-emerald-200"
+                : "bg-emerald-100 text-emerald-700"
             }`}
           >
             <LinkIcon className="h-3.5 w-3.5" />
           </span>
-          <span className="flex min-w-0 flex-1 items-center text-left font-mono">
-            {copied ? (
-              <span className="block w-full truncate text-emerald-800">
-                Copied to clipboard
-              </span>
-            ) : url ? (
-              <InlineUrl url={url} />
-            ) : (
-              <span className="block w-full truncate text-emerald-900">
-                no url
-              </span>
-            )}
-          </span>
-          <span
-            className={`flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold text-white transition-colors ${
-              copied
-                ? "bg-emerald-600"
-                : "bg-emerald-700 group-hover:bg-emerald-800"
+          <ScrollArea
+            orientation="horizontal"
+            className="min-w-0 flex-1 font-mono"
+          >
+            <div className="mt-1.5 whitespace-nowrap py-1 text-left">
+              {copied ? (
+                <span className="text-emerald-800">Copied to clipboard</span>
+              ) : url ? (
+                <InlineUrl url={url} />
+              ) : (
+                <span className="text-emerald-900">no url</span>
+              )}
+            </div>
+          </ScrollArea>
+          <button
+            type="button"
+            onClick={copyUrl}
+            disabled={!url}
+            title={url ?? undefined}
+            className={`flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold text-white transition-colors disabled:opacity-50 ${
+              copied ? "bg-emerald-600" : "bg-emerald-700 hover:bg-emerald-800"
             }`}
           >
             {copied ? (
@@ -451,8 +450,8 @@ export function OgPreviewActions({
                 <Copy className="h-3.5 w-3.5" /> Copy
               </>
             )}
-          </span>
-        </button>
+          </button>
+        </div>
         <button
           type="button"
           onClick={download}
@@ -466,7 +465,8 @@ export function OgPreviewActions({
       </div>
       {hasParams ? (
         <div className="border-t border-zinc-200 bg-white px-2 py-1 text-[10px] italic text-zinc-500">
-          Download bakes current param values into the image — share the URL to keep them dynamic.
+          Download bakes current param values into the image — share the URL to
+          keep them dynamic.
         </div>
       ) : null}
       {downloadError ? (
