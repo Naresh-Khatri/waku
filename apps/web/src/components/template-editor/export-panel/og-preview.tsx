@@ -31,7 +31,9 @@ import {
   type SimpleIcon,
 } from "simple-icons";
 
+import { track } from "@/lib/analytics";
 import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { InlineUrl } from "./history/colored-url";
 
 export type Platform =
@@ -364,6 +366,7 @@ export function OgPreviewActions({
     if (!url) return;
     try {
       await navigator.clipboard.writeText(url);
+      track("export_copy_url", { has_params: hasParams });
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1200);
     } catch {
@@ -373,6 +376,7 @@ export function OgPreviewActions({
 
   const download = async () => {
     if (!url || downloading) return;
+    track("export_download_start", { has_params: hasParams });
     setDownloading(true);
     setDownloadError(null);
     try {
@@ -391,8 +395,11 @@ export function OgPreviewActions({
       a.click();
       a.remove();
       URL.revokeObjectURL(obj);
+      track("export_download_success", { ext });
     } catch (e) {
-      setDownloadError(e instanceof Error ? e.message : "download failed");
+      const message = e instanceof Error ? e.message : "download failed";
+      track("export_download_error", { message });
+      setDownloadError(message);
     } finally {
       setDownloading(false);
     }

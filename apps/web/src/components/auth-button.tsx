@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { LogOutIcon } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
 
+import { track } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 import {
   signInWithProviderAction,
@@ -134,6 +135,7 @@ export function AuthButton({
             disabled={pending}
             onSelect={(e) => {
               e.preventDefault();
+              track("auth_signout");
               startTransition(() => signOutAction());
             }}
           >
@@ -326,9 +328,14 @@ function ProviderCard({
       <Button
         type="button"
         disabled={pending}
-        onClick={() =>
-          startTransition(() => signInWithProviderAction(provider, callbackURL))
-        }
+        onClick={() => {
+          track("auth_signin_click", {
+            provider,
+            last_used: isLastUsed,
+            callback_url: callbackURL,
+          });
+          startTransition(() => signInWithProviderAction(provider, callbackURL));
+        }}
         className="focus-visible:ring-3 inline-flex h-11 w-full items-center justify-center gap-2 bg-white px-4 text-sm font-medium text-zinc-900 shadow-sm transition-colors hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-white/30 disabled:opacity-60"
       >
         <Logo />

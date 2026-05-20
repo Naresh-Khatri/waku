@@ -2,7 +2,9 @@ import "@/styles/globals.css";
 
 import { type Metadata, type Viewport } from "next";
 import { Geist } from "next/font/google";
+import Script from "next/script";
 
+import { env } from "@/env";
 import { TRPCReactProvider } from "@/trpc/react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -28,9 +30,19 @@ const geist = Geist({
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const umamiScript = env.NEXT_PUBLIC_UMAMI_SCRIPT_URL;
+  const umamiId = env.NEXT_PUBLIC_UMAMI_WEBSITE_ID;
   return (
     <html lang="en" className={`${geist.variable}`}>
       <body>
+        {umamiScript && umamiId ? (
+          <Script
+            defer
+            src={umamiScript}
+            data-website-id={umamiId}
+            strategy="afterInteractive"
+          />
+        ) : null}
         <TRPCReactProvider>
           <TooltipProvider>{children}</TooltipProvider>
         </TRPCReactProvider>

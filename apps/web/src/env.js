@@ -21,6 +21,8 @@ export const env = createEnv({
 
   client: {
     NEXT_PUBLIC_RENDER_BASE_URL: z.string().url(),
+    NEXT_PUBLIC_UMAMI_SCRIPT_URL: z.string().url().optional(),
+    NEXT_PUBLIC_UMAMI_WEBSITE_ID: z.string().min(1).optional(),
   },
 
   shared: {
@@ -48,6 +50,8 @@ export const env = createEnv({
     GROQ_API_KEY: process.env.GROQ_API_KEY,
     GROQ_MODEL: process.env.GROQ_MODEL,
     NEXT_PUBLIC_RENDER_BASE_URL: process.env.NEXT_PUBLIC_RENDER_BASE_URL,
+    NEXT_PUBLIC_UMAMI_SCRIPT_URL: process.env.NEXT_PUBLIC_UMAMI_SCRIPT_URL,
+    NEXT_PUBLIC_UMAMI_WEBSITE_ID: process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID,
   },
 
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,

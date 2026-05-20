@@ -21,6 +21,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { track } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 import { ColoredUrl } from "./colored-url";
 
@@ -61,6 +62,7 @@ export function SnapshotRow({
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(url);
+      track("snapshot_copy_url", { version: snapshot.version });
       setCopied(true);
       setTimeout(() => setCopied(false), 1200);
     } catch {

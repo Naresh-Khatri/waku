@@ -2,8 +2,9 @@
 
 import { Upload } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { track } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -59,7 +60,17 @@ export function ExportPanel({
   const artboard = useEditor((s) => s.artboard);
 
   const expanded = useEditor((s) => s.previewOpen);
-  const setExpanded = useEditor((s) => s.setPreviewOpen);
+  const setExpandedRaw = useEditor((s) => s.setPreviewOpen);
+  // Only fire on transitions to open; the close case isn't a KPI signal.
+  const setExpanded = useCallback(
+    (next: boolean) => {
+      if (next && !expanded) {
+        track("export_panel_open", { template_id: templateId });
+      }
+      setExpandedRaw(next);
+    },
+    [expanded, setExpandedRaw, templateId],
+  );
 
   const [tab, setTab] = useState<Tab>("preview");
   const [platform, setPlatform] = useState<Platform>("x");
@@ -111,13 +122,18 @@ export function ExportPanel({
     { enabled: expanded },
   );
   const create = api.template.createSnapshot.useMutation({
-    onSuccess: () => {
+    onSuccess: (snapshot) => {
+      track("snapshot_create", {
+        template_id: templateId,
+        version: snapshot?.version ?? null,
+      });
       utils.template.listSnapshots.invalidate({ templateId });
       setTab("history");
     },
   });
   const restore = api.template.restoreSnapshot.useMutation({
     onSuccess: (head) => {
+      track("snapshot_restore", { template_id: templateId });
       if (head?.documentJson) {
         loadDocument(head.documentJson as TemplateDocument);
       }

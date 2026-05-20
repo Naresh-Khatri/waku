@@ -6,6 +6,7 @@ import { Loader2Icon, XIcon } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
 import { AuthProviders } from "@/components/auth-button";
+import { track } from "@/lib/analytics";
 import { authClient } from "@/server/better-auth/client";
 import { TemplatePreview } from "@/app/(app)/_components/template-preview";
 import type { TemplateDocument } from "@/components/template-editor/types";
@@ -71,6 +72,12 @@ export function TemplateForkDialog({
 
   const handleFork = async () => {
     if (!stock || forkMutation.isPending) return;
+    const newGuest = !session;
+    track("template_fork_stock", {
+      stock_slug: stock.slug,
+      logged_in: loggedIn,
+      new_guest: newGuest,
+    });
     // First persisting action → mint a guest session only if there's no
     // session at all. An existing anon session must NOT re-sign-in (better
     // -auth rejects that); it can fork directly. Browsing stays sessionless.
@@ -92,6 +99,7 @@ export function TemplateForkDialog({
       void handleFork();
       return;
     }
+    track("guest_fork_confirm_shown", { stock_slug: stock?.slug ?? null });
     setConfirming(true);
   };
 

@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { TemplateDocument } from "@/components/template-editor/types";
+import { track } from "@/lib/analytics";
 import { authClient } from "@/server/better-auth/client";
 import { api } from "@/trpc/react";
 
@@ -156,9 +157,15 @@ export function ChatComposer() {
 
   const { data: session } = authClient.useSession();
 
-  const send = (text: string) => {
+  const send = (text: string, source: "input" | "suggestion" = "input") => {
     const trimmed = text.trim();
     if (!trimmed || status === "submitted" || status === "streaming") return;
+    track("chat_send", {
+      source,
+      length: trimmed.length,
+      new_guest: !session,
+      new_chat: !activeId,
+    });
     setExpanded(true);
     setInput("");
     void (async () => {
@@ -295,7 +302,7 @@ export function ChatComposer() {
                         <button
                           key={s.label}
                           type="button"
-                          onClick={() => send(s.prompt)}
+                          onClick={() => send(s.prompt, "suggestion")}
                           disabled={busy}
                           className="rounded-lg border border-[#1f2937] bg-[#0b0f1a] px-3 py-2.5 text-left text-sm text-[#9ca3af] transition hover:border-[#7c5cff] hover:text-[#e5e7eb] disabled:opacity-50"
                           title={s.prompt}
@@ -602,6 +609,10 @@ function DesignProposal({
 
   const onOpen = () => {
     if (forking || !conversationId) return;
+    track("template_fork_ai", {
+      name,
+      based_on_stock: basedOnStock ?? null,
+    });
     setForkError(null);
     setForking(true);
     fork.mutate({
